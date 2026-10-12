@@ -21,12 +21,12 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
-import type { JobApplication } from '@/types/dashboard'
-import { PlusCircle, Building2, Calendar, DollarSign, Link2, MapPin } from 'lucide-react'
-import { toast } from 'sonner'
+import type { JobApplication, WorkplaceType } from '@/types/dashboard'
+import { cn } from '@/lib/utils'
+import { PlusCircle, Pencil, Building2, Calendar, DollarSign, Link2, MapPin } from 'lucide-react'
 
 // 1. Zod Validation Schema with Field & Cross-Field Validations
-const addApplicationSchema = z
+const applicationFormSchema = z
   .object({
     company: z.string().trim().min(1, 'Company name is required'),
     role: z.string().trim().min(1, 'Job title is required'),
@@ -54,7 +54,9 @@ const addApplicationSchema = z
         { message: 'Must be a valid URL starting with http:// or https://' }
       ),
     location: z.string().trim().optional(),
-    workplaceType: z.enum(['Remote', 'Hybrid', 'On-site']),
+    workplaceType: z.enum(['Remote', 'Hybrid', 'On-site'], {
+      errorMap: () => ({ message: 'Work arrangement is required' }),
+    }),
     employmentType: z
       .enum(['Full-time', 'Part-time', 'Contract', 'Internship'])
       .optional(),
@@ -110,12 +112,16 @@ const addApplicationSchema = z
     }
   )
 
-export type AddApplicationFormValues = z.infer<typeof addApplicationSchema>
+export type ApplicationFormData = z.infer<typeof applicationFormSchema>
 
-interface AddApplicationDialogProps {
+export interface ApplicationFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAddApplication: (newApp: Omit<JobApplication, 'id'>) => void
+  applicationToEdit?: JobApplication | null
+  onSaveApplication: (
+    appData: Omit<JobApplication, 'id'>,
+    existingId?: string
+  ) => void
 }
 
 function formatSalary(min?: number, max?: number): string | undefined {
@@ -135,11 +141,13 @@ function formatSalary(min?: number, max?: number): string | undefined {
   return undefined
 }
 
-export function AddApplicationDialog({
+export function ApplicationFormDialog({
   open,
   onOpenChange,
-  onAddApplication,
-}: AddApplicationDialogProps) {
+  applicationToEdit,
+  onSaveApplication,
+}: ApplicationFormDialogProps) {
+  const isEditing = Boolean(applicationToEdit)
   const today = new Date().toISOString().split('T')[0]
 
   const {
@@ -148,8 +156,8 @@ export function AddApplicationDialog({
     control,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AddApplicationFormValues>({
-    resolver: zodResolver(addApplicationSchema),
+  } = useForm<ApplicationFormData>({
+    resolver: zodResolver(applicationFormSchema),
     defaultValues: {
       company: '',
       role: '',
@@ -157,7 +165,7 @@ export function AddApplicationDialog({
       appliedDate: today,
       jobUrl: '',
       location: '',
-      workplaceType: 'Remote',
+      workplaceType: '' as unknown as WorkplaceType,
       employmentType: 'Full-time',
       minSalary: '',
       maxSalary: '',
@@ -166,27 +174,46 @@ export function AddApplicationDialog({
     },
   })
 
-  // Reset form when dialog opens/closes
+  // Prefill when editing, reset to blank when creating
   useEffect(() => {
-    if (!open) {
-      reset({
-        company: '',
-        role: '',
-        status: 'Applied',
-        appliedDate: today,
-        jobUrl: '',
-        location: '',
-        workplaceType: 'Remote',
-        employmentType: 'Full-time',
-        minSalary: '',
-        maxSalary: '',
-        notes: '',
-        followUpDate: '',
-      })
+    if (open) {
+      if (applicationToEdit) {
+        reset({
+          company: applicationToEdit.company,
+          role: applicationToEdit.role,
+          status: applicationToEdit.status,
+          appliedDate: applicationToEdit.appliedDate,
+          jobUrl: applicationToEdit.jobUrl || '',
+          location: applicationToEdit.location || '',
+          workplaceType: applicationToEdit.workplaceType,
+          employmentType: applicationToEdit.employmentType || 'Full-time',
+          minSalary:
+            applicationToEdit.minSalary !== undefined ? String(applicationToEdit.minSalary) : '',
+          maxSalary:
+            applicationToEdit.maxSalary !== undefined ? String(applicationToEdit.maxSalary) : '',
+          notes: applicationToEdit.notes || '',
+          followUpDate: applicationToEdit.followUpDate || '',
+        })
+      } else {
+        reset({
+          company: '',
+          role: '',
+          status: 'Applied',
+          appliedDate: today,
+          jobUrl: '',
+          location: '',
+          workplaceType: '' as unknown as WorkplaceType,
+          employmentType: 'Full-time',
+          minSalary: '',
+          maxSalary: '',
+          notes: '',
+          followUpDate: '',
+        })
+      }
     }
-  }, [open, reset, today])
+  }, [open, applicationToEdit, reset, today])
 
-  const onSubmit = (data: AddApplicationFormValues) => {
+  const onSubmit = (data: ApplicationFormData) => {
     const min =
       data.minSalary && data.minSalary.trim() !== '' ? Number(data.minSalary) : undefined
     const max =
@@ -194,25 +221,24 @@ export function AddApplicationDialog({
 
     const formatted = formatSalary(min, max)
 
-    onAddApplication({
-      company: data.company.trim(),
-      role: data.role.trim(),
-      status: data.status,
-      appliedDate: data.appliedDate,
-      jobUrl: data.jobUrl?.trim() || undefined,
-      location: data.location?.trim() || 'Remote',
-      workplaceType: data.workplaceType,
-      employmentType: data.employmentType || undefined,
-      minSalary: min,
-      maxSalary: max,
-      salary: formatted,
-      notes: data.notes?.trim() || undefined,
-      followUpDate: data.followUpDate || undefined,
-    })
-
-    toast.success('Application tracked successfully!', {
-      description: `${data.role} at ${data.company} has been added to your pipeline.`,
-    })
+    onSaveApplication(
+      {
+        company: data.company.trim(),
+        role: data.role.trim(),
+        status: data.status,
+        appliedDate: data.appliedDate,
+        jobUrl: data.jobUrl?.trim() || undefined,
+        location: data.location?.trim() || undefined,
+        workplaceType: data.workplaceType,
+        employmentType: data.employmentType || undefined,
+        minSalary: min,
+        maxSalary: max,
+        salary: formatted,
+        notes: data.notes?.trim() || undefined,
+        followUpDate: data.followUpDate || undefined,
+      },
+      applicationToEdit ? applicationToEdit.id : undefined
+    )
 
     onOpenChange(false)
   }
@@ -223,12 +249,16 @@ export function AddApplicationDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-md bg-blue-600 text-white shadow-xs">
-              <PlusCircle className="size-4" />
+              {isEditing ? <Pencil className="size-4" /> : <PlusCircle className="size-4" />}
             </div>
-            <DialogTitle className="text-lg">Add New Application</DialogTitle>
+            <DialogTitle className="text-lg">
+              {isEditing ? 'Edit Application' : 'Add New Application'}
+            </DialogTitle>
           </div>
           <DialogDescription>
-            Record a new job opportunity to track your interviews, follow-ups, and offer progress.
+            {isEditing
+              ? `Update details, status, compensation, and notes for ${applicationToEdit?.company}.`
+              : 'Record a new job opportunity to track your interviews, follow-ups, and offer progress.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -392,15 +422,25 @@ export function AddApplicationDialog({
               {/* Workplace Type */}
               <div className="space-y-1.5">
                 <Label htmlFor="workplaceType" className="text-xs font-medium">
-                  Work Arrangement
+                  Work Arrangement <span className="text-rose-500">*</span>
                 </Label>
                 <Controller
                   name="workplaceType"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="workplaceType" className="h-9 w-full text-xs sm:text-sm">
-                        <SelectValue placeholder="Workplace" />
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger
+                        id="workplaceType"
+                        aria-invalid={!!errors.workplaceType}
+                        className={cn(
+                          'h-9 w-full text-xs sm:text-sm',
+                          errors.workplaceType && 'border-destructive ring-destructive/20'
+                        )}
+                      >
+                        <SelectValue placeholder="Select arrangement" />
                       </SelectTrigger>
                       <SelectContent position="popper">
                         <SelectItem value="Remote">Remote</SelectItem>
@@ -410,6 +450,11 @@ export function AddApplicationDialog({
                     </Select>
                   )}
                 />
+                {errors.workplaceType && (
+                  <p className="text-[11px] font-medium text-destructive">
+                    {errors.workplaceType.message}
+                  </p>
+                )}
               </div>
 
               {/* Employment Type */}
@@ -441,9 +486,12 @@ export function AddApplicationDialog({
 
               {/* Location */}
               <div className="space-y-1.5">
-                <Label htmlFor="location" className="text-xs font-medium">
-                  Location
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="location" className="text-xs font-medium">
+                    Location
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-normal">(Optional)</span>
+                </div>
                 <Input
                   id="location"
                   placeholder="e.g. San Francisco, CA"
@@ -538,7 +586,7 @@ export function AddApplicationDialog({
               disabled={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
             >
-              Add Application
+              {isEditing ? 'Save Changes' : 'Add Application'}
             </Button>
           </DialogFooter>
         </form>
@@ -546,3 +594,6 @@ export function AddApplicationDialog({
     </Dialog>
   )
 }
+
+// Backward-compatible alias
+export const AddApplicationDialog = ApplicationFormDialog

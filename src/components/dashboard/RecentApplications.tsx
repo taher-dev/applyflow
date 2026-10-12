@@ -1,4 +1,5 @@
 import type { JobApplication, ApplicationStatus } from '@/types/dashboard'
+import { cn } from '@/lib/utils'
 import {
   Card,
   CardHeader,
@@ -15,13 +16,55 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Building2, MapPin, Calendar, DollarSign } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  Building2,
+  MapPin,
+  Calendar,
+  DollarSign,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  ArrowRightLeft,
+  Check,
+  Plus,
+} from 'lucide-react'
 
 interface RecentApplicationsProps {
   applications: JobApplication[]
   searchQuery: string
   onClearSearch: () => void
+  onAddNew?: () => void
+  onEditApplication: (application: JobApplication) => void
+  onDeleteApplication: (application: JobApplication) => void
+  onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
 }
+
+const ALL_STATUSES: ApplicationStatus[] = [
+  'Saved',
+  'Applied',
+  'Screening',
+  'Interview',
+  'Offer',
+  'Rejected',
+]
 
 function getStatusBadgeClass(status: ApplicationStatus): string {
   switch (status) {
@@ -46,6 +89,10 @@ export function RecentApplications({
   applications,
   searchQuery,
   onClearSearch,
+  onAddNew,
+  onEditApplication,
+  onDeleteApplication,
+  onUpdateStatus,
 }: RecentApplicationsProps) {
   return (
     <Card className="border border-border/80 bg-card shadow-2xs w-full min-w-0 overflow-hidden">
@@ -56,7 +103,7 @@ export function RecentApplications({
               Recent Applications
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              Track status across your {applications.length} latest opportunities
+              Track, update status, and manage your {applications.length} pipeline opportunities
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-xs font-normal self-start sm:self-auto">
@@ -67,19 +114,41 @@ export function RecentApplications({
 
       <CardContent className="p-0">
         {applications.length === 0 ? (
-          <div className="p-6 sm:p-8 text-center space-y-2">
-            <Building2 className="mx-auto size-8 text-muted-foreground/60" />
-            <p className="text-sm font-medium text-foreground">No applications found</p>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              No applications match &quot;{searchQuery}&quot;. Try adjusting your keywords or clearing your search.
-            </p>
-            <button
-              type="button"
-              onClick={onClearSearch}
-              className="text-xs font-medium text-blue-600 hover:underline pt-1 cursor-pointer"
-            >
-              Clear search filter
-            </button>
+          <div className="p-8 sm:p-12 text-center space-y-3">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted mx-auto text-muted-foreground">
+              <Building2 className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">
+                {searchQuery ? 'No matching applications found' : 'No applications tracked yet'}
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                {searchQuery
+                  ? `No applications matched "${searchQuery}". Try searching with different keywords or clear your search filter.`
+                  : 'Get started by adding your first job opportunity to track your resume submissions, interview rounds, and offers.'}
+              </p>
+            </div>
+            {searchQuery ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onClearSearch}
+                className="text-xs cursor-pointer"
+              >
+                Clear search filter
+              </Button>
+            ) : (
+              onAddNew && (
+                <Button
+                  size="sm"
+                  onClick={onAddNew}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add your first application</span>
+                </Button>
+              )
+            )}
           </div>
         ) : (
           <>
@@ -87,9 +156,9 @@ export function RecentApplications({
             <div className="block sm:hidden divide-y divide-border/60">
               {applications.map((app) => (
                 <div key={app.id} className="p-4 space-y-3 hover:bg-muted/30 transition-colors">
-                  {/* Top row: Company, Role, Status */}
+                  {/* Top row: Company, Role, Status Selector, and Actions */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300">
                         {app.company.slice(0, 2).toUpperCase()}
                       </div>
@@ -103,24 +172,105 @@ export function RecentApplications({
                       </div>
                     </div>
 
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${getStatusBadgeClass(
-                        app.status
-                      )}`}
-                    >
-                      {app.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Status Selector */}
+                      <Select
+                        value={app.status}
+                        onValueChange={(val) => onUpdateStatus(app.id, val as ApplicationStatus)}
+                      >
+                        <SelectTrigger
+                          aria-label={`Change status for ${app.company}`}
+                          className={`h-6 rounded-full px-2.5 py-0.5 text-[11px] font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
+                            app.status
+                          )}`}
+                        >
+                          <SelectValue>{app.status}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          {ALL_STATUSES.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Row Actions Menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                            aria-label={`Actions for ${app.company}`}
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onClick={() => onEditApplication(app)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="size-3.5 mr-2" />
+                            <span>Edit Application</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer">
+                              <ArrowRightLeft className="size-3.5 mr-2" />
+                              <span>Change Status</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-36">
+                              {ALL_STATUSES.map((status) => (
+                                <DropdownMenuItem
+                                  key={status}
+                                  onClick={() => onUpdateStatus(app.id, status)}
+                                  className="cursor-pointer flex items-center justify-between"
+                                >
+                                  <span>{status}</span>
+                                  {app.status === status && (
+                                    <Check className="size-3 text-blue-600" />
+                                  )}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onDeleteApplication(app)}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5 mr-2" />
+                            <span>Delete Application</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
-                  {/* Middle row: Location + Workplace */}
+                  {/* Middle row: Location + Workplace + Employment Type */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1 min-w-0">
                       <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" />
-                      <span className="truncate">{app.location || 'Remote'}</span>
+                      <span
+                        className={cn(
+                          'truncate',
+                          !app.location && 'text-muted-foreground/70'
+                        )}
+                      >
+                        {app.location || 'Not specified'}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground/80 font-medium px-1.5 py-0.2 rounded bg-muted">
-                      {app.workplaceType}
-                    </span>
+                    {app.workplaceType && (
+                      <span className="text-[10px] text-muted-foreground/80 font-medium px-1.5 py-0.5 rounded bg-muted">
+                        {app.workplaceType}
+                      </span>
+                    )}
+                    {app.employmentType && (
+                      <span className="text-[10px] text-muted-foreground/80 font-medium px-1.5 py-0.5 rounded bg-muted">
+                        {app.employmentType}
+                      </span>
+                    )}
                   </div>
 
                   {/* Bottom row: Applied Date & Compensation */}
@@ -146,10 +296,10 @@ export function RecentApplications({
 
             {/* 2. Tablet & Desktop Table View (displayed on >= 640px) */}
             <div className="hidden sm:block overflow-x-auto w-full">
-              <Table className="min-w-[620px]">
+              <Table className="min-w-[660px]">
                 <TableHeader>
                   <TableRow className="border-border/60 bg-muted/20">
-                    <TableHead className="w-[240px] text-xs font-semibold text-muted-foreground pl-5">
+                    <TableHead className="w-[230px] text-xs font-semibold text-muted-foreground pl-5">
                       Company & Role
                     </TableHead>
                     <TableHead className="text-xs font-semibold text-muted-foreground">
@@ -161,8 +311,11 @@ export function RecentApplications({
                     <TableHead className="text-xs font-semibold text-muted-foreground">
                       Status
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground pr-5 text-right">
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">
                       Compensation
+                    </TableHead>
+                    <TableHead className="w-[70px] text-xs font-semibold text-muted-foreground pr-5 text-right">
+                      Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -193,10 +346,19 @@ export function RecentApplications({
                       <TableCell className="py-3.5">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" />
-                          <span className="truncate">{app.location || 'Remote'}</span>
-                          <span className="text-[10px] text-muted-foreground/60 font-medium px-1.5 py-0.2 rounded bg-muted/60">
-                            {app.workplaceType}
+                          <span
+                            className={cn(
+                              'truncate',
+                              !app.location && 'text-muted-foreground/70'
+                            )}
+                          >
+                            {app.location || 'Not specified'}
                           </span>
+                          {app.workplaceType && (
+                            <span className="text-[10px] text-muted-foreground/60 font-medium px-1.5 py-0.5 rounded bg-muted/60">
+                              {app.workplaceType}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
 
@@ -209,22 +371,90 @@ export function RecentApplications({
                         })}
                       </TableCell>
 
-                      {/* Status Badge */}
+                      {/* Status Selector */}
                       <TableCell className="py-3.5">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight ${getStatusBadgeClass(
-                            app.status
-                          )}`}
+                        <Select
+                          value={app.status}
+                          onValueChange={(val) =>
+                            onUpdateStatus(app.id, val as ApplicationStatus)
+                          }
                         >
-                          {app.status}
-                        </span>
+                          <SelectTrigger
+                            aria-label={`Change status for ${app.company}`}
+                            className={`h-6.5 rounded-full px-2.5 py-0 text-xs font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
+                              app.status
+                            )}`}
+                          >
+                            <SelectValue>{app.status}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent position="popper">
+                            {ALL_STATUSES.map((status) => (
+                              <SelectItem key={status} value={status}>
+                                {status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
 
                       {/* Compensation */}
-                      <TableCell className="pr-5 py-3.5 text-right text-xs font-medium text-foreground">
+                      <TableCell className="py-3.5 text-right text-xs font-medium text-foreground">
                         {app.salary || (
                           <span className="text-muted-foreground font-normal">Undisclosed</span>
                         )}
+                      </TableCell>
+
+                      {/* Actions Menu */}
+                      <TableCell className="pr-5 py-3.5 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                              aria-label={`Actions for ${app.company}`}
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onClick={() => onEditApplication(app)}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="size-3.5 mr-2" />
+                              <span>Edit Application</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="cursor-pointer">
+                                <ArrowRightLeft className="size-3.5 mr-2" />
+                                <span>Change Status</span>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent className="w-36">
+                                {ALL_STATUSES.map((status) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    onClick={() => onUpdateStatus(app.id, status)}
+                                    className="cursor-pointer flex items-center justify-between"
+                                  >
+                                    <span>{status}</span>
+                                    {app.status === status && (
+                                      <Check className="size-3 text-blue-600" />
+                                    )}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => onDeleteApplication(app)}
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="size-3.5 mr-2" />
+                              <span>Delete Application</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

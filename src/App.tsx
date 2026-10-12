@@ -6,8 +6,10 @@ import { Header } from '@/components/dashboard/Header'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
 import { RecentApplications } from '@/components/dashboard/RecentApplications'
 import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
-import { AddApplicationDialog } from '@/components/dashboard/AddApplicationDialog'
+import { ApplicationFormDialog } from '@/components/dashboard/AddApplicationDialog'
+import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicationDialog'
 import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'sonner'
 import {
   initialApplications,
   initialInterviews,
@@ -17,13 +19,19 @@ import type {
   JobApplication,
   NavigationKey,
   MetricCardData,
+  ApplicationStatus,
 } from '@/types/dashboard'
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavigationKey>('overview')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+
+  // Dialog & selection state
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
+  const [applicationToEdit, setApplicationToEdit] = useState<JobApplication | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [applicationToDelete, setApplicationToDelete] = useState<JobApplication | null>(null)
 
   // Single source of truth for applications state
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications)
@@ -35,12 +43,22 @@ export function App() {
     const interviewCount = applications.filter((a) => a.status === 'Interview').length
     const offerCount = applications.filter((a) => a.status === 'Offer').length
 
-    // Active responses: any application beyond 'Saved' or 'Applied'
+    // Submitted applications: all applications submitted to employer (excluding draft 'Saved')
+    const submittedCount = applications.filter((a) => a.status !== 'Saved').length
+
+    // Responded applications: employer responded with Screening, Interview, Offer, or Rejection
     const respondedCount = applications.filter(
-      (a) => a.status !== 'Saved' && a.status !== 'Applied'
+      (a) =>
+        a.status === 'Screening' ||
+        a.status === 'Interview' ||
+        a.status === 'Offer' ||
+        a.status === 'Rejected'
     ).length
+
     const responseRate =
-      totalCount > 0 ? `${Math.round((respondedCount / totalCount) * 1000) / 10}%` : '0%'
+      submittedCount > 0
+        ? `${Math.round((respondedCount / submittedCount) * 1000) / 10}%`
+        : '0%'
 
     return initialMetrics.map((metric) => {
       if (metric.id === 'total-applications') {
@@ -72,13 +90,84 @@ export function App() {
     )
   }, [applications, searchQuery])
 
-  // Handler to add a new job application
-  const handleAddApplication = (newApp: Omit<JobApplication, 'id'>) => {
-    const created: JobApplication = {
-      ...newApp,
-      id: `app-${Date.now()}`,
+  // Handlers for Add & Edit Dialog
+  const handleOpenAdd = () => {
+    setApplicationToEdit(null)
+    setIsFormDialogOpen(true)
+  }
+
+  const handleOpenEdit = (app: JobApplication) => {
+    setApplicationToEdit(app)
+    setIsFormDialogOpen(true)
+  }
+
+  const handleSaveApplication = (
+    appData: Omit<JobApplication, 'id'>,
+    existingId?: string
+  ) => {
+    if (existingId) {
+      // Immutable update of existing application
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === existingId
+            ? {
+                ...app,
+                ...appData,
+                id: existingId,
+              }
+            : app
+        )
+      )
+      toast.success('Application updated!', {
+        description: `${appData.role} at ${appData.company} has been saved.`,
+      })
+    } else {
+      // Immutable creation of new application
+      const created: JobApplication = {
+        ...appData,
+        id: `app-${Date.now()}`,
+      }
+      setApplications((prev) => [created, ...prev])
+      toast.success('Application tracked successfully!', {
+        description: `${appData.role} at ${appData.company} has been added to your pipeline.`,
+      })
     }
-    setApplications((prev) => [created, ...prev])
+
+    setApplicationToEdit(null)
+    setIsFormDialogOpen(false)
+  }
+
+  // Quick Status Update
+  const handleUpdateStatus = (id: string, newStatus: ApplicationStatus) => {
+    const target = applications.find((a) => a.id === id)
+    if (!target || target.status === newStatus) return
+
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+    )
+
+    toast.info('Status updated', {
+      description: `${target.company} is now marked as ${newStatus}.`,
+    })
+  }
+
+  // Delete Action Handlers
+  const handleOpenDelete = (app: JobApplication) => {
+    setApplicationToDelete(app)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = (id: string) => {
+    const target = applications.find((a) => a.id === id)
+    setApplications((prev) => prev.filter((app) => app.id !== id))
+    setApplicationToDelete(null)
+    setIsDeleteDialogOpen(false)
+
+    if (target) {
+      toast.success('Application deleted', {
+        description: `${target.role} at ${target.company} was removed from your pipeline.`,
+      })
+    }
   }
 
   return (
@@ -116,7 +205,7 @@ export function App() {
             </div>
 
             <Button
-              onClick={() => setIsAddDialogOpen(true)}
+              onClick={handleOpenAdd}
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 self-start sm:self-auto cursor-pointer"
             >
               <Plus className="size-4" />
@@ -135,6 +224,10 @@ export function App() {
                 applications={filteredApplications}
                 searchQuery={searchQuery}
                 onClearSearch={() => setSearchQuery('')}
+                onAddNew={handleOpenAdd}
+                onEditApplication={handleOpenEdit}
+                onDeleteApplication={handleOpenDelete}
+                onUpdateStatus={handleUpdateStatus}
               />
             </div>
 
@@ -146,14 +239,29 @@ export function App() {
         </main>
       </div>
 
-      {/* 3. Add Application Dialog Form */}
-      <AddApplicationDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAddApplication={handleAddApplication}
+      {/* 3. Reusable Application Form Dialog (Add & Edit) */}
+      <ApplicationFormDialog
+        open={isFormDialogOpen}
+        onOpenChange={(open) => {
+          setIsFormDialogOpen(open)
+          if (!open) setApplicationToEdit(null)
+        }}
+        applicationToEdit={applicationToEdit}
+        onSaveApplication={handleSaveApplication}
       />
 
-      {/* 4. Global Toast Notifications */}
+      {/* 4. Delete Confirmation AlertDialog */}
+      <DeleteApplicationDialog
+        application={applicationToDelete}
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open)
+          if (!open) setApplicationToDelete(null)
+        }}
+        onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* 5. Global Toast Notifications */}
       <Toaster position="top-right" richColors />
     </div>
   )

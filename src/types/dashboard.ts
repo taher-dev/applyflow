@@ -15,7 +15,7 @@ export interface JobApplication {
   company: string
   role: string
   location?: string
-  workplaceType?: WorkplaceType
+  workplaceType: WorkplaceType
   employmentType?: EmploymentType
   jobUrl?: string
   minSalary?: number
