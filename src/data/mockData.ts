@@ -84,7 +84,7 @@ export const initialApplications: JobApplication[] = [
     workplaceType: 'Remote',
     salary: '$165k - $195k',
     appliedDate: '2026-10-04',
-    status: 'Reviewing',
+    status: 'Screening',
     notes: 'Recruiter confirmed resume passed hiring manager review.',
   },
   {

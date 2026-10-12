@@ -1,17 +1,30 @@
-export type ApplicationStatus = 'Applied' | 'Reviewing' | 'Interview' | 'Offer' | 'Rejected'
+export type ApplicationStatus =
+  | 'Saved'
+  | 'Applied'
+  | 'Screening'
+  | 'Interview'
+  | 'Offer'
+  | 'Rejected'
 
 export type WorkplaceType = 'Remote' | 'Hybrid' | 'On-site'
+
+export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship'
 
 export interface JobApplication {
   id: string
   company: string
   role: string
-  location: string
-  workplaceType: WorkplaceType
+  location?: string
+  workplaceType?: WorkplaceType
+  employmentType?: EmploymentType
+  jobUrl?: string
+  minSalary?: number
+  maxSalary?: number
   salary?: string
   appliedDate: string
   status: ApplicationStatus
   notes?: string
+  followUpDate?: string
 }
 
 export type InterviewStage =

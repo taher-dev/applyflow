@@ -7,6 +7,7 @@ import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
 import { RecentApplications } from '@/components/dashboard/RecentApplications'
 import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
 import { AddApplicationDialog } from '@/components/dashboard/AddApplicationDialog'
+import { Toaster } from '@/components/ui/sonner'
 import {
   initialApplications,
   initialInterviews,
@@ -24,15 +25,22 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  // Application state (initialized with mock data)
+  // Single source of truth for applications state
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications)
   const [interviews] = useState(initialInterviews)
 
-  // Derived metrics dynamically reflect changes
+  // Derived metrics dynamically calculated from live applications list
   const metrics = useMemo<MetricCardData[]>(() => {
     const totalCount = applications.length
     const interviewCount = applications.filter((a) => a.status === 'Interview').length
     const offerCount = applications.filter((a) => a.status === 'Offer').length
+
+    // Active responses: any application beyond 'Saved' or 'Applied'
+    const respondedCount = applications.filter(
+      (a) => a.status !== 'Saved' && a.status !== 'Applied'
+    ).length
+    const responseRate =
+      totalCount > 0 ? `${Math.round((respondedCount / totalCount) * 1000) / 10}%` : '0%'
 
     return initialMetrics.map((metric) => {
       if (metric.id === 'total-applications') {
@@ -43,6 +51,9 @@ export function App() {
       }
       if (metric.id === 'offers') {
         return { ...metric, value: offerCount }
+      }
+      if (metric.id === 'response-rate') {
+        return { ...metric, value: responseRate }
       }
       return metric
     })
@@ -57,18 +68,15 @@ export function App() {
       (app) =>
         app.company.toLowerCase().includes(query) ||
         app.role.toLowerCase().includes(query) ||
-        app.location.toLowerCase().includes(query)
+        (app.location && app.location.toLowerCase().includes(query))
     )
   }, [applications, searchQuery])
 
   // Handler to add a new job application
-  const handleAddApplication = (
-    newApp: Omit<JobApplication, 'id' | 'appliedDate'>
-  ) => {
+  const handleAddApplication = (newApp: Omit<JobApplication, 'id'>) => {
     const created: JobApplication = {
       ...newApp,
       id: `app-${Date.now()}`,
-      appliedDate: new Date().toISOString().split('T')[0],
     }
     setApplications((prev) => [created, ...prev])
   }
@@ -144,6 +152,9 @@ export function App() {
         onOpenChange={setIsAddDialogOpen}
         onAddApplication={handleAddApplication}
       />
+
+      {/* 4. Global Toast Notifications */}
+      <Toaster position="top-right" richColors />
     </div>
   )
 }
