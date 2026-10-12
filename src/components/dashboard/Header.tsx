@@ -1,4 +1,4 @@
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, Menu, Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -47,15 +47,26 @@ export function Header({
       {/* Right: Search + Notifications + Profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Search Input */}
-        <div className="relative w-28 sm:w-64">
+        <div className="relative w-32 sm:w-64 md:w-72 lg:w-80">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            type="search"
+            type="text"
             placeholder="Search applications..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9 text-xs sm:text-sm bg-muted/40 border-border/80 focus-visible:bg-background"
+            className="pl-8.5 pr-7 h-9 text-xs sm:text-sm bg-muted/40 border-border/80 focus-visible:bg-background"
+            aria-label="Search applications"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+              aria-label="Clear header search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Notifications */}

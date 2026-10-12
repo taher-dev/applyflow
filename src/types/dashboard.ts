@@ -10,6 +10,17 @@ export type WorkplaceType = 'Remote' | 'Hybrid' | 'On-site'
 
 export type EmploymentType = 'Full-time' | 'Part-time' | 'Contract' | 'Internship'
 
+export type StatusFilter = 'ALL' | ApplicationStatus
+export type EmploymentTypeFilter = 'ALL' | EmploymentType
+export type DateRangeFilter = 'ALL' | '7_DAYS' | '30_DAYS' | 'THIS_MONTH'
+
+export type SortOption =
+  | 'date-desc'
+  | 'date-asc'
+  | 'company-asc'
+  | 'company-desc'
+  | 'role-asc'
+
 export interface JobApplication {
   id: string
   company: string

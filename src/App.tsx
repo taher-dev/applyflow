@@ -77,19 +77,6 @@ export function App() {
     })
   }, [applications])
 
-  // Filter applications by search query
-  const filteredApplications = useMemo(() => {
-    if (!searchQuery.trim()) return applications
-
-    const query = searchQuery.toLowerCase().trim()
-    return applications.filter(
-      (app) =>
-        app.company.toLowerCase().includes(query) ||
-        app.role.toLowerCase().includes(query) ||
-        (app.location && app.location.toLowerCase().includes(query))
-    )
-  }, [applications, searchQuery])
-
   // Handlers for Add & Edit Dialog
   const handleOpenAdd = () => {
     setApplicationToEdit(null)
@@ -221,8 +208,9 @@ export function App() {
             {/* Table takes 2 cols on desktop */}
             <div className="lg:col-span-2 w-full min-w-0">
               <RecentApplications
-                applications={filteredApplications}
+                applications={applications}
                 searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
                 onClearSearch={() => setSearchQuery('')}
                 onAddNew={handleOpenAdd}
                 onEditApplication={handleOpenEdit}
