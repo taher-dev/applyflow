@@ -1,117 +1,149 @@
-import { useState } from 'react'
-import { Briefcase, CheckCircle2, Sparkles, Layers, ShieldCheck, Terminal } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Sidebar } from '@/components/dashboard/Sidebar'
+import { Header } from '@/components/dashboard/Header'
+import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
+import { RecentApplications } from '@/components/dashboard/RecentApplications'
+import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
+import { AddApplicationDialog } from '@/components/dashboard/AddApplicationDialog'
+import {
+  initialApplications,
+  initialInterviews,
+  initialMetrics,
+} from '@/data/mockData'
+import type {
+  JobApplication,
+  NavigationKey,
+  MetricCardData,
+} from '@/types/dashboard'
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'status' | 'stack'>('status')
+  const [activeTab, setActiveTab] = useState<NavigationKey>('overview')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  const checklistItems = [
-    { label: 'React 19 & Vite 8 Core Engine', detail: 'Blazing fast development server & production bundler' },
-    { label: 'TypeScript Strict Mode', detail: 'Strict type safety with modern path mapping' },
-    { label: 'Tailwind CSS v4 & Design Tokens', detail: 'Theme variables, responsive layout, and fluid typography' },
-    { label: 'Official shadcn/ui Components', detail: 'Accessible primitive foundation and button variants' },
-    { label: 'Path Alias Resolution (@/*)', detail: 'Direct imports from src directory configured across Vite and TS' },
-    { label: 'ESLint Flat Config', detail: 'Code quality and React best-practice validation' },
-  ]
+  // Application state (initialized with mock data)
+  const [applications, setApplications] = useState<JobApplication[]>(initialApplications)
+  const [interviews] = useState(initialInterviews)
 
-  const stackDetails = [
-    { name: 'Framework', value: 'React 19 + TypeScript' },
-    { name: 'Bundler', value: 'Vite 8' },
-    { name: 'Styling', value: 'Tailwind CSS v4' },
-    { name: 'UI Primitives', value: 'shadcn/ui (Radix UI)' },
-    { name: 'Icons', value: 'Lucide React' },
-    { name: 'Import Alias', value: '@/* -> ./src/*' },
-  ]
+  // Derived metrics dynamically reflect changes
+  const metrics = useMemo<MetricCardData[]>(() => {
+    const totalCount = applications.length
+    const interviewCount = applications.filter((a) => a.status === 'Interview').length
+    const offerCount = applications.filter((a) => a.status === 'Offer').length
+
+    return initialMetrics.map((metric) => {
+      if (metric.id === 'total-applications') {
+        return { ...metric, value: totalCount }
+      }
+      if (metric.id === 'interviews') {
+        return { ...metric, value: interviewCount }
+      }
+      if (metric.id === 'offers') {
+        return { ...metric, value: offerCount }
+      }
+      return metric
+    })
+  }, [applications])
+
+  // Filter applications by search query
+  const filteredApplications = useMemo(() => {
+    if (!searchQuery.trim()) return applications
+
+    const query = searchQuery.toLowerCase().trim()
+    return applications.filter(
+      (app) =>
+        app.company.toLowerCase().includes(query) ||
+        app.role.toLowerCase().includes(query) ||
+        app.location.toLowerCase().includes(query)
+    )
+  }, [applications, searchQuery])
+
+  // Handler to add a new job application
+  const handleAddApplication = (
+    newApp: Omit<JobApplication, 'id' | 'appliedDate'>
+  ) => {
+    const created: JobApplication = {
+      ...newApp,
+      id: `app-${Date.now()}`,
+      appliedDate: new Date().toISOString().split('T')[0],
+    }
+    setApplications((prev) => [created, ...prev])
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 sm:p-8">
-      <main className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
-        {/* Header */}
-        <header className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold tracking-wide">
-            <Briefcase className="size-3.5" />
-            <span>ApplyFlow Platform</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Project Foundation Established
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            The frontend architecture is verified, strictly typed, and ready for incremental feature development.
-          </p>
-        </header>
+    <div className="flex min-h-screen bg-slate-50/60 dark:bg-background text-foreground font-sans">
+      {/* 1. Left Dark Slate Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 border-b border-border pb-3">
-          <Button
-            variant={activeTab === 'status' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('status')}
-          >
-            <ShieldCheck className="size-4" />
-            Foundation Status
-          </Button>
-          <Button
-            variant={activeTab === 'stack' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveTab('stack')}
-          >
-            <Layers className="size-4" />
-            Stack Specs
-          </Button>
-        </div>
+      {/* 2. Main Content Canvas */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
+        {/* Top Header */}
+        <Header
+          title="Career Overview"
+          subtitle="Real-time pipeline monitoring & active opportunities"
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
+        />
 
-        {/* Tab Content */}
-        {activeTab === 'status' ? (
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Core Milestones
-            </h2>
-            <ul className="space-y-2.5">
-              {checklistItems.map((item) => (
-                <li
-                  key={item.label}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-border/60 bg-muted/30"
-                >
-                  <CheckCircle2 className="size-4 text-emerald-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium leading-none">{item.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{item.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        {/* Dashboard Workspace */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto">
+          {/* Welcome Heading & Add Action */}
+          <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Welcome back, Alex
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                You have <span className="font-semibold text-foreground">{interviews.length} interviews</span> scheduled this week across <span className="font-semibold text-foreground">{applications.length} active opportunities</span>.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 self-start sm:self-auto cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>Add application</span>
+            </Button>
           </section>
-        ) : (
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Engine Specifications
-            </h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {stackDetails.map((item) => (
-                <div
-                  key={item.name}
-                  className="p-3 rounded-lg border border-border/60 bg-muted/30 space-y-1"
-                >
-                  <dt className="text-xs text-muted-foreground font-medium">{item.name}</dt>
-                  <dd className="text-sm font-semibold">{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        )}
 
-        {/* Footer info badge */}
-        <footer className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div className="inline-flex items-center gap-1.5">
-            <Terminal className="size-3.5" />
-            <span>Ready for dashboard & tracking features</span>
-          </div>
-          <div className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-            <Sparkles className="size-3.5" />
-            <span>Build & Lint Checks Passing</span>
-          </div>
-        </footer>
-      </main>
+          {/* 4 Metric Cards */}
+          <MetricsGrid metrics={metrics} />
+
+          {/* Grid: Recent Applications Table + Upcoming Interviews */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full min-w-0">
+            {/* Table takes 2 cols on desktop */}
+            <div className="lg:col-span-2 w-full min-w-0">
+              <RecentApplications
+                applications={filteredApplications}
+                searchQuery={searchQuery}
+                onClearSearch={() => setSearchQuery('')}
+              />
+            </div>
+
+            {/* Interviews panel takes 1 col on desktop */}
+            <div className="lg:col-span-1 w-full min-w-0">
+              <UpcomingInterviews interviews={interviews} />
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* 3. Add Application Dialog Form */}
+      <AddApplicationDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddApplication={handleAddApplication}
+      />
     </div>
   )
 }
