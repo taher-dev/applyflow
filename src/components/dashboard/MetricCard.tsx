@@ -26,11 +26,14 @@ export function MetricCard({ metric }: MetricCardProps) {
   return (
     <Card className="border border-border/80 bg-card shadow-2xs hover:shadow-xs transition-shadow">
       <CardContent className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground tracking-wide">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <span
+            className="text-xs font-medium text-muted-foreground tracking-wide truncate min-w-0 flex-1"
+            title={metric.title}
+          >
             {metric.title}
           </span>
-          <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
             <Icon className="size-4" />
           </div>
         </div>

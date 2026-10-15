@@ -32,21 +32,30 @@ export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 flex-1 space-y-3">
-        {interviews.map((interview) => (
+      <CardContent className="p-4 sm:p-5 flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {interviews.map((interview) => (
           <div
             key={interview.id}
             className="rounded-lg border border-border/70 p-3.5 bg-muted/20 hover:bg-muted/40 transition-colors space-y-2.5"
           >
             {/* Header: Company & Stage */}
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h4 className="text-sm font-semibold text-foreground leading-tight">
+            <div className="flex items-start justify-between gap-2 min-w-0">
+              <div className="min-w-0 flex-1">
+                <h4
+                  className="text-sm font-semibold text-foreground leading-tight truncate"
+                  title={interview.company}
+                >
                   {interview.company}
                 </h4>
-                <p className="text-xs text-muted-foreground">{interview.role}</p>
+                <p
+                  className="text-xs text-muted-foreground truncate"
+                  title={interview.role}
+                >
+                  {interview.role}
+                </p>
               </div>
-              <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">
+              <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 shrink-0">
                 {interview.stage}
               </span>
             </div>
@@ -76,6 +85,7 @@ export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {
             </div>
           </div>
         ))}
+        </div>
       </CardContent>
     </Card>
   )

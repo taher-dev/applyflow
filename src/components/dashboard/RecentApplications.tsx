@@ -380,35 +380,99 @@ export function RecentApplications({
           </div>
         ) : (
           <>
-            {/* 1. Mobile Cards View (displayed strictly on small screens: < 640px) */}
-            <div className="block sm:hidden divide-y divide-border/60">
+            {/* 1. Mobile Cards View (displayed strictly on mobile & small tablet screens: < 768px) */}
+            <div className="block md:hidden divide-y divide-border/60">
               {paginatedApplications.map((app) => (
-                <div key={app.id} className="p-4 space-y-3 hover:bg-muted/30 transition-colors">
-                  {/* Top row: Company, Role, Status Selector, and Actions */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300">
+                <div
+                  key={app.id}
+                  className="p-4 space-y-3 hover:bg-muted/20 transition-colors"
+                >
+                  {/* Top row: Monogram + Company & Role (wrapped) + Actions Menu */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      {/* Company Monogram Badge */}
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5 shadow-2xs">
                         {app.company.slice(0, 2).toUpperCase()}
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-sm text-foreground truncate">
+
+                      {/* Company Name and Role - Wraps cleanly without truncation */}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-sm text-foreground break-words [overflow-wrap:anywhere] leading-snug">
                           {app.company}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
+                        </h4>
+                        <p className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere] leading-normal mt-0.5 font-medium">
                           {app.role}
-                        </div>
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {/* Status Selector */}
+                    {/* Top-right Actions Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 -mr-1 -mt-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                          aria-label={`Actions for ${app.company}`}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem
+                          onClick={() => onEditApplication(app)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="size-3.5 mr-2" />
+                          <span>Edit Application</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="cursor-pointer">
+                            <ArrowRightLeft className="size-3.5 mr-2" />
+                            <span>Change Status</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-36">
+                            {ALL_STATUSES.map((status) => (
+                              <DropdownMenuItem
+                                key={status}
+                                onClick={() => onUpdateStatus(app.id, status)}
+                                className="cursor-pointer flex items-center justify-between"
+                              >
+                                <span>{status}</span>
+                                {app.status === status && (
+                                  <Check className="size-3 text-blue-600" />
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => onDeleteApplication(app)}
+                          className="text-destructive focus:text-destructive cursor-pointer"
+                        >
+                          <Trash2 className="size-3.5 mr-2" />
+                          <span>Delete Application</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Middle row: Interactive Status Selector & Target Compensation */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        Status:
+                      </span>
                       <Select
                         value={app.status}
-                        onValueChange={(val) => onUpdateStatus(app.id, val as ApplicationStatus)}
+                        onValueChange={(val) =>
+                          onUpdateStatus(app.id, val as ApplicationStatus)
+                        }
                       >
                         <SelectTrigger
                           aria-label={`Change status for ${app.company}`}
-                          className={`h-6 rounded-full px-2.5 py-0.5 text-[11px] font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
+                          className={`h-6.5 rounded-full px-2.5 py-0 text-xs font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
                             app.status
                           )}`}
                         >
@@ -422,128 +486,86 @@ export function RecentApplications({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
 
-                      {/* Row Actions Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-foreground cursor-pointer"
-                            aria-label={`Actions for ${app.company}`}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem
-                            onClick={() => onEditApplication(app)}
-                            className="cursor-pointer"
-                          >
-                            <Pencil className="size-3.5 mr-2" />
-                            <span>Edit Application</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="cursor-pointer">
-                              <ArrowRightLeft className="size-3.5 mr-2" />
-                              <span>Change Status</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-36">
-                              {ALL_STATUSES.map((status) => (
-                                <DropdownMenuItem
-                                  key={status}
-                                  onClick={() => onUpdateStatus(app.id, status)}
-                                  className="cursor-pointer flex items-center justify-between"
-                                >
-                                  <span>{status}</span>
-                                  {app.status === status && (
-                                    <Check className="size-3 text-blue-600" />
-                                  )}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => onDeleteApplication(app)}
-                            className="text-destructive focus:text-destructive cursor-pointer"
-                          >
-                            <Trash2 className="size-3.5 mr-2" />
-                            <span>Delete Application</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    {/* Target Compensation */}
+                    <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+                      <DollarSign className="size-3 text-muted-foreground/70" />
+                      <span>{app.salary || 'Undisclosed'}</span>
                     </div>
                   </div>
 
-                  {/* Middle row: Location + Workplace + Employment Type */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" />
-                      <span
-                        className={cn(
-                          'truncate',
-                          !app.location && 'text-muted-foreground/70'
-                        )}
-                      >
-                        {app.location || 'Not specified'}
-                      </span>
-                    </div>
-                    {app.workplaceType && (
-                      <span className="text-[10px] text-muted-foreground/80 font-medium px-1.5 py-0.5 rounded bg-muted">
-                        {app.workplaceType}
-                      </span>
-                    )}
-                    {app.employmentType && (
-                      <span className="text-[10px] text-muted-foreground/80 font-medium px-1.5 py-0.5 rounded bg-muted">
-                        {app.employmentType}
-                      </span>
-                    )}
-                  </div>
+                  {/* Bottom row: Structured metadata pill (Location on top, Arrangement & Employment below, Date on right) */}
+                  <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50">
+                    <div className="space-y-1.5 min-w-0 flex-1">
+                      {/* Location */}
+                      <div className="flex items-center gap-1 min-w-0">
+                        <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" />
+                        <span
+                          className={cn(
+                            'break-words font-medium text-foreground/80',
+                            !app.location && 'text-muted-foreground/70 font-normal'
+                          )}
+                        >
+                          {app.location || 'Not specified'}
+                        </span>
+                      </div>
 
-                  {/* Bottom row: Applied Date & Compensation */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="size-3.5 text-muted-foreground/70" />
+                      {/* Work Arrangement and Employment Type positioned at the bottom of Location */}
+                      {(app.workplaceType || app.employmentType) && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {app.workplaceType && (
+                            <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded bg-background border border-border/60">
+                              {app.workplaceType}
+                            </span>
+                          )}
+                          {app.employmentType && (
+                            <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded bg-background border border-border/60">
+                              {app.employmentType}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Applied Date */}
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 mt-0.5">
+                      <Calendar className="size-3 text-muted-foreground/70" />
                       <span>
                         {new Date(app.appliedDate).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
+                          year: 'numeric',
                         })}
                       </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 font-medium text-foreground">
-                      <DollarSign className="size-3 text-muted-foreground/70" />
-                      <span>{app.salary || 'Undisclosed'}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* 2. Tablet & Desktop Table View (displayed on >= 640px) */}
-            <div className="hidden sm:block overflow-x-auto w-full">
-              <Table className="min-w-[660px]">
+            {/* 2. Tablet & Desktop Table View (displayed on >= 768px with zero scrolling) */}
+            <div className="hidden md:block w-full overflow-hidden">
+              <Table className="w-full table-fixed" containerClassName="overflow-x-hidden">
                 <TableHeader>
                   <TableRow className="border-border/60 bg-muted/20">
-                    <TableHead className="w-[230px] text-xs font-semibold text-muted-foreground pl-5">
+                    <TableHead className="w-[28%] text-xs font-semibold text-muted-foreground pl-5 whitespace-normal leading-tight">
                       Company & Role
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">
+                    <TableHead className="w-[23%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
                       Location & Arrangement
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">
+                    <TableHead className="w-[14%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
                       Applied Date
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground">
+                    <TableHead className="w-[15%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
                       Status
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">
+                    <TableHead className="w-[12%] text-xs font-semibold text-muted-foreground text-right whitespace-normal leading-tight">
                       Compensation
                     </TableHead>
-                    <TableHead className="w-[70px] text-xs font-semibold text-muted-foreground pr-5 text-right">
-                      Actions
+                    <TableHead className="w-[8%] min-w-[50px] pr-4 text-right">
+                      <span className="sr-only">Actions</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -555,48 +577,55 @@ export function RecentApplications({
                     >
                       {/* Company & Role */}
                       <TableCell className="pl-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5">
                             {app.company.slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-sm text-foreground truncate">
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="font-semibold text-sm text-foreground break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
                               {app.company}
                             </div>
-                            <div className="text-xs text-muted-foreground truncate">
+                            <div className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
                               {app.role}
                             </div>
                           </div>
                         </div>
                       </TableCell>
 
-                      {/* Location & Workplace */}
+                      {/* Location & Arrangement (Workplace and Employment Type at the bottom of Location) */}
                       <TableCell className="py-3.5">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" />
-                          <span
-                            className={cn(
-                              'truncate',
-                              !app.location && 'text-muted-foreground/70'
-                            )}
-                          >
-                            {app.location || 'Not specified'}
-                          </span>
-                          {app.workplaceType && (
-                            <span className="text-[10px] text-muted-foreground/60 font-medium px-1.5 py-0.5 rounded bg-muted/60">
-                              {app.workplaceType}
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-start gap-1.5 text-xs text-muted-foreground min-w-0">
+                            <MapPin className="size-3.5 shrink-0 text-muted-foreground/70 mt-0.5" />
+                            <span
+                              className={cn(
+                                'break-words [overflow-wrap:anywhere] whitespace-normal leading-snug',
+                                !app.location && 'text-muted-foreground/70'
+                              )}
+                            >
+                              {app.location || 'Not specified'}
                             </span>
-                          )}
-                          {app.employmentType && (
-                            <span className="text-[10px] text-muted-foreground/60 font-medium px-1.5 py-0.5 rounded bg-muted/60">
-                              {app.employmentType}
-                            </span>
+                          </div>
+
+                          {(app.workplaceType || app.employmentType) && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {app.workplaceType && (
+                                <span className="text-[10px] text-muted-foreground/70 font-medium px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 shrink-0">
+                                  {app.workplaceType}
+                                </span>
+                              )}
+                              {app.employmentType && (
+                                <span className="text-[10px] text-muted-foreground/70 font-medium px-1.5 py-0.5 rounded bg-muted/60 border border-border/40 shrink-0">
+                                  {app.employmentType}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </TableCell>
 
                       {/* Applied Date */}
-                      <TableCell className="py-3.5 text-xs text-muted-foreground">
+                      <TableCell className="py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(app.appliedDate).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -605,7 +634,7 @@ export function RecentApplications({
                       </TableCell>
 
                       {/* Status Selector */}
-                      <TableCell className="py-3.5">
+                      <TableCell className="py-3.5 whitespace-nowrap">
                         <Select
                           value={app.status}
                           onValueChange={(val) =>
@@ -631,20 +660,20 @@ export function RecentApplications({
                       </TableCell>
 
                       {/* Compensation */}
-                      <TableCell className="py-3.5 text-right text-xs font-medium text-foreground">
+                      <TableCell className="py-3.5 text-right text-xs font-medium text-foreground whitespace-nowrap">
                         {app.salary || (
                           <span className="text-muted-foreground font-normal">Undisclosed</span>
                         )}
                       </TableCell>
 
-                      {/* Actions Menu */}
-                      <TableCell className="pr-5 py-3.5 text-right">
+                      {/* Actions Menu (Guaranteed width to avoid overlapping) */}
+                      <TableCell className="w-[8%] min-w-[50px] pr-4 py-3.5 text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                              className="size-8 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer inline-flex items-center justify-center"
                               aria-label={`Actions for ${app.company}`}
                             >
                               <MoreHorizontal className="size-4" />

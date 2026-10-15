@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, LayoutDashboard, GitPullRequest } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
 import { RecentApplications } from '@/components/dashboard/RecentApplications'
 import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
+import { KanbanBoard } from '@/components/pipeline/KanbanBoard'
 import { ApplicationFormDialog } from '@/components/dashboard/AddApplicationDialog'
 import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicationDialog'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import {
   initialApplications,
   initialInterviews,
@@ -157,6 +159,12 @@ export function App() {
     }
   }
 
+  const isPipelineView = activeTab === 'pipeline'
+  const headerTitle = isPipelineView ? 'Job Pipeline' : 'Career Overview'
+  const headerSubtitle = isPipelineView
+    ? 'Interactive Kanban workflow & candidate stage tracking'
+    : 'Real-time pipeline monitoring & active opportunities'
+
   return (
     <div className="flex min-h-screen bg-slate-50/60 dark:bg-background text-foreground font-sans">
       {/* 1. Left Dark Slate Sidebar */}
@@ -171,8 +179,8 @@ export function App() {
       <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
         {/* Top Header */}
         <Header
-          title="Career Overview"
-          subtitle="Real-time pipeline monitoring & active opportunities"
+          title={headerTitle}
+          subtitle={headerSubtitle}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onToggleSidebar={() => setIsSidebarOpen(true)}
@@ -180,10 +188,10 @@ export function App() {
 
         {/* Dashboard Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Welcome Heading & Add Action */}
-          <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-            <div className="space-y-1">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          {/* Welcome Heading, View Switcher & Add Action */}
+          <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 min-w-0">
+            <div className="space-y-1 min-w-0">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground truncate">
                 Welcome back, Alex
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -191,22 +199,67 @@ export function App() {
               </p>
             </div>
 
-            <Button
-              onClick={handleOpenAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="size-4" />
-              <span>Add application</span>
-            </Button>
+            <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+              {/* Quick View Switcher: Table View vs Pipeline Board */}
+              <div className="inline-flex items-center rounded-lg border border-border/80 bg-muted/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                    !isPipelineView
+                      ? 'bg-background text-foreground shadow-2xs font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  aria-pressed={!isPipelineView}
+                  aria-label="Switch to Table Overview"
+                >
+                  <LayoutDashboard className="size-3.5" />
+                  <span>Table View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pipeline')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                    isPipelineView
+                      ? 'bg-background text-foreground shadow-2xs font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  aria-pressed={isPipelineView}
+                  aria-label="Switch to Kanban Pipeline Board"
+                >
+                  <GitPullRequest className="size-3.5" />
+                  <span>Pipeline Board</span>
+                </button>
+              </div>
+
+              <Button
+                onClick={handleOpenAdd}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="size-4" />
+                <span>Add application</span>
+              </Button>
+            </div>
           </section>
 
-          {/* 4 Metric Cards */}
+          {/* 4 Metric Cards - Live derived from shared applications state */}
           <MetricsGrid metrics={metrics} />
 
-          {/* Grid: Recent Applications Table + Upcoming Interviews */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full min-w-0">
-            {/* Table takes 2 cols on desktop */}
-            <div className="lg:col-span-2 w-full min-w-0">
+          {/* Main Workspace: Table Overview vs Kanban Pipeline */}
+          {isPipelineView ? (
+            <KanbanBoard
+              applications={applications}
+              onEditApplication={handleOpenEdit}
+              onDeleteApplication={handleOpenDelete}
+              onUpdateStatus={handleUpdateStatus}
+              onAddNew={handleOpenAdd}
+            />
+          ) : (
+            /* Applications Workspace: Full-width Table Overview + Upcoming Interviews */
+            <div className="space-y-6 w-full min-w-0">
+              {/* Primary Application Directory - Full width, zero horizontal scroll, all details at a glance */}
               <RecentApplications
                 applications={applications}
                 searchQuery={searchQuery}
@@ -217,13 +270,13 @@ export function App() {
                 onDeleteApplication={handleOpenDelete}
                 onUpdateStatus={handleUpdateStatus}
               />
-            </div>
 
-            {/* Interviews panel takes 1 col on desktop */}
-            <div className="lg:col-span-1 w-full min-w-0">
-              <UpcomingInterviews interviews={interviews} />
+              {/* Upcoming Interviews - Structured below the main directory in a balanced row */}
+              <div className="w-full min-w-0">
+                <UpcomingInterviews interviews={interviews} />
+              </div>
             </div>
-          </section>
+          )}
         </main>
       </div>
 

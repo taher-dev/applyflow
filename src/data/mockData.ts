@@ -7,8 +7,8 @@ import type {
 
 export const navigationItems: NavigationItem[] = [
   { key: 'overview', label: 'Overview', icon: 'LayoutDashboard', isImplemented: true },
-  { key: 'applications', label: 'Applications', icon: 'Briefcase', badge: '6', isImplemented: false },
-  { key: 'pipeline', label: 'Pipeline', icon: 'GitPullRequest', isImplemented: false },
+  { key: 'applications', label: 'Applications', icon: 'Briefcase', isImplemented: false },
+  { key: 'pipeline', label: 'Pipeline', icon: 'GitPullRequest', badge: 'Kanban', isImplemented: true },
   { key: 'interviews', label: 'Interviews', icon: 'Calendar', badge: '3', isImplemented: false },
   { key: 'calendar', label: 'Calendar', icon: 'Clock', isImplemented: false },
   { key: 'settings', label: 'Settings', icon: 'Settings', isImplemented: false },
