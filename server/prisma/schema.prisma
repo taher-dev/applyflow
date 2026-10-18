@@ -1,0 +1,21 @@
+// ApplyFlow Prisma Schema
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Initial placeholder model to allow Prisma Client generation.
+// Milestone 3.2 will define the full domain models (Applications, Interviews, etc.).
+model AppMeta {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
