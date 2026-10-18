@@ -53,8 +53,9 @@ export function ApplicationFilters({
       <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
         <Input
+          id="directory-search-input"
           type="text"
-          placeholder="Search applications by company name or job title..."
+          placeholder="Search by company or job title..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-9 pr-9 h-9.5 text-xs sm:text-sm bg-background border-border/80 focus-visible:ring-1 shadow-2xs"
@@ -75,7 +76,7 @@ export function ApplicationFilters({
       {/* 2. Unified Filters & Sorting Bar */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Status Filter */}
-        <div className="w-[125px]">
+        <div className="w-[135px] sm:w-[140px]">
           <Select
             value={statusFilter}
             onValueChange={(val) => onStatusChange(val as StatusFilter)}
@@ -99,7 +100,7 @@ export function ApplicationFilters({
         </div>
 
         {/* Employment Type Filter */}
-        <div className="w-[120px]">
+        <div className="w-[128px] sm:w-[132px]">
           <Select
             value={employmentFilter}
             onValueChange={(val) => onEmploymentChange(val as EmploymentTypeFilter)}
@@ -121,7 +122,7 @@ export function ApplicationFilters({
         </div>
 
         {/* Date Range Filter */}
-        <div className="w-[125px]">
+        <div className="w-[130px] sm:w-[135px]">
           <Select
             value={dateFilter}
             onValueChange={(val) => onDateChange(val as DateRangeFilter)}
@@ -164,7 +165,7 @@ export function ApplicationFilters({
         {/* Right: Sort By Selection (pushed to right on sm+ with sm:ml-auto) */}
         <div className="flex items-center gap-1.5 sm:ml-auto shrink-0">
           <span className="text-xs text-muted-foreground hidden sm:inline font-medium">Sort:</span>
-          <div className="w-[140px]">
+          <div className="w-[155px] sm:w-[165px]">
             <Select
               value={sortOption}
               onValueChange={(val) => onSortChange(val as SortOption)}

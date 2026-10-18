@@ -289,7 +289,10 @@ export function RecentApplications({
   }
 
   return (
-    <Card className="border border-border/80 bg-card shadow-2xs w-full min-w-0 overflow-hidden">
+    <Card
+      id="applications-directory"
+      className="border border-border/80 bg-card shadow-2xs w-full min-w-0 overflow-hidden scroll-mt-20"
+    >
       {/* Card Header with count badge */}
       <CardHeader className="border-b border-border/60 pb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

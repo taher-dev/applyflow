@@ -25,30 +25,30 @@ export function MetricCard({ metric }: MetricCardProps) {
 
   return (
     <Card className="border border-border/80 bg-card shadow-2xs hover:shadow-xs transition-shadow">
-      <CardContent className="p-5 space-y-3">
-        <div className="flex items-center justify-between gap-2 min-w-0">
+      <CardContent className="p-3.5 sm:p-5 space-y-2 sm:space-y-3">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 min-w-0">
           <span
-            className="text-xs font-medium text-muted-foreground tracking-wide truncate min-w-0 flex-1"
+            className="text-[11px] sm:text-xs font-semibold text-muted-foreground tracking-wide min-w-0 flex-1 leading-snug"
             title={metric.title}
           >
             {metric.title}
           </span>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-            <Icon className="size-4" />
+          <div className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <Icon className="size-3.5 sm:size-4" />
           </div>
         </div>
 
         <div className="space-y-1">
-          <div className="text-2xl font-bold tracking-tight text-foreground">
+          <div className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             {metric.value}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5">
             <span
-              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${trendColorClass}`}
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold shrink-0 ${trendColorClass}`}
             >
               {metric.change}
             </span>
-            <span className="text-[11px] text-muted-foreground truncate">
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight">
               {metric.description}
             </span>
           </div>

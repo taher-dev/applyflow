@@ -38,22 +38,38 @@ export interface JobApplication {
   followUpDate?: string
 }
 
-export type InterviewStage =
-  | 'Recruiter Screen'
-  | 'Technical Assessment'
-  | 'System Design'
-  | 'Hiring Manager'
-  | 'Final Presentation'
+export type InterviewType =
+  | 'Phone screening'
+  | 'Video interview'
+  | 'Technical interview'
+  | 'On-site interview'
+  | 'Final interview'
+  | 'Other'
+
+export interface Interview {
+  id: string
+  applicationId: string
+  scheduledAt: string // ISO 8601 string: YYYY-MM-DDTHH:mm
+  interviewType: InterviewType
+  notes?: string
+  locationOrLink?: string
+  interviewer?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Deprecated alias for backwards-compatibility during migration
+export type InterviewStage = InterviewType
 
 export interface UpcomingInterview {
   id: string
   applicationId: string
   company: string
   role: string
-  stage: InterviewStage
+  stage: string
   date: string
   time: string
-  platform: 'Google Meet' | 'Zoom' | 'Microsoft Teams' | 'On-site'
+  platform: string
   interviewer: string
 }
 

@@ -7,6 +7,7 @@ import {
   Settings,
   X,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react'
 import { navigationItems } from '@/data/mockData'
 import type { NavigationKey } from '@/types/dashboard'
@@ -17,6 +18,8 @@ interface SidebarProps {
   onSelectTab: (key: NavigationKey) => void
   isOpen: boolean
   onClose: () => void
+  upcomingInterviewsCount?: number
+  onResetDemoData?: () => void
 }
 
 const iconMap = {
@@ -28,7 +31,14 @@ const iconMap = {
   Settings,
 }
 
-export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }: SidebarProps) {
+export function Sidebar({
+  activeTab,
+  onSelectTab,
+  isOpen,
+  onClose,
+  upcomingInterviewsCount,
+  onResetDemoData,
+}: SidebarProps) {
   return (
     <>
       {/* Mobile backdrop */}
@@ -82,6 +92,14 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }: SidebarProp
               const Icon = iconMap[item.icon as keyof typeof iconMap] || Briefcase
               const isActive = activeTab === item.key
 
+              // Dynamic badge count for interviews or fallback to configured badge
+              const badgeText =
+                item.key === 'interviews' && upcomingInterviewsCount !== undefined
+                  ? upcomingInterviewsCount > 0
+                    ? String(upcomingInterviewsCount)
+                    : undefined
+                  : item.badge
+
               return (
                 <button
                   key={item.key}
@@ -106,7 +124,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }: SidebarProp
                   </div>
 
                   {item.isImplemented ? (
-                    item.badge && (
+                    badgeText && (
                       <Badge
                         variant="secondary"
                         className={`text-[10px] px-1.5 py-0 h-4 border-0 shrink-0 ${
@@ -115,7 +133,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }: SidebarProp
                             : 'bg-slate-800 text-slate-300'
                         }`}
                       >
-                        {item.badge}
+                        {badgeText}
                       </Badge>
                     )
                   ) : (
@@ -135,8 +153,20 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }: SidebarProp
           </nav>
         </div>
 
-        {/* Pro / Help Box at Bottom */}
-        <div className="p-2.5 lg:p-3 border-t border-slate-800/80">
+        {/* Pro / Help Box & Reset Option at Bottom */}
+        <div className="p-2.5 lg:p-3 border-t border-slate-800/80 space-y-2">
+          {onResetDemoData && (
+            <button
+              type="button"
+              onClick={onResetDemoData}
+              className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors cursor-pointer"
+              title="Restore initial demonstration applications and interviews"
+            >
+              <RotateCcw className="size-3.5 text-slate-400" />
+              <span>Reset demo data</span>
+            </button>
+          )}
+
           <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-3 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
               <Sparkles className="size-3.5 text-blue-400" />

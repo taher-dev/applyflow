@@ -5,12 +5,14 @@ import { KanbanColumn } from './KanbanColumn'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Search, X, GitPullRequest, RotateCcw } from 'lucide-react'
+import { Search, X, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 export interface KanbanBoardProps {
   applications: JobApplication[]
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
   onEditApplication: (application: JobApplication) => void
   onDeleteApplication: (application: JobApplication) => void
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
@@ -19,12 +21,24 @@ export interface KanbanBoardProps {
 
 export function KanbanBoard({
   applications,
+  searchQuery: externalSearchQuery,
+  onSearchChange: externalOnSearchChange,
   onEditApplication,
   onDeleteApplication,
   onUpdateStatus,
   onAddNew,
 }: KanbanBoardProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [internalSearchQuery, setInternalSearchQuery] = useState('')
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
+
+  const handleSearchChange = (val: string) => {
+    if (externalOnSearchChange) {
+      externalOnSearchChange(val)
+    } else {
+      setInternalSearchQuery(val)
+    }
+  }
+
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null)
   const [activeDropStatus, setActiveDropStatus] = useState<ApplicationStatus | null>(null)
   const [mobileColumnFilter, setMobileColumnFilter] = useState<ApplicationStatus | 'ALL'>('ALL')
@@ -113,52 +127,26 @@ export function KanbanBoard({
   }, [mobileColumnFilter])
 
   return (
-    <div className="space-y-5 w-full min-w-0">
-      {/* 1. Header Toolbar */}
-      <div className="flex flex-col gap-4 bg-card p-4 sm:p-5 rounded-xl border border-border/80 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-md bg-blue-600 text-white shadow-xs">
-                <GitPullRequest className="size-4" />
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                Job Application Pipeline
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Drag and drop candidate cards across workflow stages, or use keyboard arrows to advance.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              onClick={onAddNew}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-1.5 text-xs sm:text-sm h-9 cursor-pointer"
-            >
-              <Plus className="size-4" />
-              <span>Add application</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Search bar & quick filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-border/60">
+    <div id="pipeline-board-container" className="space-y-5 w-full min-w-0 scroll-mt-20">
+      {/* 1. Filter & Stage Counters Toolbar */}
+      <div className="flex flex-col gap-3.5 bg-card p-3.5 sm:p-4 rounded-xl border border-border/80 shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Input */}
-          <div className="relative w-full sm:max-w-xs">
+          <div className="relative w-full sm:max-w-xs md:max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
+              id="pipeline-search-input"
               type="text"
-              placeholder="Search pipeline cards..."
+              placeholder="Search pipeline cards by company or role..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-8.5 pr-8 h-9 text-xs sm:text-sm bg-background border-border/80 focus-visible:ring-1"
               aria-label="Search pipeline cards by company name or role"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => handleSearchChange('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
                 aria-label="Clear pipeline search"
               >
@@ -168,11 +156,11 @@ export function KanbanBoard({
           </div>
 
           {/* Pipeline Stage Quick Counters */}
-          <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="hidden md:flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground justify-end flex-1">
             {PIPELINE_COLUMNS.map((col) => (
               <span
                 key={col.status}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 border border-border/60 text-[11px]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/60 text-[11px]"
               >
                 <span className={cn('size-2 rounded-full', col.dotClass)} />
                 <span className="font-medium text-foreground">{col.label}:</span>
@@ -182,14 +170,14 @@ export function KanbanBoard({
           </div>
 
           {/* Mobile Column Quick Pill Selector */}
-          <div className="flex lg:hidden overflow-x-auto gap-1.5 pb-1 text-xs">
+          <div className="flex md:hidden overflow-x-auto gap-1.5 pb-1 text-xs">
             <Button
               variant={mobileColumnFilter === 'ALL' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMobileColumnFilter('ALL')}
-              className="h-7 text-xs px-2.5 rounded-full"
+              className="h-7 text-xs px-2.5 rounded-full shrink-0"
             >
-              All Columns
+              All Stages
             </Button>
             {PIPELINE_COLUMNS.map((col) => (
               <Button
@@ -217,7 +205,7 @@ export function KanbanBoard({
             </span>
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => handleSearchChange('')}
               className="text-blue-600 dark:text-blue-400 font-medium hover:underline flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className="size-3" />
