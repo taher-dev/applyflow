@@ -6,6 +6,7 @@ import type {
   WorkplaceType,
   EmploymentType,
   InterviewType,
+  NavigationKey,
 } from '@/types/dashboard'
 
 /**
@@ -16,6 +17,7 @@ import type {
 export const STORAGE_KEYS = {
   APPLICATIONS: 'applyflow_applications_v1',
   INTERVIEWS: 'applyflow_interviews_v1',
+  ACTIVE_TAB: 'applyflow_active_tab_v1',
 } as const
 
 // --- Zod Validation Schemas ---
@@ -79,6 +81,15 @@ export const InterviewSchema = z.object({
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
+
+export const NavigationKeySchema: z.ZodType<NavigationKey> = z.enum([
+  'overview',
+  'applications',
+  'pipeline',
+  'interviews',
+  'calendar',
+  'settings',
+])
 
 export interface StorageLoadResult<T> {
   data: T[] | null
@@ -260,7 +271,39 @@ export function saveInterviews(interviews: Interview[]): boolean {
 }
 
 /**
- * Selectively clears ApplyFlow application and interview data from localStorage.
+ * Loads the last active navigation tab from localStorage.
+ * Validates the value using NavigationKeySchema and falls back to 'overview'.
+ */
+export function loadActiveTab(): NavigationKey {
+  if (!isStorageAvailable()) return 'overview'
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB)
+    if (!raw) return 'overview'
+
+    const parsed = NavigationKeySchema.safeParse(raw)
+    return parsed.success ? parsed.data : 'overview'
+  } catch {
+    return 'overview'
+  }
+}
+
+/**
+ * Persists the active navigation tab to localStorage.
+ */
+export function saveActiveTab(tab: NavigationKey): boolean {
+  if (!isStorageAvailable()) return false
+
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, tab)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Selectively clears ApplyFlow application, interview, and navigation data from localStorage.
  * Preserves all unrelated localStorage keys belonging to other applications or browser extensions.
  */
 export function clearApplyFlowStorage(): boolean {
@@ -269,6 +312,7 @@ export function clearApplyFlowStorage(): boolean {
   try {
     window.localStorage.removeItem(STORAGE_KEYS.APPLICATIONS)
     window.localStorage.removeItem(STORAGE_KEYS.INTERVIEWS)
+    window.localStorage.removeItem(STORAGE_KEYS.ACTIVE_TAB)
     return true
   } catch {
     return false

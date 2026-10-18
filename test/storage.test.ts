@@ -8,6 +8,8 @@ import {
   loadInterviews,
   saveInterviews,
   clearApplyFlowStorage,
+  loadActiveTab,
+  saveActiveTab,
   JobApplicationSchema,
   InterviewSchema,
 } from '../src/lib/storage.ts'
@@ -300,5 +302,28 @@ describe('ApplyFlow Storage Service & State Integrity', () => {
       status: 'NonExistentStatus',
     })
     assert.equal(invalidStatusApp.success, false)
+  })
+
+  test('16. Persisting and loading active navigation tab', () => {
+    // Default when no tab is stored
+    assert.equal(loadActiveTab(), 'overview')
+
+    // Persisting 'pipeline'
+    const saved = saveActiveTab('pipeline')
+    assert.equal(saved, true)
+    assert.equal(loadActiveTab(), 'pipeline')
+
+    // Persisting 'interviews'
+    saveActiveTab('interviews')
+    assert.equal(loadActiveTab(), 'interviews')
+
+    // Invalid or corrupted value falls back safely to 'overview'
+    mockStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, 'non_existent_tab')
+    assert.equal(loadActiveTab(), 'overview')
+
+    // Clearing storage removes active tab
+    saveActiveTab('interviews')
+    clearApplyFlowStorage()
+    assert.equal(loadActiveTab(), 'overview')
   })
 })

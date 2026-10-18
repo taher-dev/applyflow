@@ -14,6 +14,7 @@ import { InterviewFormDialog } from '@/components/interviews/InterviewFormDialog
 import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDialog'
 import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
 import { useApplyFlowStorage } from '@/lib/useApplyFlowStorage'
+import { loadActiveTab, saveActiveTab } from '@/lib/storage'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -27,7 +28,13 @@ import type {
 } from '@/types/dashboard'
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<NavigationKey>('overview')
+  const [activeTab, setActiveTab] = useState<NavigationKey>(() => loadActiveTab())
+
+  // Persist active navigation tab across browser refreshes
+  useEffect(() => {
+    saveActiveTab(activeTab)
+  }, [activeTab])
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [searchQueries, setSearchQueries] = useState<Partial<Record<NavigationKey, string>>>({
     overview: '',
@@ -628,6 +635,8 @@ export function App() {
         onOpenChange={setIsResetDialogOpen}
         onConfirm={() => {
           resetToDemoData()
+          setActiveTab('overview')
+          saveActiveTab('overview')
           setIsResetDialogOpen(false)
           toast.success('Demo data restored', {
             description: 'Sample applications and interviews have been restored.',
