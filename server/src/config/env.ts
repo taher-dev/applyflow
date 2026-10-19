@@ -4,6 +4,19 @@ import { z } from 'zod'
 // Load environment variables from .env file if present
 dotenv.config()
 
+// Automatically detect test runner environment to isolate tests from development data
+const isTestEnvironment =
+  process.env.NODE_ENV === 'test' ||
+  process.argv.some((arg) => arg.includes('test')) ||
+  process.execArgv.some((arg) => arg.includes('test'))
+
+if (isTestEnvironment) {
+  process.env.NODE_ENV = 'test'
+  if (!process.env.TEST_DATABASE_URL && (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('applyflow_dev'))) {
+    process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/applyflow_test?schema=public'
+  }
+}
+
 /**
  * Strict runtime validation schema for server environment variables.
  * Ensures the server fails fast with actionable errors if misconfigured.

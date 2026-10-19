@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { env } from './config/env.js'
 import { healthRouter } from './routes/health.js'
+import { applicationsRouter } from './routes/applications.js'
 import { notFoundHandler } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
@@ -25,6 +26,7 @@ app.use(express.json({ limit: '100kb' }))
 
 // Mount API routes
 app.use('/api', healthRouter)
+app.use('/api/applications', applicationsRouter)
 
 // Fallback 404 handler for any unmapped route
 app.use(notFoundHandler)
