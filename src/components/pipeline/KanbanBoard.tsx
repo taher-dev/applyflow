@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import type { JobApplication, ApplicationStatus } from '@/types/dashboard'
-import { PIPELINE_COLUMNS } from './kanbanTypes'
+import {
+  PIPELINE_COLUMNS,
+  type KanbanCategory,
+  type ColumnDefinition,
+} from './kanbanTypes'
 import { KanbanColumn } from './KanbanColumn'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Search, X, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -39,9 +41,9 @@ export function KanbanBoard({
     }
   }
 
+  const [categoryFilter, setCategoryFilter] = useState<'all' | KanbanCategory>('all')
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null)
-  const [activeDropStatus, setActiveDropStatus] = useState<ApplicationStatus | null>(null)
-  const [mobileColumnFilter, setMobileColumnFilter] = useState<ApplicationStatus | 'ALL'>('ALL')
+  const [activeDropCategory, setActiveDropCategory] = useState<KanbanCategory | null>(null)
 
   // Search filter across pipeline cards
   const filteredApplications = useMemo(() => {
@@ -55,21 +57,6 @@ export function KanbanBoard({
     )
   }, [applications, searchQuery])
 
-  // Status counts map for header badges
-  const statusCounts = useMemo(() => {
-    const counts: Record<ApplicationStatus, number> = {
-      Saved: 0,
-      Applied: 0,
-      Screening: 0,
-      Interview: 0,
-      Offer: 0,
-      Rejected: 0,
-    }
-    applications.forEach((app) => {
-      counts[app.status] = (counts[app.status] || 0) + 1
-    })
-    return counts
-  }, [applications])
 
   // Drag and Drop Event Handlers (HTML5 native API, React 19 safe)
   const handleCardDragStart = (_e: React.DragEvent<HTMLDivElement>, id: string) => {
@@ -78,61 +65,89 @@ export function KanbanBoard({
 
   const handleCardDragEnd = () => {
     setDraggedAppId(null)
-    setActiveDropStatus(null)
+    setActiveDropCategory(null)
   }
 
   const handleColumnDragOver = (
     _e: React.DragEvent<HTMLDivElement>,
-    status: ApplicationStatus
+    columnId: KanbanCategory
   ) => {
-    if (activeDropStatus !== status) {
-      setActiveDropStatus(status)
+    if (activeDropCategory !== columnId) {
+      setActiveDropCategory(columnId)
     }
   }
 
   const handleColumnDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     // Only clear if actually leaving column bounds
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setActiveDropStatus(null)
+      setActiveDropCategory(null)
     }
   }
 
   const handleColumnDrop = (
     e: React.DragEvent<HTMLDivElement>,
-    targetStatus: ApplicationStatus
+    column: ColumnDefinition
   ) => {
     e.preventDefault()
     const appId = e.dataTransfer.getData('text/plain') || draggedAppId
     setDraggedAppId(null)
-    setActiveDropStatus(null)
+    setActiveDropCategory(null)
 
     if (!appId) return
 
     const targetApp = applications.find((app) => app.id === appId)
     if (!targetApp) return
 
-    if (targetApp.status === targetStatus) return
+    // If target app is already in this column's statuses, nothing to change
+    if (column.statuses.includes(targetApp.status)) return
 
     // Update shared state
-    onUpdateStatus(appId, targetStatus)
-    toast.success(`Stage updated to ${targetStatus}`, {
-      description: `${targetApp.role} at ${targetApp.company} moved to ${targetStatus}.`,
+    onUpdateStatus(appId, column.dropStatus)
+    toast.success(`Moved to ${column.label}`, {
+      description: `${targetApp.role} at ${targetApp.company} moved to ${column.label}.`,
     })
   }
 
-  // Filter columns on mobile if a specific column is selected
+  // Filter columns based on categoryFilter pill selection
   const visibleColumns = useMemo(() => {
-    if (mobileColumnFilter === 'ALL') return PIPELINE_COLUMNS
-    return PIPELINE_COLUMNS.filter((col) => col.status === mobileColumnFilter)
-  }, [mobileColumnFilter])
+    if (categoryFilter === 'all') return PIPELINE_COLUMNS
+    return PIPELINE_COLUMNS.filter((col) => col.id === categoryFilter)
+  }, [categoryFilter])
 
   return (
-    <div id="pipeline-board-container" className="space-y-5 w-full min-w-0 scroll-mt-20">
-      {/* 1. Filter & Stage Counters Toolbar */}
+    <div id="pipeline-board-container" className="space-y-4 w-full min-w-0 scroll-mt-20">
+      {/* 1. Category Pill Tabs matching reference design */}
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { id: 'all', label: 'All Applications' },
+          { id: 'Applied', label: 'Applied' },
+          { id: 'Rejected', label: 'Rejected' },
+          { id: 'Offer', label: 'Offer' },
+        ].map((tab) => {
+          const isActive = categoryFilter === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCategoryFilter(tab.id as 'all' | KanbanCategory)}
+              className={cn(
+                'px-4 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer shrink-0 font-medium',
+                isActive
+                  ? 'bg-white text-slate-900 font-semibold shadow-2xs border border-slate-200/90'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/70'
+              )}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 2. Filter Toolbar */}
       <div className="flex flex-col gap-3.5 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           {/* Search Input */}
-          <div className="relative w-full sm:max-w-xs md:max-w-sm">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
             <Input
               id="pipeline-search-input"
@@ -154,57 +169,6 @@ export function KanbanBoard({
               </button>
             )}
           </div>
-
-          {/* Pipeline Stage Quick Counters */}
-          <div className="hidden md:flex flex-wrap items-center gap-1.5 text-xs text-slate-500 justify-end flex-1">
-            {PIPELINE_COLUMNS.map((col) => (
-              <span
-                key={col.status}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px]"
-              >
-                <span className={cn('size-2 rounded-full', col.dotClass)} />
-                <span className="font-medium text-slate-700">{col.label}:</span>
-                <span className="font-semibold text-slate-900">{statusCounts[col.status]}</span>
-              </span>
-            ))}
-          </div>
-
-          {/* Mobile Column Quick Pill Selector */}
-          <div className="flex md:hidden overflow-x-auto gap-1.5 pb-1 text-xs">
-            <Button
-              variant={mobileColumnFilter === 'ALL' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setMobileColumnFilter('ALL')}
-              className={cn(
-                'h-7 text-xs px-2.5 rounded-full shrink-0',
-                mobileColumnFilter === 'ALL'
-                  ? 'bg-slate-900 text-white'
-                  : 'border-slate-200 text-slate-700'
-              )}
-            >
-              All Stages
-            </Button>
-            {PIPELINE_COLUMNS.map((col) => (
-              <Button
-                key={col.status}
-                variant={mobileColumnFilter === col.status ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setMobileColumnFilter(col.status)}
-                className={cn(
-                  'h-7 text-xs px-2.5 rounded-full shrink-0 flex items-center gap-1.5',
-                  mobileColumnFilter === col.status
-                    ? 'bg-slate-900 text-white'
-                    : 'border-slate-200 text-slate-700'
-                )}
-              >
-                <span className={cn('size-1.5 rounded-full', col.dotClass)} />
-                <span>{col.label}</span>
-                <Badge variant="secondary" className="px-1 py-0 text-[10px] h-4 bg-slate-100 text-slate-700">
-                  {statusCounts[col.status]}
-                </Badge>
-              </Button>
-            ))}
-          </div>
         </div>
 
         {/* Search match indicator */}
@@ -225,17 +189,32 @@ export function KanbanBoard({
         )}
       </div>
 
-      {/* 2. Horizontal Kanban Columns Container */}
-      <div className="flex gap-4 overflow-x-auto pb-6 items-start w-full min-w-0 snap-x">
+      {/* 3. Responsive 3-Column Kanban Container */}
+      <div
+        className={cn(
+          'pb-6 items-start w-full min-w-0',
+          categoryFilter === 'all'
+            ? 'flex gap-4.5 overflow-x-auto snap-x lg:grid lg:grid-cols-3 lg:overflow-x-visible'
+            : 'flex justify-start'
+        )}
+      >
         {visibleColumns.map((col) => {
-          const colApps = filteredApplications.filter((app) => app.status === col.status)
+          const colApps = filteredApplications.filter((app) =>
+            col.statuses.includes(app.status)
+          )
 
           return (
-            <div key={col.status} className="snap-start shrink-0">
+            <div
+              key={col.id}
+              className={cn(
+                'snap-start shrink-0',
+                categoryFilter === 'all' ? 'lg:min-w-0' : 'w-full max-w-sm sm:max-w-md'
+              )}
+            >
               <KanbanColumn
                 column={col}
                 applications={colApps}
-                isDragOver={activeDropStatus === col.status}
+                isDragOver={activeDropCategory === col.id}
                 draggedAppId={draggedAppId}
                 onDragOver={handleColumnDragOver}
                 onDragLeave={handleColumnDragLeave}

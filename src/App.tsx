@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Plus, LayoutDashboard, GitPullRequest, Calendar, Briefcase, Loader2 } from 'lucide-react'
+import { Plus, Briefcase, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/context/useAuth'
@@ -8,7 +8,6 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
 import { RecentApplications } from '@/components/dashboard/RecentApplications'
-import { UpcomingInterviews } from '@/components/dashboard/UpcomingInterviews'
 import { KanbanBoard } from '@/components/pipeline/KanbanBoard'
 import { InterviewsPage } from '@/components/interviews/InterviewsPage'
 import { ApplicationFormDialog } from '@/components/dashboard/AddApplicationDialog'
@@ -16,11 +15,12 @@ import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicatio
 import { InterviewFormDialog } from '@/components/interviews/InterviewFormDialog'
 import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDialog'
 import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
+import { LocalDataMigrationBanner } from '@/components/dashboard/LocalDataMigrationBanner'
 import { useApplyFlowStorage } from '@/lib/useApplyFlowStorage'
 import { loadActiveTab, saveActiveTab } from '@/lib/storage'
+import { ApiError } from '@/lib/api'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import { initialMetrics } from '@/data/mockData'
 import type {
   JobApplication,
@@ -31,7 +31,6 @@ import type {
 } from '@/types/dashboard'
 
 function DashboardContent() {
-  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<NavigationKey>(() => loadActiveTab())
 
   // Persist active navigation tab across browser refreshes
@@ -71,12 +70,19 @@ function DashboardContent() {
   // Single source of truth for persistent applications & interviews state
   const {
     applications,
-    setApplications,
+    isLoadingApplications,
+    applicationsError,
+    refetchApplications,
+    createApplication,
+    updateApplication,
+    deleteApplication,
     interviews,
     setInterviews,
     resetToDemoData,
   } = useApplyFlowStorage()
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+  const [isSavingApp, setIsSavingApp] = useState(false)
+  const [isDeletingApp, setIsDeletingApp] = useState(false)
   const [currentTime] = useState(() => Date.now())
 
   // Derived metrics dynamically calculated from live applications list
@@ -138,54 +144,48 @@ function DashboardContent() {
     setIsFormDialogOpen(true)
   }
 
-  const handleSaveApplication = (
+  const handleSaveApplication = async (
     appData: Omit<JobApplication, 'id'>,
     existingId?: string
   ) => {
-    if (existingId) {
-      // Immutable update of existing application
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === existingId
-            ? {
-                ...app,
-                ...appData,
-                id: existingId,
-              }
-            : app
-        )
-      )
-      toast.success('Application updated!', {
-        description: `${appData.role} at ${appData.company} has been saved.`,
-      })
-    } else {
-      // Immutable creation of new application
-      const created: JobApplication = {
-        ...appData,
-        id: `app-${Date.now()}`,
+    if (isSavingApp) return
+    setIsSavingApp(true)
+    try {
+      if (existingId) {
+        await updateApplication(existingId, appData)
+        toast.success('Application updated!', {
+          description: `${appData.role} at ${appData.company} has been saved.`,
+        })
+      } else {
+        await createApplication(appData)
+        toast.success('Application tracked successfully!', {
+          description: `${appData.role} at ${appData.company} has been added to your pipeline.`,
+        })
       }
-      setApplications((prev) => [created, ...prev])
-      toast.success('Application tracked successfully!', {
-        description: `${appData.role} at ${appData.company} has been added to your pipeline.`,
-      })
+      setApplicationToEdit(null)
+      setIsFormDialogOpen(false)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Could not save application'
+      toast.error('Failed to save application', { description: msg })
+    } finally {
+      setIsSavingApp(false)
     }
-
-    setApplicationToEdit(null)
-    setIsFormDialogOpen(false)
   }
 
   // Quick Status Update
-  const handleUpdateStatus = (id: string, newStatus: ApplicationStatus) => {
+  const handleUpdateStatus = async (id: string, newStatus: ApplicationStatus) => {
     const target = applications.find((a) => a.id === id)
     if (!target || target.status === newStatus) return
 
-    setApplications((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
-    )
-
-    toast.info('Status updated', {
-      description: `${target.company} is now marked as ${newStatus}.`,
-    })
+    try {
+      await updateApplication(id, { status: newStatus })
+      toast.info('Status updated', {
+        description: `${target.company} is now marked as ${newStatus}.`,
+      })
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to update status'
+      toast.error('Status update failed', { description: msg })
+    }
   }
 
   // Application Delete Action Handlers (with cascade interview cleanup)
@@ -194,21 +194,27 @@ function DashboardContent() {
     setIsDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = (id: string) => {
+  const handleConfirmDelete = async (id: string) => {
+    if (isDeletingApp) return
     const target = applications.find((a) => a.id === id)
-    setApplications((prev) => prev.filter((app) => app.id !== id))
+    setIsDeletingApp(true)
+    try {
+      await deleteApplication(id)
+      // Cascade deletion: Remove any local interviews associated with this deleted application
+      setInterviews((prev) => prev.filter((interview) => interview.applicationId !== id))
+      setApplicationToDelete(null)
+      setIsDeleteDialogOpen(false)
 
-    // Cascade deletion: Remove any interviews associated with this deleted application
-    // to prevent orphaned/broken references in the interview schedule
-    setInterviews((prev) => prev.filter((interview) => interview.applicationId !== id))
-
-    setApplicationToDelete(null)
-    setIsDeleteDialogOpen(false)
-
-    if (target) {
-      toast.success('Application deleted', {
-        description: `${target.role} at ${target.company} was removed from your pipeline.`,
-      })
+      if (target) {
+        toast.success('Application deleted', {
+          description: `${target.role} at ${target.company} was removed from your pipeline.`,
+        })
+      }
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to delete application'
+      toast.error('Delete failed', { description: msg })
+    } finally {
+      setIsDeletingApp(false)
     }
   }
 
@@ -406,28 +412,45 @@ function DashboardContent() {
 
         {/* Dashboard Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+          {/* 0. Optional Legacy Local Storage Migration Banner */}
+          <LocalDataMigrationBanner onImportComplete={refetchApplications} />
+
+          {/* Error Banner when server communication fails */}
+          {applicationsError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="size-4 text-rose-600 shrink-0" />
+                <span>{applicationsError}</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetchApplications()}
+                className="h-7 text-xs border-rose-300 hover:bg-white text-rose-900 cursor-pointer shrink-0"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {/* Loading Indicator while synchronizing with database */}
+          {isLoadingApplications && applications.length === 0 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 flex items-center justify-center gap-2.5 text-xs text-slate-500">
+              <Loader2 className="size-4 animate-spin text-slate-800" />
+              <span>Loading applications from cloud database...</span>
+            </div>
+          )}
+
           {/* Welcome Heading, View Switcher & Action Button */}
           <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 min-w-0">
             <div className="space-y-1 min-w-0">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                {activeTab === 'overview' && `Welcome back, ${user?.name || 'Alex'}`}
-                {activeTab === 'pipeline' && 'Job Application Pipeline'}
+                {activeTab === 'overview' && 'My Applications'}
+                {activeTab === 'pipeline' && 'Kanban Board'}
                 {activeTab === 'interviews' && 'Interview Management'}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                {activeTab === 'overview' && (
-                  <>
-                    You have{' '}
-                    <span className="font-semibold text-slate-900">
-                      {upcomingInterviewsCount} upcoming interview{upcomingInterviewsCount === 1 ? '' : 's'}
-                    </span>{' '}
-                    scheduled across{' '}
-                    <span className="font-semibold text-slate-900">
-                      {applications.length} active opportunities
-                    </span>
-                    .
-                  </>
-                )}
+                {activeTab === 'overview' && 'Track and manage your job applications'}
                 {activeTab === 'pipeline' && (
                   <>
                     Drag and drop candidate cards across workflow stages, or update application statuses in real time.
@@ -441,61 +464,7 @@ function DashboardContent() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
-              {/* Quick View Switcher: Table View vs Pipeline Board vs Interviews */}
-              <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('overview')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                    activeTab === 'overview'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  )}
-                  aria-pressed={activeTab === 'overview'}
-                  aria-label="Switch to Table Overview"
-                >
-                  <LayoutDashboard className="size-3.5" />
-                  <span>Overview</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('pipeline')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                    activeTab === 'pipeline'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  )}
-                  aria-pressed={activeTab === 'pipeline'}
-                  aria-label="Switch to Kanban Pipeline Board"
-                >
-                  <GitPullRequest className="size-3.5" />
-                  <span>Pipeline</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('interviews')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                    activeTab === 'interviews'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  )}
-                  aria-pressed={activeTab === 'interviews'}
-                  aria-label="Switch to Interviews Calendar"
-                >
-                  <Calendar className="size-3.5" />
-                  <span>Interviews</span>
-                  {upcomingInterviewsCount > 0 && (
-                    <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
-                      {upcomingInterviewsCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-
+            <div className="flex items-center gap-2.5 shrink-0">
               {activeTab === 'interviews' ? (
                 <Button
                   onClick={() => handleOpenScheduleInterview()}
@@ -516,8 +485,8 @@ function DashboardContent() {
             </div>
           </section>
 
-          {/* 4 Metric Cards - Live derived from shared applications state */}
-          {activeTab !== 'interviews' && <MetricsGrid metrics={metrics} />}
+          {/* 4 Metric Cards - Displayed only on Overview screen */}
+          {activeTab === 'overview' && <MetricsGrid metrics={metrics} />}
 
           {/* Dynamic View based on active navigation tab */}
           {activeTab === 'pipeline' && (
@@ -546,7 +515,7 @@ function DashboardContent() {
           )}
 
           {activeTab === 'overview' && (
-            <div className="space-y-6 w-full min-w-0">
+            <div className="w-full min-w-0">
               {/* Primary Application Directory - Full width, zero horizontal scroll */}
               <RecentApplications
                 applications={applications}
@@ -558,18 +527,6 @@ function DashboardContent() {
                 onDeleteApplication={handleOpenDelete}
                 onUpdateStatus={handleUpdateStatus}
               />
-
-              {/* Upcoming Interviews - Structured below the main directory */}
-              <div className="w-full min-w-0">
-                <UpcomingInterviews
-                  interviews={interviews}
-                  applications={applications}
-                  onScheduleInterview={handleOpenScheduleInterview}
-                  onEditInterview={handleOpenEditInterview}
-                  onDeleteInterview={handleOpenDeleteInterview}
-                  onViewAllInterviews={() => setActiveTab('interviews')}
-                />
-              </div>
             </div>
           )}
         </main>

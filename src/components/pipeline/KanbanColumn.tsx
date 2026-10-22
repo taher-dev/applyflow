@@ -1,6 +1,6 @@
 import React from 'react'
 import type { JobApplication, ApplicationStatus } from '@/types/dashboard'
-import type { ColumnDefinition } from './kanbanTypes'
+import type { ColumnDefinition, KanbanCategory } from './kanbanTypes'
 import { KanbanCard } from './KanbanCard'
 import { Badge } from '@/components/ui/badge'
 import { Inbox, Plus } from 'lucide-react'
@@ -11,9 +11,9 @@ export interface KanbanColumnProps {
   applications: JobApplication[]
   isDragOver: boolean
   draggedAppId: string | null
-  onDragOver: (e: React.DragEvent<HTMLDivElement>, status: ApplicationStatus) => void
+  onDragOver: (e: React.DragEvent<HTMLDivElement>, columnId: KanbanCategory) => void
   onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void
-  onDrop: (e: React.DragEvent<HTMLDivElement>, status: ApplicationStatus) => void
+  onDrop: (e: React.DragEvent<HTMLDivElement>, column: ColumnDefinition) => void
   onCardDragStart: (e: React.DragEvent<HTMLDivElement>, id: string) => void
   onCardDragEnd: (e: React.DragEvent<HTMLDivElement>) => void
   onEdit: (application: JobApplication) => void
@@ -40,14 +40,14 @@ export function KanbanColumn({
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    onDragOver(e, column.status)
+    onDragOver(e, column.id)
   }
 
   return (
     <div
       role="region"
       aria-label={`${column.label} column, ${applications.length} applications`}
-      className="flex flex-col w-[300px] sm:w-[320px] shrink-0 rounded-xl bg-slate-100/70 border border-slate-200/80 shadow-xs"
+      className="flex flex-col w-[290px] sm:w-[310px] xl:w-auto shrink-0 rounded-xl bg-slate-100/70 border border-slate-200/80 shadow-xs"
     >
       {/* Column Header */}
       <div className="flex items-center justify-between p-3.5 border-b border-slate-200/80">
@@ -64,8 +64,8 @@ export function KanbanColumn({
           </Badge>
         </div>
 
-        {/* Quick add button in Saved/Applied column if available */}
-        {onAddNew && (column.status === 'Saved' || column.status === 'Applied') && (
+        {/* Quick add button in Applied column if available */}
+        {onAddNew && column.id === 'Applied' && (
           <button
             type="button"
             onClick={onAddNew}
@@ -87,7 +87,7 @@ export function KanbanColumn({
       <div
         onDragOver={handleDragOver}
         onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, column.status)}
+        onDrop={(e) => onDrop(e, column)}
         className={cn(
           'flex-1 p-2.5 space-y-2.5 min-h-[360px] max-h-[calc(100vh-280px)] overflow-y-auto transition-colors duration-150',
           isDragOver && column.activeDropClass

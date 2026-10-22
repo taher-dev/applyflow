@@ -1,13 +1,9 @@
 import {
   LayoutDashboard,
   Briefcase,
-  GitPullRequest,
+  Kanban,
   Calendar,
-  Clock,
-  Settings,
   X,
-  Sparkles,
-  RotateCcw,
   LogOut,
 } from 'lucide-react'
 import { navigationItems } from '@/data/mockData'
@@ -26,11 +22,8 @@ interface SidebarProps {
 
 const iconMap = {
   LayoutDashboard,
-  Briefcase,
-  GitPullRequest,
+  Kanban,
   Calendar,
-  Clock,
-  Settings,
 }
 
 export function Sidebar({
@@ -39,9 +32,19 @@ export function Sidebar({
   isOpen,
   onClose,
   upcomingInterviewsCount,
-  onResetDemoData,
 }: SidebarProps) {
   const { user, logout } = useAuth()
+
+  const userInitials = user?.name
+    ? user.name
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'AF'
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -55,24 +58,19 @@ export function Sidebar({
 
       {/* Sidebar container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 md:w-52 lg:w-56 xl:w-64 flex-col bg-white border-r border-slate-200 text-slate-700 transition-all duration-200 ease-in-out md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 md:w-56 lg:w-60 xl:w-64 flex-col bg-white border-r border-slate-200/80 text-slate-700 transition-all duration-200 ease-in-out md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-3.5 lg:px-4 xl:px-5 border-b border-slate-200/80">
+        <div className="flex h-16 items-center justify-between px-4 xl:px-5 border-b border-slate-200/80">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs">
-              <Briefcase className="size-5" />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
+              <Briefcase className="size-4" />
             </div>
-            <div className="min-w-0">
-              <span className="text-base font-bold tracking-tight text-slate-900 block leading-none truncate">
-                ApplyFlow
-              </span>
-              <span className="text-[11px] text-slate-500 font-medium tracking-wide truncate block mt-1">
-                Career Tracker
-              </span>
-            </div>
+            <span className="text-base font-bold tracking-tight text-slate-900 truncate">
+              ApplyFlow
+            </span>
           </div>
           <button
             type="button"
@@ -84,15 +82,11 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Navigation list */}
-        <div className="flex-1 overflow-y-auto px-2.5 lg:px-3 py-4 space-y-1">
-          <div className="px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Workspace
-          </div>
-
-          <nav className="space-y-1">
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          <nav className="space-y-1" aria-label="Main Navigation">
             {navigationItems.map((item) => {
-              const Icon = iconMap[item.icon as keyof typeof iconMap] || Briefcase
+              const Icon = iconMap[item.icon as keyof typeof iconMap] || LayoutDashboard
               const isActive = activeTab === item.key
 
               // Dynamic badge count for interviews or fallback to configured badge
@@ -111,11 +105,12 @@ export function Sidebar({
                     onSelectTab(item.key)
                     onClose()
                   }}
-                  className={`group flex w-full items-center justify-between rounded-lg px-2.5 lg:px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                  className={`group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-slate-900 text-white shadow-xs'
+                      ? 'bg-slate-900 text-white shadow-xs font-semibold'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon
@@ -126,29 +121,17 @@ export function Sidebar({
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  {item.isImplemented ? (
-                    badgeText && (
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] px-1.5 py-0 h-4 border-0 shrink-0 ${
-                          isActive
-                            ? 'bg-slate-800 text-white'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {badgeText}
-                      </Badge>
-                    )
-                  ) : (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-normal shrink-0 ${
+                  {badgeText && (
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] px-1.5 py-0 h-4 border-0 shrink-0 font-medium ${
                         isActive
-                          ? 'bg-slate-800 text-white'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      Soon
-                    </span>
+                      {badgeText}
+                    </Badge>
                   )}
                 </button>
               )
@@ -156,54 +139,36 @@ export function Sidebar({
           </nav>
         </div>
 
-        {/* Pro / Help Box & Reset Option at Bottom */}
-        <div className="p-2.5 lg:p-3 border-t border-slate-200/80 space-y-2">
-          {onResetDemoData && (
-            <button
-              type="button"
-              onClick={onResetDemoData}
-              className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Restore initial demonstration applications and interviews"
-            >
-              <RotateCcw className="size-3.5 text-slate-400" />
-              <span>Reset demo data</span>
-            </button>
-          )}
-
-          <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
-              <Sparkles className="size-3.5 text-slate-900" />
-              <span>Pro Search Mode</span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Job sync & automated follow-ups active for 6 companies.
-            </p>
-          </div>
-
-          {user && (
-            <div className="pt-1">
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+        {/* Minimal User Profile Footer */}
+        {user && (
+          <div className="p-3 border-t border-slate-200/80 mt-auto">
+            <div className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="size-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                  {userInitials}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-900 truncate leading-none">
+                  <p className="text-xs font-semibold text-slate-900 truncate leading-tight">
                     {user.name}
                   </p>
-                  <p className="text-[10px] text-slate-500 truncate mt-1 leading-none">
+                  <p className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
                     {user.email}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
-                  title="Sign out of ApplyFlow"
-                  aria-label="Sign out of ApplyFlow"
-                >
-                  <LogOut className="size-3.5" />
-                </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="size-7 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+                title="Sign out"
+                aria-label="Sign out of ApplyFlow"
+              >
+                <LogOut className="size-3.5" />
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
     </>
   )

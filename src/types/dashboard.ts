@@ -1,10 +1,11 @@
 export type ApplicationStatus =
-  | 'Saved'
   | 'Applied'
+  | 'Rejected'
+  | 'Offer'
+  | 'Active'
+  | 'Saved'
   | 'Screening'
   | 'Interview'
-  | 'Offer'
-  | 'Rejected'
 
 export type WorkplaceType = 'Remote' | 'Hybrid' | 'On-site'
 

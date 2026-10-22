@@ -19,6 +19,8 @@ const statusMap: Record<string, ApplicationStatus> = {
   Offer: ApplicationStatus.OFFER,
   REJECTED: ApplicationStatus.REJECTED,
   Rejected: ApplicationStatus.REJECTED,
+  ACTIVE: ApplicationStatus.APPLIED,
+  Active: ApplicationStatus.APPLIED,
 }
 
 // Workplace type normalization map

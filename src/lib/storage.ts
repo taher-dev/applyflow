@@ -23,12 +23,13 @@ export const STORAGE_KEYS = {
 // --- Zod Validation Schemas ---
 
 export const ApplicationStatusSchema: z.ZodType<ApplicationStatus> = z.enum([
-  'Saved',
   'Applied',
+  'Rejected',
+  'Offer',
+  'Active',
+  'Saved',
   'Screening',
   'Interview',
-  'Offer',
-  'Rejected',
 ])
 
 export const WorkplaceTypeSchema: z.ZodType<WorkplaceType> = z.enum([

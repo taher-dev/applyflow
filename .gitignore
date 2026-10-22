@@ -32,5 +32,5 @@ dist-ssr
 server/dist
 
 # Local embedded database directory
-data/
+/data/
 server/data/

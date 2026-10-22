@@ -27,9 +27,9 @@ import {
   GripVertical,
 } from 'lucide-react'
 import {
-  STAGE_ORDER,
-  getNextStatus,
-  getPreviousStatus,
+  PIPELINE_COLUMNS,
+  getNextCategory,
+  getPreviousCategory,
 } from './kanbanTypes'
 import { cn } from '@/lib/utils'
 
@@ -52,8 +52,8 @@ export function KanbanCard({
   onDelete,
   onUpdateStatus,
 }: KanbanCardProps) {
-  const previousStatus = getPreviousStatus(application.status)
-  const nextStatus = getNextStatus(application.status)
+  const prev = getPreviousCategory(application.status)
+  const next = getNextCategory(application.status)
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData('text/plain', application.id)
@@ -117,26 +117,29 @@ export function KanbanCard({
                 <span>Edit Application</span>
               </DropdownMenuItem>
 
-              {/* Move to another stage (keyboard-accessible submenu) */}
+              {/* Move to another category (keyboard-accessible submenu) */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="cursor-pointer text-xs">
                   <ArrowRightLeft className="size-3.5 mr-2" />
-                  <span>Move Stage</span>
+                  <span>Move Category</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-40">
-                  {STAGE_ORDER.map((stage) => (
-                    <DropdownMenuItem
-                      key={stage}
-                      disabled={stage === application.status}
-                      onClick={() => onUpdateStatus(application.id, stage)}
-                      className="cursor-pointer text-xs flex items-center justify-between"
-                    >
-                      <span>{stage}</span>
-                      {stage === application.status && (
-                        <Check className="size-3 text-blue-600" />
-                      )}
-                    </DropdownMenuItem>
-                  ))}
+                  {PIPELINE_COLUMNS.map((col) => {
+                    const isCurrent = col.statuses.includes(application.status)
+                    return (
+                      <DropdownMenuItem
+                        key={col.id}
+                        disabled={isCurrent}
+                        onClick={() => onUpdateStatus(application.id, col.dropStatus)}
+                        className="cursor-pointer text-xs flex items-center justify-between"
+                      >
+                        <span>{col.label}</span>
+                        {isCurrent && (
+                          <Check className="size-3 text-blue-600" />
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
 
@@ -171,7 +174,7 @@ export function KanbanCard({
         )}
       </div>
 
-      {/* Meta Chips: Arrangement & Employment Type at the bottom of Location */}
+      {/* Meta Chips: Arrangement, Employment Type & Sub-stage */}
       <div className="flex items-center justify-between gap-1.5 mt-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge
@@ -201,22 +204,22 @@ export function KanbanCard({
         </div>
       </div>
 
-      {/* Quick Stage Shifter buttons (Accessible keyboard & touch step navigation) */}
+      {/* Quick Category Shifter buttons (Accessible keyboard & touch step navigation) */}
       <div className="flex items-center justify-between gap-1 pt-2 mt-2 border-t border-border/40">
         <Button
           variant="ghost"
           size="sm"
-          disabled={!previousStatus}
+          disabled={!prev}
           onClick={(e) => {
             e.stopPropagation()
-            if (previousStatus) onUpdateStatus(application.id, previousStatus)
+            if (prev) onUpdateStatus(application.id, prev.status)
           }}
           className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed gap-0.5"
-          title={previousStatus ? `Move back to ${previousStatus}` : 'At initial stage'}
-          aria-label={`Move ${application.company} back to ${previousStatus || 'initial stage'}`}
+          title={prev ? `Move back to ${prev.category}` : 'At initial category'}
+          aria-label={`Move ${application.company} back to ${prev ? prev.category : 'initial category'}`}
         >
           <ChevronLeft className="size-3" />
-          <span>{previousStatus ? previousStatus : 'Start'}</span>
+          <span>{prev ? prev.category : 'Start'}</span>
         </Button>
 
         <span className="text-[10px] text-muted-foreground/40 font-mono">/</span>
@@ -224,16 +227,16 @@ export function KanbanCard({
         <Button
           variant="ghost"
           size="sm"
-          disabled={!nextStatus}
+          disabled={!next}
           onClick={(e) => {
             e.stopPropagation()
-            if (nextStatus) onUpdateStatus(application.id, nextStatus)
+            if (next) onUpdateStatus(application.id, next.status)
           }}
           className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed gap-0.5"
-          title={nextStatus ? `Advance to ${nextStatus}` : 'At final stage'}
-          aria-label={`Advance ${application.company} to ${nextStatus || 'final stage'}`}
+          title={next ? `Advance to ${next.category}` : 'At final category'}
+          aria-label={`Advance ${application.company} to ${next ? next.category : 'final category'}`}
         >
-          <span>{nextStatus ? nextStatus : 'Done'}</span>
+          <span>{next ? next.category : 'Done'}</span>
           <ChevronRight className="size-3" />
         </Button>
       </div>

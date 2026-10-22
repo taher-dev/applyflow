@@ -30,7 +30,7 @@ const applicationFormSchema = z
   .object({
     company: z.string().trim().min(1, 'Company name is required'),
     role: z.string().trim().min(1, 'Job title is required'),
-    status: z.enum(['Saved', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected'], {
+    status: z.enum(['Applied', 'Rejected', 'Offer', 'Active', 'Saved', 'Screening', 'Interview'], {
       required_error: 'Please select an application status',
     }),
     appliedDate: z
@@ -181,7 +181,12 @@ export function ApplicationFormDialog({
         reset({
           company: applicationToEdit.company,
           role: applicationToEdit.role,
-          status: applicationToEdit.status,
+          status:
+            applicationToEdit.status === 'Offer'
+              ? 'Offer'
+              : applicationToEdit.status === 'Rejected'
+              ? 'Rejected'
+              : 'Applied',
           appliedDate: applicationToEdit.appliedDate,
           jobUrl: applicationToEdit.jobUrl || '',
           location: applicationToEdit.location || '',
@@ -354,12 +359,9 @@ export function ApplicationFormDialog({
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent position="popper">
-                        <SelectItem value="Saved">Saved</SelectItem>
                         <SelectItem value="Applied">Applied</SelectItem>
-                        <SelectItem value="Screening">Screening</SelectItem>
-                        <SelectItem value="Interview">Interview</SelectItem>
-                        <SelectItem value="Offer">Offer</SelectItem>
                         <SelectItem value="Rejected">Rejected</SelectItem>
+                        <SelectItem value="Offer">Offer</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

@@ -30,6 +30,7 @@ export interface ApplicationFiltersProps {
   onClearFilters: () => void
   hasActiveFilters: boolean
   activeFilterCount: number
+  hideSearch?: boolean
 }
 
 export function ApplicationFilters({
@@ -46,32 +47,35 @@ export function ApplicationFilters({
   onClearFilters,
   hasActiveFilters,
   activeFilterCount,
+  hideSearch = false,
 }: ApplicationFiltersProps) {
   return (
     <div className="space-y-3 p-3.5 sm:p-4 bg-slate-50/70 border-b border-slate-200/80">
       {/* 1. Full-size Search Input */}
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-        <Input
-          id="directory-search-input"
-          type="text"
-          placeholder="Search by company or job title..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-9 pr-9 h-9.5 text-xs sm:text-sm bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-900 focus-visible:border-slate-900 shadow-2xs"
-          aria-label="Search applications by company name or job title"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => onSearchChange('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors p-1 rounded-sm"
-            aria-label="Clear search input"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
-      </div>
+      {!hideSearch && (
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+          <Input
+            id="directory-search-input"
+            type="text"
+            placeholder="Search by company or job title..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full pl-9 pr-9 h-9.5 text-xs sm:text-sm bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-900 focus-visible:border-slate-900 shadow-2xs"
+            aria-label="Search applications by company name or job title"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors p-1 rounded-sm"
+              aria-label="Clear search input"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Unified Filters & Sorting Bar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -89,12 +93,9 @@ export function ApplicationFilters({
             </SelectTrigger>
             <SelectContent position="popper">
               <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="Saved">Saved</SelectItem>
               <SelectItem value="Applied">Applied</SelectItem>
-              <SelectItem value="Screening">Screening</SelectItem>
-              <SelectItem value="Interview">Interview</SelectItem>
-              <SelectItem value="Offer">Offer</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="Offer">Offer</SelectItem>
             </SelectContent>
           </Select>
         </div>

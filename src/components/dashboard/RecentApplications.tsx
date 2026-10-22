@@ -10,9 +10,6 @@ import type {
 import { cn } from '@/lib/utils'
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
 } from '@/components/ui/card'
 import {
@@ -23,7 +20,6 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -54,9 +50,18 @@ import {
   Check,
   Plus,
   RotateCcw,
+  LayoutGrid,
+  List,
+  SlidersHorizontal,
+  Search,
+  X,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ApplicationCardGrid } from './ApplicationCardGrid'
 import { ApplicationFilters } from './ApplicationFilters'
 import { ApplicationPagination } from './ApplicationPagination'
+
+export type CategoryTab = 'all' | 'applied' | 'rejected' | 'offer'
 
 interface RecentApplicationsProps {
   applications: JobApplication[]
@@ -70,30 +75,21 @@ interface RecentApplicationsProps {
 }
 
 const ALL_STATUSES: ApplicationStatus[] = [
-  'Saved',
   'Applied',
-  'Screening',
-  'Interview',
-  'Offer',
   'Rejected',
+  'Offer',
 ]
 
 function getStatusBadgeClass(status: ApplicationStatus): string {
   switch (status) {
     case 'Offer':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-    case 'Interview':
-      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
-    case 'Screening':
-      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-    case 'Applied':
-      return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
-    case 'Saved':
-      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
     case 'Rejected':
       return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+    case 'Applied':
+    case 'Active':
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200'
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
   }
 }
 
@@ -160,15 +156,24 @@ export function RecentApplications({
   onDeleteApplication,
   onUpdateStatus,
 }: RecentApplicationsProps) {
-  // Local Filter, Sort, and Pagination State
+  // Local Filter, Sort, View, and Pagination State
+  const [categoryTab, setCategoryTab] = useState<CategoryTab>('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('applyflow_applications_view_mode')
+      if (saved === 'grid' || saved === 'table') return saved
+    }
+    return 'grid'
+  })
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [employmentFilter, setEmploymentFilter] = useState<EmploymentTypeFilter>('ALL')
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL')
   const [sortOption, setSortOption] = useState<SortOption>('date-desc')
   const [currentPage, setCurrentPage] = useState<number>(1)
-  const [pageSize, setPageSize] = useState<number>(10)
+  const [pageSize, setPageSize] = useState<number>(12)
 
-  // 1. Filter applications by search, status, employment type, and date range
+  // 1. Filter applications by search, status, employment type, date range, and category tab
   const filteredApplications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
@@ -180,9 +185,31 @@ export function RecentApplications({
         if (!matchesCompany && !matchesRole) return false
       }
 
-      // Status filter
-      if (statusFilter !== 'ALL' && app.status !== statusFilter) {
-        return false
+      // Category Tab filter (matching reference UI)
+      if (categoryTab === 'applied') {
+        const isApplied =
+          app.status === 'Applied' ||
+          app.status === 'Active' ||
+          app.status === 'Screening' ||
+          app.status === 'Interview' ||
+          app.status === 'Saved'
+        if (!isApplied) return false
+      } else if (categoryTab === 'rejected') {
+        if (app.status !== 'Rejected') return false
+      } else if (categoryTab === 'offer') {
+        if (app.status !== 'Offer') return false
+      } else if (statusFilter !== 'ALL') {
+        if (statusFilter === 'Applied') {
+          const isApplied =
+            app.status === 'Applied' ||
+            app.status === 'Active' ||
+            app.status === 'Screening' ||
+            app.status === 'Interview' ||
+            app.status === 'Saved'
+          if (!isApplied) return false
+        } else if (app.status !== statusFilter) {
+          return false
+        }
       }
 
       // Employment type filter
@@ -197,7 +224,7 @@ export function RecentApplications({
 
       return true
     })
-  }, [applications, searchQuery, statusFilter, employmentFilter, dateFilter])
+  }, [applications, searchQuery, categoryTab, statusFilter, employmentFilter, dateFilter])
 
   // 2. Sort filtered applications (immutable copy before sort)
   const sortedApplications = useMemo(() => {
@@ -232,7 +259,41 @@ export function RecentApplications({
     return sortedApplications.slice(startIndex, startIndex + pageSize)
   }, [sortedApplications, safeCurrentPage, pageSize])
 
+  // Dynamic section title based on active category filter tab
+  const sectionTitle = useMemo(() => {
+    if (categoryTab === 'applied') return 'Applied'
+    if (categoryTab === 'rejected') return 'Rejected'
+    if (categoryTab === 'offer') return 'Offer'
+    if (statusFilter === 'Applied') return 'Applied'
+    if (statusFilter === 'Rejected') return 'Rejected'
+    if (statusFilter === 'Offer') return 'Offer'
+    return 'Job Applications'
+  }, [categoryTab, statusFilter])
+
   // Filter change handlers (all reset current page to 1)
+  const handleCategoryTabChange = (tab: CategoryTab) => {
+    setCategoryTab(tab)
+    if (tab === 'all') {
+      setStatusFilter('ALL')
+    } else if (tab === 'applied') {
+      setStatusFilter('Applied')
+    } else if (tab === 'rejected') {
+      setStatusFilter('Rejected')
+    } else if (tab === 'offer') {
+      setStatusFilter('Offer')
+    }
+    setCurrentPage(1)
+  }
+
+  const handleViewModeChange = (mode: 'grid' | 'table') => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem('applyflow_applications_view_mode', mode)
+    } catch {
+      // Storage unavailable or quota exceeded
+    }
+  }
+
   const handleSearchChange = (query: string) => {
     onSearchChange(query)
     setCurrentPage(1)
@@ -266,6 +327,7 @@ export function RecentApplications({
   // Active filters detection
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
+    categoryTab !== 'all' ||
     statusFilter !== 'ALL' ||
     employmentFilter !== 'ALL' ||
     dateFilter !== 'ALL' ||
@@ -273,6 +335,7 @@ export function RecentApplications({
 
   const activeFilterCount =
     (searchQuery.trim().length > 0 ? 1 : 0) +
+    (categoryTab !== 'all' ? 1 : 0) +
     (statusFilter !== 'ALL' ? 1 : 0) +
     (employmentFilter !== 'ALL' ? 1 : 0) +
     (dateFilter !== 'ALL' ? 1 : 0) +
@@ -281,6 +344,7 @@ export function RecentApplications({
   // Clear all filters action
   const handleClearAllFilters = () => {
     onClearSearch()
+    setCategoryTab('all')
     setStatusFilter('ALL')
     setEmploymentFilter('ALL')
     setDateFilter('ALL')
@@ -289,102 +353,229 @@ export function RecentApplications({
   }
 
   return (
-    <Card
-      id="applications-directory"
-      className="border border-slate-200/80 bg-white shadow-xs w-full min-w-0 overflow-hidden scroll-mt-20 rounded-xl"
-    >
-      {/* Card Header with count badge */}
-      <CardHeader className="border-b border-slate-200/80 pb-3 bg-white">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <CardTitle className="text-base font-semibold text-slate-900">
-              Applications Directory
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500 mt-0.5">
-              Track, filter, and manage your {applications.length} pipeline opportunities
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <Badge variant="outline" className="text-xs font-normal border-slate-200 bg-slate-50 text-slate-600">
-              {filteredApplications.length === applications.length
-                ? `${applications.length} total`
-                : `${filteredApplications.length} of ${applications.length} matched`}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
+    <div className="space-y-4 w-full min-w-0">
+      {/* 1. Category Pill Tabs matching reference design */}
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { id: 'all', label: 'All Applications' },
+          { id: 'applied', label: 'Applied' },
+          { id: 'rejected', label: 'Rejected' },
+          { id: 'offer', label: 'Offer' },
+        ].map((tab) => {
+          const isActive = categoryTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleCategoryTabChange(tab.id as CategoryTab)}
+              className={cn(
+                'px-4 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer shrink-0 font-medium',
+                isActive
+                  ? 'bg-white text-slate-900 font-semibold shadow-2xs border border-slate-200/90'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/70'
+              )}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
 
-      {/* Filter and Sorting Toolbar */}
-      <ApplicationFilters
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        statusFilter={statusFilter}
-        onStatusChange={handleStatusChange}
-        employmentFilter={employmentFilter}
-        onEmploymentChange={handleEmploymentChange}
-        dateFilter={dateFilter}
-        onDateChange={handleDateChange}
-        sortOption={sortOption}
-        onSortChange={handleSortChange}
-        onClearFilters={handleClearAllFilters}
-        hasActiveFilters={hasActiveFilters}
-        activeFilterCount={activeFilterCount}
-      />
-
-      <CardContent className="p-0">
-        {/* Empty State A: No applications in dataset at all */}
-        {applications.length === 0 ? (
-          <div className="p-8 sm:p-12 text-center space-y-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 mx-auto text-slate-500">
-              <Building2 className="size-6" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-slate-900">
-                No applications tracked yet
+      <Card
+        id="applications-directory"
+        className="border border-slate-200/80 bg-white shadow-xs w-full min-w-0 overflow-hidden scroll-mt-20 rounded-2xl sm:rounded-3xl"
+      >
+        {/* Card Header with count badge, filters toggle, and view mode switcher */}
+        <div className="p-4 sm:p-6 pb-4 border-b border-slate-200/80 space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <h3 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                {sectionTitle}
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Get started by adding your first job opportunity to track your resume submissions, interview rounds, and offers.
-              </p>
+              <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                {filteredApplications.length}
+              </span>
+              {onAddNew && (
+                <button
+                  type="button"
+                  onClick={onAddNew}
+                  className="inline-flex items-center justify-center size-7 rounded-full border border-slate-200/90 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-95 transition-all duration-150 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900"
+                  aria-label="Add new application"
+                  title="Add new application"
+                >
+                  <Plus className="size-3.5" strokeWidth={2.25} />
+                </button>
+              )}
             </div>
-            {onAddNew && (
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {/* Advanced Filters Toggle Button */}
               <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={onAddNew}
-                className="bg-slate-900 hover:bg-slate-800 text-white text-xs gap-1.5 cursor-pointer shadow-xs rounded-lg"
+                onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                className={cn(
+                  'h-8 px-2.5 text-xs gap-1.5 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer',
+                  (showAdvancedFilters || hasActiveFilters) && 'bg-slate-100 font-semibold border-slate-300'
+                )}
+                aria-label="Toggle advanced filters"
               >
-                <Plus className="size-3.5" />
-                <span>Add your first application</span>
+                <SlidersHorizontal className="size-3.5" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="size-4 inline-flex items-center justify-center rounded-full bg-slate-900 text-white text-[10px] font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
+
+              {/* View Mode Switcher: Grid vs List */}
+              <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1">
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange('grid')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+                    viewMode === 'grid'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                  aria-pressed={viewMode === 'grid'}
+                  aria-label="Switch to Card Grid View"
+                >
+                  <LayoutGrid className="size-3.5" />
+                  <span className="hidden sm:inline">Grid</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange('table')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+                    viewMode === 'table'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                  aria-pressed={viewMode === 'table'}
+                  aria-label="Switch to List View"
+                >
+                  <List className="size-3.5" />
+                  <span className="hidden sm:inline">List</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search bar matching reference screenshot */}
+          <div className="relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+            <Input
+              id="directory-search-input"
+              type="text"
+              placeholder="Search jobs..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full pl-10 pr-9 h-10.5 text-xs sm:text-sm bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-900 focus-visible:border-slate-900 shadow-2xs rounded-xl"
+              aria-label="Search applications by company name or job title"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => handleSearchChange('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded-sm"
+                aria-label="Clear search input"
+              >
+                <X className="size-3.5" />
+              </button>
             )}
           </div>
-        ) : filteredApplications.length === 0 ? (
-          /* Empty State B: Applications exist, but filters matched nothing */
-          <div className="p-8 sm:p-12 text-center space-y-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-muted mx-auto text-muted-foreground">
-              <Building2 className="size-6" />
+
+          {/* Optional Collapsible Advanced Filters Drawer */}
+          {showAdvancedFilters && (
+            <div className="pt-2">
+              <ApplicationFilters
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                statusFilter={statusFilter}
+                onStatusChange={handleStatusChange}
+                employmentFilter={employmentFilter}
+                onEmploymentChange={handleEmploymentChange}
+                dateFilter={dateFilter}
+                onDateChange={handleDateChange}
+                sortOption={sortOption}
+                onSortChange={handleSortChange}
+                onClearFilters={handleClearAllFilters}
+                hasActiveFilters={hasActiveFilters}
+                activeFilterCount={activeFilterCount}
+                hideSearch
+              />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">
-                No matching applications found
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                No applications match your active search and filter combination. Try adjusting your search term or resetting your filters.
-              </p>
+          )}
+        </div>
+
+        <CardContent className="p-0">
+          {/* Empty State A: No applications in dataset at all */}
+          {applications.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center space-y-3">
+              <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 mx-auto text-slate-500">
+                <Building2 className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  No applications tracked yet
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Get started by adding your first job opportunity to track your resume submissions, interview rounds, and offers.
+                </p>
+              </div>
+              {onAddNew && (
+                <Button
+                  size="sm"
+                  onClick={onAddNew}
+                  className="bg-slate-900 hover:bg-slate-800 text-white text-xs gap-1.5 cursor-pointer shadow-xs rounded-lg"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add your first application</span>
+                </Button>
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearAllFilters}
-              className="text-xs gap-1.5 cursor-pointer"
-            >
-              <RotateCcw className="size-3.5" />
-              <span>Reset all filters</span>
-            </Button>
-          </div>
-        ) : (
-          <>
-            {/* 1. Mobile Cards View (displayed strictly on mobile & small tablet screens: < 768px) */}
-            <div className="block md:hidden divide-y divide-slate-200/80">
+          ) : filteredApplications.length === 0 ? (
+            /* Empty State B: Applications exist, but filters matched nothing */
+            <div className="p-8 sm:p-12 text-center space-y-3">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted mx-auto text-muted-foreground">
+                <Building2 className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  No matching applications found
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  No applications match your active search and filter combination. Try adjusting your search term or resetting your filters.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearAllFilters}
+                className="text-xs gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Reset all filters</span>
+              </Button>
+            </div>
+          ) : (
+            <>
+              {viewMode === 'grid' ? (
+                <ApplicationCardGrid
+                  applications={paginatedApplications}
+                  onEditApplication={onEditApplication}
+                  onDeleteApplication={onDeleteApplication}
+                  onUpdateStatus={onUpdateStatus}
+                />
+              ) : (
+                <>
+                  {/* 1. Mobile Cards View (displayed strictly on mobile & small tablet screens: < 768px) */}
+                  <div className="block md:hidden divide-y divide-slate-200/80">
               {paginatedApplications.map((app) => (
                 <div
                   key={app.id}
@@ -726,21 +917,24 @@ export function RecentApplications({
                 </TableBody>
               </Table>
             </div>
-
-            {/* Pagination Controls Footer */}
-            <ApplicationPagination
-              currentPage={safeCurrentPage}
-              totalPages={totalPages}
-              totalResults={totalResults}
-              pageSize={pageSize}
-              onPageChange={(page) =>
-                setCurrentPage(Math.min(Math.max(1, page), totalPages))
-              }
-              onPageSizeChange={handlePageSizeChange}
-            />
           </>
         )}
-      </CardContent>
-    </Card>
-  )
+
+        {/* Pagination Controls Footer */}
+        <ApplicationPagination
+          currentPage={safeCurrentPage}
+          totalPages={totalPages}
+          totalResults={totalResults}
+          pageSize={pageSize}
+          onPageChange={(page) =>
+            setCurrentPage(Math.min(Math.max(1, page), totalPages))
+          }
+          onPageSizeChange={handlePageSizeChange}
+        />
+      </>
+    )}
+  </CardContent>
+</Card>
+</div>
+)
 }
