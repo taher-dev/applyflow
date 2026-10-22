@@ -144,3 +144,89 @@ export const createApplicationSchema = z
   )
 
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>
+
+/**
+ * Zod validation schema for updating an application (PATCH).
+ * All fields are optional. Any provided field is validated and normalized.
+ */
+export const updateApplicationSchema = z
+  .object({
+    company: z.string().trim().min(1, 'Company name cannot be empty').optional(),
+    jobTitle: z.string().trim().min(1, 'Job title cannot be empty').optional(),
+    role: z.string().trim().min(1, 'Role cannot be empty').optional(),
+    status: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || val in statusMap, {
+        message: 'Invalid application status. Allowed: Saved, Applied, Screening, Interview, Offer, Rejected',
+      })
+      .transform((val) => (val !== undefined ? statusMap[val] : undefined)),
+    location: z.string().trim().optional().nullable(),
+    workplaceType: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || val in workplaceMap, {
+        message: 'Invalid workplace type. Allowed: Remote, Hybrid, On-site',
+      })
+      .transform((val) => (val !== undefined ? workplaceMap[val] : undefined)),
+    employmentType: z
+      .string()
+      .optional()
+      .nullable()
+      .refine((val) => val === null || val === undefined || val === '' || val in employmentMap, {
+        message: 'Invalid employment type. Allowed: Full-time, Part-time, Contract, Internship',
+      })
+      .transform((val) => (val && val in employmentMap ? employmentMap[val] : val === null || val === '' ? null : undefined)),
+    jobUrl: z
+      .string()
+      .trim()
+      .url('Job URL must be a valid URL')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+    minSalary: z
+      .number({ invalid_type_error: 'Minimum salary must be a number' })
+      .int('Minimum salary must be an integer')
+      .min(0, 'Minimum salary must be 0 or greater')
+      .optional()
+      .nullable(),
+    maxSalary: z
+      .number({ invalid_type_error: 'Maximum salary must be a number' })
+      .int('Maximum salary must be an integer')
+      .min(0, 'Maximum salary must be 0 or greater')
+      .optional()
+      .nullable(),
+    salary: z.string().trim().optional().nullable(),
+    appliedAt: z
+      .string()
+      .datetime({ message: 'appliedAt must be a valid ISO 8601 date string' })
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+    followUpDate: z
+      .string()
+      .datetime({ message: 'followUpDate must be a valid ISO 8601 date string' })
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+    notes: z.string().trim().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.minSalary !== undefined &&
+        data.minSalary !== null &&
+        data.maxSalary !== undefined &&
+        data.maxSalary !== null
+      ) {
+        return data.minSalary <= data.maxSalary
+      }
+      return true
+    },
+    {
+      message: 'Minimum salary cannot exceed maximum salary',
+      path: ['maxSalary'],
+    }
+  )
+
+export type UpdateApplicationInput = z.infer<typeof updateApplicationSchema>

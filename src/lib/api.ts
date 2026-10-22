@@ -4,6 +4,13 @@ import type {
   LoginCredentials,
   RegisterCredentials,
 } from '@/types/auth'
+import type {
+  BackendApplication,
+  ApplicationsResponse,
+  ApplicationResponse,
+  CreateApplicationPayload,
+  UpdateApplicationPayload,
+} from '@/types/application'
 
 /**
  * Standard typed API error carrying status code and structured validation details.
@@ -208,6 +215,59 @@ export const api = {
     async logout(): Promise<void> {
       await apiClient<{ message: string }>('/auth/logout', {
         method: 'POST',
+      })
+    },
+  },
+
+  applications: {
+    /**
+     * Lists all applications owned by the authenticated user.
+     */
+    async getAll(): Promise<BackendApplication[]> {
+      const data = await apiClient<ApplicationsResponse>('/applications', {
+        method: 'GET',
+      })
+      return data.applications
+    },
+
+    /**
+     * Retrieves a single application by ID owned by the authenticated user.
+     */
+    async getById(id: string): Promise<BackendApplication> {
+      const data = await apiClient<ApplicationResponse>(`/applications/${encodeURIComponent(id)}`, {
+        method: 'GET',
+      })
+      return data.application
+    },
+
+    /**
+     * Creates a new application for the authenticated user.
+     */
+    async create(payload: CreateApplicationPayload): Promise<BackendApplication> {
+      const data = await apiClient<ApplicationResponse>('/applications', {
+        method: 'POST',
+        body: payload,
+      })
+      return data.application
+    },
+
+    /**
+     * Updates an existing application owned by the authenticated user.
+     */
+    async update(id: string, payload: UpdateApplicationPayload): Promise<BackendApplication> {
+      const data = await apiClient<ApplicationResponse>(`/applications/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: payload,
+      })
+      return data.application
+    },
+
+    /**
+     * Deletes an application owned by the authenticated user.
+     */
+    async delete(id: string): Promise<void> {
+      await apiClient<{ message: string }>(`/applications/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
       })
     },
   },

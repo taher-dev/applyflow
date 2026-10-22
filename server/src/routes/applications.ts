@@ -2,7 +2,10 @@ import { Router } from 'express'
 import type { Request, Response, NextFunction } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
-import { createApplicationSchema } from '../validations/application.js'
+import {
+  createApplicationSchema,
+  updateApplicationSchema,
+} from '../validations/application.js'
 
 export const applicationsRouter = Router()
 
@@ -26,6 +29,46 @@ applicationsRouter.get(
 
       res.status(200).json({
         applications,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * GET /api/applications/:id
+ * Returns a single application owned by the authenticated user.
+ */
+applicationsRouter.get(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
+      if (!id) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Application ID is required',
+        })
+        return
+      }
+
+      const userId = req.user!.id
+
+      const application = await prisma.application.findFirst({
+        where: { id, userId },
+      })
+
+      if (!application) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'Application not found',
+        })
+        return
+      }
+
+      res.status(200).json({
+        application,
       })
     } catch (error) {
       next(error)
@@ -83,3 +126,177 @@ applicationsRouter.post(
     }
   }
 )
+
+/**
+ * PATCH /api/applications/:id
+ * Updates an existing application owned by the authenticated user.
+ */
+applicationsRouter.patch(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
+      if (!id) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Application ID is required',
+        })
+        return
+      }
+
+      const userId = req.user!.id
+
+      // 1. Ownership check: Must find existing record belonging strictly to this user
+      const existing = await prisma.application.findFirst({
+        where: { id, userId },
+      })
+
+      if (!existing) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'Application not found',
+        })
+        return
+      }
+
+      // 2. Validate request body
+      const parsed = updateApplicationSchema.safeParse(req.body)
+
+      if (!parsed.success) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Invalid application update payload',
+          details: parsed.error.flatten().fieldErrors,
+        })
+        return
+      }
+
+      const data = parsed.data
+
+      // 3. Cross-field salary boundary check against existing record
+      const effectiveMinSalary = data.minSalary !== undefined ? data.minSalary : existing.minSalary
+      const effectiveMaxSalary = data.maxSalary !== undefined ? data.maxSalary : existing.maxSalary
+
+      if (
+        effectiveMinSalary !== null &&
+        effectiveMinSalary !== undefined &&
+        effectiveMaxSalary !== null &&
+        effectiveMaxSalary !== undefined &&
+        effectiveMinSalary > effectiveMaxSalary
+      ) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Minimum salary cannot exceed maximum salary',
+          details: {
+            maxSalary: ['Minimum salary cannot exceed maximum salary'],
+          },
+        })
+        return
+      }
+
+      // 4. Construct update payload ensuring omitted fields are untouched
+      const updateData: Record<string, unknown> = {}
+
+      if (data.company !== undefined) {
+        updateData.company = data.company.trim()
+      }
+      if (data.jobTitle !== undefined) {
+        updateData.jobTitle = data.jobTitle.trim()
+      } else if (data.role !== undefined) {
+        updateData.jobTitle = data.role.trim()
+      }
+      if (data.status !== undefined) {
+        updateData.status = data.status
+      }
+      if (data.location !== undefined) {
+        updateData.location = data.location?.trim() || null
+      }
+      if (data.workplaceType !== undefined) {
+        updateData.workplaceType = data.workplaceType
+      }
+      if (data.employmentType !== undefined) {
+        updateData.employmentType = data.employmentType
+      }
+      if (data.jobUrl !== undefined) {
+        updateData.jobUrl = data.jobUrl?.trim() || null
+      }
+      if (data.minSalary !== undefined) {
+        updateData.minSalary = data.minSalary
+      }
+      if (data.maxSalary !== undefined) {
+        updateData.maxSalary = data.maxSalary
+      }
+      if (data.salary !== undefined) {
+        updateData.salary = data.salary?.trim() || null
+      }
+      if (data.appliedAt !== undefined) {
+        updateData.appliedAt = data.appliedAt ? new Date(data.appliedAt) : null
+      }
+      if (data.followUpDate !== undefined) {
+        updateData.followUpDate = data.followUpDate ? new Date(data.followUpDate) : null
+      }
+      if (data.notes !== undefined) {
+        updateData.notes = data.notes?.trim() || null
+      }
+
+      // 5. Update application in database
+      const application = await prisma.application.update({
+        where: { id },
+        data: updateData,
+      })
+
+      res.status(200).json({
+        application,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * DELETE /api/applications/:id
+ * Deletes an existing application owned by the authenticated user.
+ */
+applicationsRouter.delete(
+  '/:id',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = typeof req.params.id === 'string' ? req.params.id.trim() : ''
+      if (!id) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Application ID is required',
+        })
+        return
+      }
+
+      const userId = req.user!.id
+
+      // 1. Ownership check: Must find existing record belonging strictly to this user
+      const existing = await prisma.application.findFirst({
+        where: { id, userId },
+      })
+
+      if (!existing) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: 'Application not found',
+        })
+        return
+      }
+
+      // 2. Delete application (cascades automatically to child records)
+      await prisma.application.delete({
+        where: { id },
+      })
+
+      res.status(200).json({
+        message: 'Application deleted successfully',
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
