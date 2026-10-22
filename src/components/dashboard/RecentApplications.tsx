@@ -291,21 +291,21 @@ export function RecentApplications({
   return (
     <Card
       id="applications-directory"
-      className="border border-border/80 bg-card shadow-2xs w-full min-w-0 overflow-hidden scroll-mt-20"
+      className="border border-slate-200/80 bg-white shadow-xs w-full min-w-0 overflow-hidden scroll-mt-20 rounded-xl"
     >
       {/* Card Header with count badge */}
-      <CardHeader className="border-b border-border/60 pb-3">
+      <CardHeader className="border-b border-slate-200/80 pb-3 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <CardTitle className="text-base font-semibold text-foreground">
+            <CardTitle className="text-base font-semibold text-slate-900">
               Applications Directory
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground mt-0.5">
+            <CardDescription className="text-xs text-slate-500 mt-0.5">
               Track, filter, and manage your {applications.length} pipeline opportunities
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <Badge variant="outline" className="text-xs font-normal">
+            <Badge variant="outline" className="text-xs font-normal border-slate-200 bg-slate-50 text-slate-600">
               {filteredApplications.length === applications.length
                 ? `${applications.length} total`
                 : `${filteredApplications.length} of ${applications.length} matched`}
@@ -335,14 +335,14 @@ export function RecentApplications({
         {/* Empty State A: No applications in dataset at all */}
         {applications.length === 0 ? (
           <div className="p-8 sm:p-12 text-center space-y-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-muted mx-auto text-muted-foreground">
+            <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 mx-auto text-slate-500">
               <Building2 className="size-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">
+              <h3 className="text-sm font-semibold text-slate-900">
                 No applications tracked yet
               </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 Get started by adding your first job opportunity to track your resume submissions, interview rounds, and offers.
               </p>
             </div>
@@ -350,7 +350,7 @@ export function RecentApplications({
               <Button
                 size="sm"
                 onClick={onAddNew}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 cursor-pointer"
+                className="bg-slate-900 hover:bg-slate-800 text-white text-xs gap-1.5 cursor-pointer shadow-xs rounded-lg"
               >
                 <Plus className="size-3.5" />
                 <span>Add your first application</span>
@@ -384,26 +384,26 @@ export function RecentApplications({
         ) : (
           <>
             {/* 1. Mobile Cards View (displayed strictly on mobile & small tablet screens: < 768px) */}
-            <div className="block md:hidden divide-y divide-border/60">
+            <div className="block md:hidden divide-y divide-slate-200/80">
               {paginatedApplications.map((app) => (
                 <div
                   key={app.id}
-                  className="p-4 space-y-3 hover:bg-muted/20 transition-colors"
+                  className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors"
                 >
                   {/* Top row: Monogram + Company & Role (wrapped) + Actions Menu */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       {/* Company Monogram Badge */}
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5 shadow-2xs">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 mt-0.5 shadow-2xs">
                         {app.company.slice(0, 2).toUpperCase()}
                       </div>
 
                       {/* Company Name and Role - Wraps cleanly without truncation */}
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm text-foreground break-words [overflow-wrap:anywhere] leading-snug">
+                        <h4 className="font-semibold text-sm text-slate-900 break-words [overflow-wrap:anywhere] leading-snug">
                           {app.company}
                         </h4>
-                        <p className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere] leading-normal mt-0.5 font-medium">
+                        <p className="text-xs text-slate-500 break-words [overflow-wrap:anywhere] leading-normal mt-0.5 font-medium">
                           {app.role}
                         </p>
                       </div>
@@ -499,7 +499,7 @@ export function RecentApplications({
                   </div>
 
                   {/* Bottom row: Structured metadata pill (Location on top, Arrangement & Employment below, Date on right) */}
-                  <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50">
+                  <div className="flex items-start justify-between gap-3 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
                     <div className="space-y-1.5 min-w-0 flex-1">
                       {/* Location */}
                       <div className="flex items-center gap-1 min-w-0">
@@ -551,20 +551,20 @@ export function RecentApplications({
             <div className="hidden md:block w-full overflow-hidden">
               <Table className="w-full table-fixed" containerClassName="overflow-x-hidden">
                 <TableHeader>
-                  <TableRow className="border-border/60 bg-muted/20">
-                    <TableHead className="w-[28%] text-xs font-semibold text-muted-foreground pl-5 whitespace-normal leading-tight">
+                  <TableRow className="border-b border-slate-200/80 bg-slate-50/70">
+                    <TableHead className="w-[28%] text-xs font-semibold text-slate-500 pl-5 whitespace-normal leading-tight">
                       Company & Role
                     </TableHead>
-                    <TableHead className="w-[23%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
+                    <TableHead className="w-[23%] text-xs font-semibold text-slate-500 whitespace-normal leading-tight">
                       Location & Arrangement
                     </TableHead>
-                    <TableHead className="w-[14%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
+                    <TableHead className="w-[14%] text-xs font-semibold text-slate-500 whitespace-normal leading-tight">
                       Applied Date
                     </TableHead>
-                    <TableHead className="w-[15%] text-xs font-semibold text-muted-foreground whitespace-normal leading-tight">
+                    <TableHead className="w-[15%] text-xs font-semibold text-slate-500 whitespace-normal leading-tight">
                       Status
                     </TableHead>
-                    <TableHead className="w-[12%] text-xs font-semibold text-muted-foreground text-right whitespace-normal leading-tight">
+                    <TableHead className="w-[12%] text-xs font-semibold text-slate-500 text-right whitespace-normal leading-tight">
                       Compensation
                     </TableHead>
                     <TableHead className="w-[8%] min-w-[50px] pr-4 text-right">
@@ -576,19 +576,19 @@ export function RecentApplications({
                   {paginatedApplications.map((app) => (
                     <TableRow
                       key={app.id}
-                      className="border-border/40 hover:bg-muted/30 transition-colors"
+                      className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
                     >
                       {/* Company & Role */}
                       <TableCell className="pl-5 py-3.5">
                         <div className="flex items-start gap-2.5 min-w-0">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200/80 mt-0.5">
                             {app.company.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1 space-y-0.5">
-                            <div className="font-semibold text-sm text-foreground break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
+                            <div className="font-semibold text-sm text-slate-900 break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
                               {app.company}
                             </div>
-                            <div className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
+                            <div className="text-xs text-slate-500 break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
                               {app.role}
                             </div>
                           </div>

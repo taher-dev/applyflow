@@ -47,13 +47,13 @@ export function KanbanColumn({
     <div
       role="region"
       aria-label={`${column.label} column, ${applications.length} applications`}
-      className="flex flex-col w-[300px] sm:w-[320px] shrink-0 rounded-xl bg-slate-100/70 dark:bg-muted/30 border border-border/70 shadow-2xs"
+      className="flex flex-col w-[300px] sm:w-[320px] shrink-0 rounded-xl bg-slate-100/70 border border-slate-200/80 shadow-xs"
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between p-3.5 border-b border-border/60">
+      <div className="flex items-center justify-between p-3.5 border-b border-slate-200/80">
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn('size-2.5 rounded-full shrink-0', column.dotClass)} />
-          <h3 className="text-sm font-semibold text-foreground tracking-tight">
+          <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
             {column.label}
           </h3>
           <Badge
@@ -69,7 +69,7 @@ export function KanbanColumn({
           <button
             type="button"
             onClick={onAddNew}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-background/80 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-white/80 transition-colors cursor-pointer"
             aria-label={`Add new application to ${column.label}`}
             title={`Add new application`}
           >
@@ -79,7 +79,7 @@ export function KanbanColumn({
       </div>
 
       {/* Column description subheader */}
-      <div className="px-3.5 py-1.5 text-[11px] text-muted-foreground/80 border-b border-border/40 bg-background/30">
+      <div className="px-3.5 py-1.5 text-[11px] text-slate-500 border-b border-slate-200/60 bg-white/60">
         {column.description}
       </div>
 

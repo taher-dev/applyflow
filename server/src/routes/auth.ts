@@ -150,6 +150,61 @@ authRouter.post(
 )
 
 /**
+ * POST /api/auth/google
+ * Authenticates or registers a user via Google login and establishes a session.
+ */
+authRouter.post(
+  '/google',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const email =
+        typeof req.body?.email === 'string' && req.body.email.trim()
+          ? req.body.email.trim().toLowerCase()
+          : 'demo.google@applyflow.app'
+      const name =
+        typeof req.body?.name === 'string' && req.body.name.trim()
+          ? req.body.name.trim()
+          : 'Google User'
+
+      let user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, name: true, email: true },
+      })
+
+      if (!user) {
+        const passwordHash = await hashPassword(`google-${Date.now()}-${Math.random()}`)
+        user = await prisma.user.create({
+          data: {
+            name,
+            email,
+            passwordHash,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        })
+      }
+
+      // Establish session
+      const { rawToken } = await createSession(user.id)
+      res.cookie(SESSION_COOKIE_NAME, rawToken, getSessionCookieOptions())
+
+      res.status(200).json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
  * POST /api/auth/logout
  * Revokes current session in PostgreSQL and clears the session cookie.
  */

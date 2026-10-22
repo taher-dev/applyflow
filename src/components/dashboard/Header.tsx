@@ -1,7 +1,16 @@
-import { Bell, Menu, Search, X } from 'lucide-react'
+import { Bell, Menu, Search, X, LogOut, User as UserIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useAuth } from '@/context/useAuth'
 
 interface HeaderProps {
   searchQuery: string
@@ -18,20 +27,40 @@ export function Header({
   onSearchSubmit,
   placeholder,
 }: HeaderProps) {
+  const { user, logout } = useAuth()
+
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'AF'
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch {
+      // Handled inside AuthContext
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSearchSubmit?.()
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-card/95 px-4 sm:px-6 lg:px-8 backdrop-blur-xs gap-3">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-xs gap-3">
       {/* Left: Mobile Toggle (on desktop sidebar is permanently visible) */}
       <div className="flex items-center shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="md:hidden text-muted-foreground hover:text-foreground cursor-pointer"
+          className="md:hidden text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
           aria-label="Toggle navigation menu"
         >
           <Menu className="size-5" />
@@ -43,7 +72,7 @@ export function Header({
         <form onSubmit={handleSubmit} className="relative w-full">
           <button
             type="submit"
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground hover:text-foreground cursor-pointer p-0 bg-transparent border-0"
+            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 hover:text-slate-700 cursor-pointer p-0 bg-transparent border-0"
             aria-label="Search"
           >
             <Search className="size-4 pointer-events-none" />
@@ -59,14 +88,14 @@ export function Header({
                 onSearchSubmit?.()
               }
             }}
-            className="w-full pl-8.5 sm:pl-9 pr-8 h-9 text-xs sm:text-sm bg-muted/40 border-border/80 focus-visible:bg-background"
+            className="w-full pl-8.5 sm:pl-9 pr-8 h-9 text-xs sm:text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
             aria-label={placeholder || 'Search'}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-sm"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded-sm"
               aria-label="Clear header search"
             >
               <X className="size-3.5" />
@@ -81,19 +110,50 @@ export function Header({
         <Button
           variant="outline"
           size="icon"
-          className="relative size-9 text-muted-foreground hover:text-foreground border-border/80 cursor-pointer"
+          className="relative size-9 text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50 cursor-pointer"
           aria-label="View notifications"
         >
           <Bell className="size-4.5" />
-          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-600 ring-2 ring-background" />
+          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-slate-900 ring-2 ring-white" />
         </Button>
 
-        {/* Profile Avatar */}
-        <Avatar className="size-9 border border-border shrink-0 cursor-pointer">
-          <AvatarFallback className="bg-blue-600 text-white font-semibold text-xs">
-            TM
-          </AvatarFallback>
-        </Avatar>
+        {/* Profile Avatar with Logout Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="rounded-full ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
+              aria-label="User account menu"
+            >
+              <Avatar className="size-9 border border-slate-200 shrink-0">
+                <AvatarFallback className="bg-slate-900 text-white font-semibold text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-md border-slate-200 bg-white">
+            <DropdownMenuLabel className="font-normal px-2 py-1.5">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-semibold leading-none text-slate-900 flex items-center gap-1.5">
+                  <UserIcon className="size-3.5 text-slate-900" />
+                  <span>{user?.name || 'Account'}</span>
+                </p>
+                <p className="text-xs leading-none text-slate-500 truncate">
+                  {user?.email || ''}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-slate-100" />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2 py-2"
+            >
+              <LogOut className="size-4" />
+              <span>Sign out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

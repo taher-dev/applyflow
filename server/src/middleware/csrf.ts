@@ -24,8 +24,12 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   if (origin) {
     const isAllowedOrigin =
       origin === env.CORS_ORIGIN ||
+      origin === 'http://localhost:5173' ||
+      origin === 'http://127.0.0.1:5173' ||
       origin === `http://localhost:${env.PORT}` ||
-      origin === `http://127.0.0.1:${env.PORT}`
+      origin === `http://127.0.0.1:${env.PORT}` ||
+      (env.NODE_ENV === 'development' &&
+        (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')))
 
     if (!isAllowedOrigin) {
       res.status(403).json({
@@ -44,8 +48,12 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       const refererOrigin = refererUrl.origin
       const isAllowedReferer =
         refererOrigin === env.CORS_ORIGIN ||
+        refererOrigin === 'http://localhost:5173' ||
+        refererOrigin === 'http://127.0.0.1:5173' ||
         refererOrigin === `http://localhost:${env.PORT}` ||
-        refererOrigin === `http://127.0.0.1:${env.PORT}`
+        refererOrigin === `http://127.0.0.1:${env.PORT}` ||
+        (env.NODE_ENV === 'development' &&
+          (refererOrigin.startsWith('http://localhost:') || refererOrigin.startsWith('http://127.0.0.1:')))
 
       if (!isAllowedReferer) {
         res.status(403).json({

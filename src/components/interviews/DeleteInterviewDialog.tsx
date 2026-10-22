@@ -68,20 +68,20 @@ export function DeleteInterviewDialog({
             <strong className="text-foreground">{companyName}</strong>?
           </AlertDialogDescription>
 
-          <div className="mt-3 p-3 rounded-lg bg-muted/40 border border-border/60 text-xs space-y-1.5 text-muted-foreground">
-            <div className="flex items-center gap-2 text-foreground font-medium">
-              <Calendar className="size-3.5 text-blue-600 shrink-0" />
+          <div className="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-1.5 text-slate-500">
+            <div className="flex items-center gap-2 text-slate-900 font-medium">
+              <Calendar className="size-3.5 text-slate-700 shrink-0" />
               <span>{formattedDate}</span>
               {formattedTime && (
                 <>
-                  <span className="text-muted-foreground/50">•</span>
-                  <Clock className="size-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-slate-300">•</span>
+                  <Clock className="size-3.5 text-slate-400 shrink-0" />
                   <span>{formattedTime}</span>
                 </>
               )}
             </div>
             {interview.notes && (
-              <p className="line-clamp-2 text-muted-foreground italic pt-1 border-t border-border/40">
+              <p className="line-clamp-2 text-slate-500 italic pt-1 border-t border-slate-200/60">
                 &quot;{interview.notes}&quot;
               </p>
             )}

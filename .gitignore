@@ -31,3 +31,6 @@ dist-ssr
 # Backend build outputs
 server/dist
 
+# Local embedded database directory
+data/
+server/data/

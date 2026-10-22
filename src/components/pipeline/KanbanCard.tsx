@@ -69,25 +69,25 @@ export function KanbanCard({
       aria-grabbed={isDragging}
       tabIndex={0}
       className={cn(
-        'group relative p-3.5 border border-border/80 bg-card rounded-lg transition-all duration-150',
-        'hover:shadow-md hover:border-border cursor-grab active:cursor-grabbing select-none',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-        isDragging && 'opacity-40 scale-[0.98] border-dashed border-blue-500 shadow-none'
+        'group relative p-3.5 border border-slate-200/90 bg-white rounded-xl transition-all duration-150',
+        'hover:shadow-md hover:border-slate-300 cursor-grab active:cursor-grabbing select-none',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900',
+        isDragging && 'opacity-40 scale-[0.98] border-dashed border-slate-900 shadow-none'
       )}
     >
       {/* Top row: Monogram avatar, Company, Role, Drag grip, and Action Menu */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2.5 min-w-0 flex-1">
           {/* Company Monogram Badge */}
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200/80 mt-0.5">
             {application.company.slice(0, 2).toUpperCase()}
           </div>
 
           <div className="min-w-0 flex-1">
-            <h4 className="text-sm font-semibold text-foreground break-words [overflow-wrap:anywhere] leading-snug">
+            <h4 className="text-sm font-semibold text-slate-900 break-words [overflow-wrap:anywhere] leading-snug">
               {application.company}
             </h4>
-            <p className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere] leading-snug mt-0.5">
+            <p className="text-xs text-slate-500 break-words [overflow-wrap:anywhere] leading-snug mt-0.5">
               {application.role}
             </p>
           </div>

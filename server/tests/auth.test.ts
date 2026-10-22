@@ -319,3 +319,29 @@ test('15. CORS header sends Access-Control-Allow-Credentials: true', async () =>
   assert.equal(response.headers['access-control-allow-credentials'], 'true')
   assert.equal(response.headers['access-control-allow-origin'], 'http://localhost:5173')
 })
+
+test('16. POST /api/auth/google creates or authenticates user and returns session cookie', async () => {
+  const googleEmail = `google-user-${testRunId}@gmail.com`
+  const response = await request(app)
+    .post('/api/auth/google')
+    .set('Origin', 'http://localhost:5173')
+    .send({
+      email: googleEmail,
+      name: 'Google User Test',
+    })
+
+  assert.equal(response.status, 200)
+  assert.ok(response.body.user)
+  assert.equal(response.body.user.email, googleEmail)
+  assert.equal(response.body.user.name, 'Google User Test')
+
+  // Verify cookie was set
+  const cookies = response.headers['set-cookie']
+  assert.ok(cookies)
+  const cookieStr = Array.isArray(cookies) ? cookies.join(';') : cookies
+  assert.ok(cookieStr.includes(SESSION_COOKIE_NAME))
+
+  // Clean up
+  await prisma.user.deleteMany({ where: { email: googleEmail } })
+})
+

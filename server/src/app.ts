@@ -18,7 +18,25 @@ export const app = express()
 // Security & Parsing Middleware
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, test runner, server-to-server)
+      if (!origin) return callback(null, true)
+      const allowedOrigins = [
+        env.CORS_ORIGIN,
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        `http://localhost:${env.PORT}`,
+        `http://127.0.0.1:${env.PORT}`,
+      ]
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:')
+      ) {
+        return callback(null, true)
+      }
+      return callback(null, false)
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

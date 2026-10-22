@@ -248,7 +248,7 @@ export function ApplicationFormDialog({
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-blue-600 text-white shadow-xs">
+            <div className="flex size-7 items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs">
               {isEditing ? <Pencil className="size-4" /> : <PlusCircle className="size-4" />}
             </div>
             <DialogTitle className="text-lg">
@@ -264,9 +264,9 @@ export function ApplicationFormDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-1" noValidate>
           {/* Section 1: Role Overview */}
-          <div className="space-y-3 p-3.5 rounded-lg border border-border/70 bg-muted/20">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Building2 className="size-3.5 text-blue-600" />
+          <div className="space-y-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <Building2 className="size-3.5 text-slate-900" />
               Role Overview
             </h4>
 
@@ -333,9 +333,9 @@ export function ApplicationFormDialog({
           </div>
 
           {/* Section 2: Status & Timeline */}
-          <div className="space-y-3 p-3.5 rounded-lg border border-border/70 bg-muted/20">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="size-3.5 text-blue-600" />
+          <div className="space-y-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <Calendar className="size-3.5 text-slate-900" />
               Status & Timeline
             </h4>
 
@@ -412,9 +412,9 @@ export function ApplicationFormDialog({
           </div>
 
           {/* Section 3: Work Arrangement & Employment */}
-          <div className="space-y-3 p-3.5 rounded-lg border border-border/70 bg-muted/20">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-blue-600" />
+          <div className="space-y-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <MapPin className="size-3.5 text-slate-900" />
               Arrangement & Location
             </h4>
 
@@ -503,9 +503,9 @@ export function ApplicationFormDialog({
           </div>
 
           {/* Section 4: Target Compensation */}
-          <div className="space-y-3 p-3.5 rounded-lg border border-border/70 bg-muted/20">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <DollarSign className="size-3.5 text-blue-600" />
+          <div className="space-y-3 p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <DollarSign className="size-3.5 text-slate-900" />
               Annual Compensation Range
             </h4>
 
@@ -584,7 +584,7 @@ export function ApplicationFormDialog({
               type="submit"
               size="sm"
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+              className="bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs rounded-lg"
             >
               {isEditing ? 'Save Changes' : 'Add Application'}
             </Button>

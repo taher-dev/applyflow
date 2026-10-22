@@ -187,14 +187,14 @@ export function InterviewFormDialog({
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs">
               {isEditing ? <Pencil className="size-4.5" /> : <CalendarPlus className="size-4.5" />}
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold text-foreground">
+              <DialogTitle className="text-lg font-semibold text-slate-900">
                 {isEditing ? 'Edit Interview Round' : 'Schedule New Interview'}
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
                 {isEditing
                   ? 'Update schedule, interviewer details, and preparation notes'
                   : 'Track an upcoming recruiter screen, technical assessment, or final round'}
@@ -206,11 +206,11 @@ export function InterviewFormDialog({
         {/* Warning if no applications exist */}
         {hasNoApplications ? (
           <div className="py-6 space-y-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
-              <AlertCircle className="size-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+              <AlertCircle className="size-5 shrink-0 mt-0.5 text-amber-600" />
               <div className="space-y-1 text-xs">
                 <p className="font-semibold text-sm">No applications available to associate</p>
-                <p className="text-muted-foreground">
+                <p className="text-amber-700">
                   You must add at least one job opportunity to your pipeline before scheduling an
                   interview round.
                 </p>
@@ -228,7 +228,7 @@ export function InterviewFormDialog({
                     onOpenChange(false)
                     onOpenAddApplication()
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  className="bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs rounded-lg"
                 >
                   Add job application first
                 </Button>
@@ -443,7 +443,7 @@ export function InterviewFormDialog({
               <Button
                 type="submit"
                 disabled={isSubmitting || hasNoApplications}
-                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                className="bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs rounded-lg"
               >
                 {isEditing ? 'Save Changes' : 'Schedule Interview'}
               </Button>

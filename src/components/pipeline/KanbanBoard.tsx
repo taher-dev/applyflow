@@ -129,25 +129,25 @@ export function KanbanBoard({
   return (
     <div id="pipeline-board-container" className="space-y-5 w-full min-w-0 scroll-mt-20">
       {/* 1. Filter & Stage Counters Toolbar */}
-      <div className="flex flex-col gap-3.5 bg-card p-3.5 sm:p-4 rounded-xl border border-border/80 shadow-2xs">
+      <div className="flex flex-col gap-3.5 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative w-full sm:max-w-xs md:max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
             <Input
               id="pipeline-search-input"
               type="text"
               placeholder="Search pipeline cards by company or role..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-8.5 pr-8 h-9 text-xs sm:text-sm bg-background border-border/80 focus-visible:ring-1"
+              className="pl-8.5 pr-8 h-9 text-xs sm:text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
               aria-label="Search pipeline cards by company name or role"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => handleSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
                 aria-label="Clear pipeline search"
               >
                 <X className="size-3.5" />
@@ -156,15 +156,15 @@ export function KanbanBoard({
           </div>
 
           {/* Pipeline Stage Quick Counters */}
-          <div className="hidden md:flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground justify-end flex-1">
+          <div className="hidden md:flex flex-wrap items-center gap-1.5 text-xs text-slate-500 justify-end flex-1">
             {PIPELINE_COLUMNS.map((col) => (
               <span
                 key={col.status}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/60 text-[11px]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px]"
               >
                 <span className={cn('size-2 rounded-full', col.dotClass)} />
-                <span className="font-medium text-foreground">{col.label}:</span>
-                <span className="font-semibold">{statusCounts[col.status]}</span>
+                <span className="font-medium text-slate-700">{col.label}:</span>
+                <span className="font-semibold text-slate-900">{statusCounts[col.status]}</span>
               </span>
             ))}
           </div>
@@ -175,7 +175,12 @@ export function KanbanBoard({
               variant={mobileColumnFilter === 'ALL' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMobileColumnFilter('ALL')}
-              className="h-7 text-xs px-2.5 rounded-full shrink-0"
+              className={cn(
+                'h-7 text-xs px-2.5 rounded-full shrink-0',
+                mobileColumnFilter === 'ALL'
+                  ? 'bg-slate-900 text-white'
+                  : 'border-slate-200 text-slate-700'
+              )}
             >
               All Stages
             </Button>
@@ -185,11 +190,16 @@ export function KanbanBoard({
                 variant={mobileColumnFilter === col.status ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setMobileColumnFilter(col.status)}
-                className="h-7 text-xs px-2.5 rounded-full shrink-0 flex items-center gap-1.5"
+                className={cn(
+                  'h-7 text-xs px-2.5 rounded-full shrink-0 flex items-center gap-1.5',
+                  mobileColumnFilter === col.status
+                    ? 'bg-slate-900 text-white'
+                    : 'border-slate-200 text-slate-700'
+                )}
               >
                 <span className={cn('size-1.5 rounded-full', col.dotClass)} />
                 <span>{col.label}</span>
-                <Badge variant="secondary" className="px-1 py-0 text-[10px] h-4">
+                <Badge variant="secondary" className="px-1 py-0 text-[10px] h-4 bg-slate-100 text-slate-700">
                   {statusCounts[col.status]}
                 </Badge>
               </Button>
@@ -199,14 +209,14 @@ export function KanbanBoard({
 
         {/* Search match indicator */}
         {searchQuery && (
-          <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-md border border-border/60">
+          <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80">
             <span>
-              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> cards matching &quot;{searchQuery}&quot;
+              Showing <span className="font-semibold text-slate-900">{filteredApplications.length}</span> cards matching &quot;{searchQuery}&quot;
             </span>
             <button
               type="button"
               onClick={() => handleSearchChange('')}
-              className="text-blue-600 dark:text-blue-400 font-medium hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-slate-900 font-medium hover:underline flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className="size-3" />
               <span>Clear filter</span>

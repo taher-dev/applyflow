@@ -212,44 +212,44 @@ export function InterviewsPage({
       {/* 2. Top Metric Cards for Interviews - 2 columns on small screens */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {/* Total Scheduled */}
-        <Card className="border border-border/80 bg-card shadow-2xs">
+        <Card className="border border-slate-200/80 bg-white shadow-xs rounded-xl">
           <CardContent className="p-3.5 sm:p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Total Scheduled</span>
-              <div className="text-xl sm:text-2xl font-bold text-foreground">{interviews.length}</div>
-              <p className="text-[11px] text-muted-foreground">Across all applications</p>
+              <span className="text-xs font-semibold text-slate-500">Total Scheduled</span>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{interviews.length}</div>
+              <p className="text-[11px] text-slate-400">Across all applications</p>
             </div>
-            <div className="flex size-9 sm:size-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 shrink-0">
+            <div className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800 shrink-0">
               <Calendar className="size-4 sm:size-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Upcoming Rounds */}
-        <Card className="border border-border/80 bg-card shadow-2xs">
+        <Card className="border border-slate-200/80 bg-white shadow-xs rounded-xl">
           <CardContent className="p-3.5 sm:p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Upcoming Rounds</span>
-              <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-xs font-semibold text-slate-500">Upcoming Rounds</span>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">
                 {totalUpcomingCount}
               </div>
-              <p className="text-[11px] text-muted-foreground">Require your preparation</p>
+              <p className="text-[11px] text-slate-400">Require your preparation</p>
             </div>
-            <div className="flex size-9 sm:size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 shrink-0">
+            <div className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800 shrink-0">
               <CalendarClock className="size-4 sm:size-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Completed / Past Rounds */}
-        <Card className="border border-border/80 bg-card shadow-2xs col-span-2 sm:col-span-1">
+        <Card className="border border-slate-200/80 bg-white shadow-xs col-span-2 sm:col-span-1 rounded-xl">
           <CardContent className="p-3.5 sm:p-5 flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Completed Rounds</span>
-              <div className="text-xl sm:text-2xl font-bold text-foreground">{totalPastCount}</div>
-              <p className="text-[11px] text-muted-foreground">Historical milestones</p>
+              <span className="text-xs font-semibold text-slate-500">Completed Rounds</span>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{totalPastCount}</div>
+              <p className="text-[11px] text-slate-400">Historical milestones</p>
             </div>
-            <div className="flex size-9 sm:size-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 shrink-0">
+            <div className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-800 shrink-0">
               <CalendarCheck className="size-4 sm:size-5" />
             </div>
           </CardContent>
@@ -257,26 +257,31 @@ export function InterviewsPage({
       </div>
 
       {/* 3. Filter & Tab Controls */}
-      <Card id="interviews-list-container" className="border border-border/80 bg-card shadow-2xs scroll-mt-20">
-        <CardHeader className="border-b border-border/60 pb-3">
+      <Card id="interviews-list-container" className="border border-slate-200/80 bg-white shadow-xs scroll-mt-20 rounded-xl">
+        <CardHeader className="border-b border-slate-200/80 pb-3">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* View Switcher: Upcoming vs Past */}
-            <div className="inline-flex items-center rounded-lg border border-border/80 bg-muted/40 p-1 self-start lg:self-auto">
+            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1 self-start lg:self-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('upcoming')}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                   activeTab === 'upcoming'
-                    ? 'bg-background text-foreground shadow-2xs font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
                 )}
               >
                 <CalendarClock className="size-3.5" />
                 <span>Upcoming Interviews</span>
                 <Badge
                   variant={activeTab === 'upcoming' ? 'default' : 'secondary'}
-                  className="size-5 p-0 text-[10px] flex items-center justify-center rounded-full"
+                  className={cn(
+                    'size-5 p-0 text-[10px] flex items-center justify-center rounded-full',
+                    activeTab === 'upcoming'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-200 text-slate-700'
+                  )}
                 >
                   {upcomingInterviews.length}
                 </Badge>
@@ -286,17 +291,22 @@ export function InterviewsPage({
                 type="button"
                 onClick={() => setActiveTab('past')}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                   activeTab === 'past'
-                    ? 'bg-background text-foreground shadow-2xs font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
                 )}
               >
                 <CalendarCheck className="size-3.5" />
                 <span>Past Interviews</span>
                 <Badge
                   variant={activeTab === 'past' ? 'default' : 'secondary'}
-                  className="size-5 p-0 text-[10px] flex items-center justify-center rounded-full"
+                  className={cn(
+                    'size-5 p-0 text-[10px] flex items-center justify-center rounded-full',
+                    activeTab === 'past'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-200 text-slate-700'
+                  )}
                 >
                   {pastInterviews.length}
                 </Badge>
@@ -306,20 +316,20 @@ export function InterviewsPage({
             {/* Quick search input & type filter */}
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 flex-1 lg:max-w-md xl:max-w-lg">
               <div className="relative flex-1 min-w-[160px]">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400 pointer-events-none" />
                 <Input
                   id="interviews-search-input"
                   type="text"
                   placeholder="Search by company, role, interviewer..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-8 pr-8 h-8.5 text-xs bg-background"
+                  className="pl-8 pr-8 h-8.5 text-xs bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => handleSearchChange('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
                   >
                     <X className="size-3" />
                   </button>
@@ -329,7 +339,7 @@ export function InterviewsPage({
               {/* Type filter - sized comfortably for 'Technical interview' */}
               <div className="w-full sm:w-[165px] md:w-[175px] shrink-0">
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-8.5 text-xs bg-background px-2.5">
+                  <SelectTrigger className="h-8.5 text-xs bg-slate-50 border-slate-200 text-slate-900 px-2.5">
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent position="popper">
@@ -352,7 +362,7 @@ export function InterviewsPage({
                     handleSearchChange('')
                     setTypeFilter('ALL')
                   }}
-                  className="size-8.5 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="size-8.5 shrink-0 text-slate-400 hover:text-slate-700 cursor-pointer"
                   title="Reset filters"
                 >
                   <RotateCcw className="size-3.5" />
@@ -410,7 +420,7 @@ export function InterviewsPage({
                   <Button
                     onClick={() => onScheduleInterview()}
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 mt-2 cursor-pointer"
+                    className="bg-slate-900 hover:bg-slate-800 text-white text-xs gap-1.5 mt-2 cursor-pointer shadow-xs rounded-lg"
                   >
                     <Plus className="size-3.5" />
                     <span>Schedule an interview</span>
@@ -418,8 +428,8 @@ export function InterviewsPage({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-foreground">No past interviews yet</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  <h3 className="text-sm font-semibold text-slate-900">No past interviews yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
                     Interviews you complete will automatically appear here once their scheduled date
                     and time has passed.
                   </p>
@@ -456,22 +466,22 @@ export function InterviewsPage({
                 return (
                   <div
                     key={interview.id}
-                    className="flex flex-col justify-between rounded-xl border border-border/80 bg-card p-3 sm:p-4 hover:shadow-xs transition-shadow space-y-3 sm:space-y-3.5"
+                    className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-3 sm:p-4 hover:shadow-xs transition-shadow space-y-3 sm:space-y-3.5"
                   >
                     {/* Top Row: Company Monogram + Title + Type Badge + Actions */}
                     <div className="space-y-2 sm:space-y-2.5">
                       <div className="flex items-start justify-between gap-1.5 sm:gap-2 min-w-0">
                         <div className="flex items-start gap-2 sm:gap-2.5 min-w-0 flex-1">
                           {/* Company Avatar Monogram */}
-                          <div className="flex size-7.5 sm:size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-[10px] sm:text-xs border border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/60 dark:text-blue-300 mt-0.5">
+                          <div className="flex size-7.5 sm:size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-800 font-bold text-[10px] sm:text-xs border border-slate-200 mt-0.5">
                             {(app?.company || 'AP').slice(0, 2).toUpperCase()}
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-semibold text-xs sm:text-sm text-foreground break-words [overflow-wrap:anywhere] leading-snug">
+                            <h4 className="font-semibold text-xs sm:text-sm text-slate-900 break-words [overflow-wrap:anywhere] leading-snug">
                               {app?.company || 'Unknown Company'}
                             </h4>
-                            <p className="text-[11px] sm:text-xs text-muted-foreground break-words [overflow-wrap:anywhere] leading-snug mt-0.5 font-medium">
+                            <p className="text-[11px] sm:text-xs text-slate-500 break-words [overflow-wrap:anywhere] leading-snug mt-0.5 font-medium">
                               {app?.role || 'Job Opportunity'}
                             </p>
                           </div>
@@ -536,25 +546,25 @@ export function InterviewsPage({
                     </div>
 
                     {/* Middle: Scheduled Date & Time Card */}
-                    <div className="rounded-lg bg-muted/30 border border-border/50 p-2 sm:p-2.5 text-[11px] sm:text-xs text-muted-foreground space-y-1 sm:space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-foreground font-medium">
-                        <Calendar className="size-3 sm:size-3.5 text-blue-600 shrink-0" />
+                    <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-2 sm:p-2.5 text-[11px] sm:text-xs text-slate-500 space-y-1 sm:space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-slate-900 font-medium">
+                        <Calendar className="size-3 sm:size-3.5 text-slate-700 shrink-0" />
                         <span className="truncate">{formattedDate}</span>
                       </div>
                       {formattedTime && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Clock className="size-3 sm:size-3.5 text-muted-foreground/70 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Clock className="size-3 sm:size-3.5 text-slate-400 shrink-0" />
                           <span>{formattedTime}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Meta Info: Interviewer & Location/Link */}
-                    <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-xs text-muted-foreground pt-1 border-t border-border/40">
+                    <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-xs text-slate-500 pt-1 border-t border-slate-200/60">
                       {interview.interviewer && (
                         <div className="flex items-center gap-1.5 truncate">
-                          <User className="size-3 text-muted-foreground/70 shrink-0" />
-                          <span className="truncate font-medium text-foreground/90">
+                          <User className="size-3 text-slate-400 shrink-0" />
+                          <span className="truncate font-medium text-slate-900">
                             {interview.interviewer}
                           </span>
                         </div>
@@ -564,19 +574,19 @@ export function InterviewsPage({
                         <div className="flex items-center gap-1.5 truncate">
                           {interview.locationOrLink.startsWith('http') ? (
                             <>
-                              <ExternalLink className="size-3 text-blue-600 shrink-0" />
+                              <ExternalLink className="size-3 text-slate-700 shrink-0" />
                               <a
                                 href={interview.locationOrLink}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-blue-600 dark:text-blue-400 hover:underline truncate"
+                                className="text-slate-900 hover:underline truncate font-medium"
                               >
                                 {interview.locationOrLink}
                               </a>
                             </>
                           ) : (
                             <>
-                              <Video className="size-3 text-muted-foreground/70 shrink-0" />
+                              <Video className="size-3 text-slate-400 shrink-0" />
                               <span className="truncate">{interview.locationOrLink}</span>
                             </>
                           )}

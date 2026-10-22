@@ -1,6 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Plus, LayoutDashboard, GitPullRequest, Calendar } from 'lucide-react'
+import { Plus, LayoutDashboard, GitPullRequest, Calendar, Briefcase, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AuthProvider } from '@/context/AuthContext'
+import { useAuth } from '@/context/useAuth'
+import { AuthScreen } from '@/components/auth/AuthScreen'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
@@ -27,7 +30,8 @@ import type {
   Interview,
 } from '@/types/dashboard'
 
-export function App() {
+function DashboardContent() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<NavigationKey>(() => loadActiveTab())
 
   // Persist active navigation tab across browser refreshes
@@ -372,8 +376,8 @@ export function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/60 dark:bg-background text-foreground font-sans">
-      {/* 1. Left Dark Slate Sidebar */}
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
+      {/* 1. Left Minimal White Sidebar */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
@@ -403,22 +407,22 @@ export function App() {
         {/* Dashboard Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
           {/* Welcome Heading, View Switcher & Action Button */}
-          <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-border/40 min-w-0">
+          <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 min-w-0">
             <div className="space-y-1 min-w-0">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {activeTab === 'overview' && 'Welcome back, Alex'}
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                {activeTab === 'overview' && `Welcome back, ${user?.name || 'Alex'}`}
                 {activeTab === 'pipeline' && 'Job Application Pipeline'}
                 {activeTab === 'interviews' && 'Interview Management'}
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                 {activeTab === 'overview' && (
                   <>
                     You have{' '}
-                    <span className="font-semibold text-foreground">
+                    <span className="font-semibold text-slate-900">
                       {upcomingInterviewsCount} upcoming interview{upcomingInterviewsCount === 1 ? '' : 's'}
                     </span>{' '}
                     scheduled across{' '}
-                    <span className="font-semibold text-foreground">
+                    <span className="font-semibold text-slate-900">
                       {applications.length} active opportunities
                     </span>
                     .
@@ -439,15 +443,15 @@ export function App() {
 
             <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
               {/* Quick View Switcher: Table View vs Pipeline Board vs Interviews */}
-              <div className="inline-flex items-center rounded-lg border border-border/80 bg-muted/40 p-1">
+              <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab('overview')}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                     activeTab === 'overview'
-                      ? 'bg-background text-foreground shadow-2xs font-semibold'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
                   )}
                   aria-pressed={activeTab === 'overview'}
                   aria-label="Switch to Table Overview"
@@ -459,10 +463,10 @@ export function App() {
                   type="button"
                   onClick={() => setActiveTab('pipeline')}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                     activeTab === 'pipeline'
-                      ? 'bg-background text-foreground shadow-2xs font-semibold'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
                   )}
                   aria-pressed={activeTab === 'pipeline'}
                   aria-label="Switch to Kanban Pipeline Board"
@@ -474,10 +478,10 @@ export function App() {
                   type="button"
                   onClick={() => setActiveTab('interviews')}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                     activeTab === 'interviews'
-                      ? 'bg-background text-foreground shadow-2xs font-semibold'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
                   )}
                   aria-pressed={activeTab === 'interviews'}
                   aria-label="Switch to Interviews Calendar"
@@ -485,7 +489,7 @@ export function App() {
                   <Calendar className="size-3.5" />
                   <span>Interviews</span>
                   {upcomingInterviewsCount > 0 && (
-                    <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
                       {upcomingInterviewsCount}
                     </span>
                   )}
@@ -495,7 +499,7 @@ export function App() {
               {activeTab === 'interviews' ? (
                 <Button
                   onClick={() => handleOpenScheduleInterview()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 cursor-pointer h-9 px-3.5"
+                  className="bg-slate-900 hover:bg-slate-800 text-white shadow-xs gap-2 shrink-0 cursor-pointer h-9 px-4 rounded-lg font-medium"
                 >
                   <Plus className="size-4" />
                   <span>Schedule interview</span>
@@ -503,7 +507,7 @@ export function App() {
               ) : (
                 <Button
                   onClick={handleOpenAdd}
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-xs gap-2 shrink-0 cursor-pointer h-9 px-3.5"
+                  className="bg-slate-900 hover:bg-slate-800 text-white shadow-xs gap-2 shrink-0 cursor-pointer h-9 px-4 rounded-lg font-medium"
                 >
                   <Plus className="size-4" />
                   <span>Add application</span>
@@ -647,6 +651,46 @@ export function App() {
       {/* 8. Global Toast Notifications */}
       <Toaster position="top-right" richColors />
     </div>
+  )
+}
+
+function AppRoot() {
+  const { user, isLoading } = useAuth()
+
+  // 1. Initial loading splash while verifying cookie-backed session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex flex-col justify-center items-center bg-slate-50 text-slate-900 space-y-4 font-sans">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md ring-4 ring-slate-100">
+          <Briefcase className="size-7" />
+        </div>
+        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+          <Loader2 className="size-4 animate-spin text-slate-900" />
+          <span>Restoring session...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // 2. Unauthenticated state: Render login and registration screen
+  if (!user) {
+    return (
+      <>
+        <AuthScreen />
+        <Toaster position="top-right" richColors />
+      </>
+    )
+  }
+
+  // 3. Authenticated state: Render full ApplyFlow workspace
+  return <DashboardContent />
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppRoot />
+    </AuthProvider>
   )
 }
 
