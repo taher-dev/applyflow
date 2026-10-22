@@ -12,6 +12,7 @@ import { KanbanBoard } from '@/components/pipeline/KanbanBoard'
 import { InterviewsPage } from '@/components/interviews/InterviewsPage'
 import { ApplicationFormDialog } from '@/components/dashboard/AddApplicationDialog'
 import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicationDialog'
+import { ApplicationDetailsDialog } from '@/components/dashboard/ApplicationDetailsDialog'
 import { InterviewFormDialog } from '@/components/interviews/InterviewFormDialog'
 import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDialog'
 import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
@@ -59,6 +60,7 @@ function DashboardContent() {
   const [applicationToEdit, setApplicationToEdit] = useState<JobApplication | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [applicationToDelete, setApplicationToDelete] = useState<JobApplication | null>(null)
+  const [selectedApplicationForDetails, setSelectedApplicationForDetails] = useState<JobApplication | null>(null)
 
   // Interview dialog & selection state
   const [isInterviewDialogOpen, setIsInterviewDialogOpen] = useState(false)
@@ -140,6 +142,7 @@ function DashboardContent() {
   }
 
   const handleOpenEdit = (app: JobApplication) => {
+    setSelectedApplicationForDetails(null)
     setApplicationToEdit(app)
     setIsFormDialogOpen(true)
   }
@@ -190,6 +193,7 @@ function DashboardContent() {
 
   // Application Delete Action Handlers (with cascade interview cleanup)
   const handleOpenDelete = (app: JobApplication) => {
+    setSelectedApplicationForDetails(null)
     setApplicationToDelete(app)
     setIsDeleteDialogOpen(true)
   }
@@ -252,7 +256,7 @@ function DashboardContent() {
         )
       )
       toast.success('Interview rescheduled!', {
-        description: `${data.interviewType} with ${companyName} has been updated.`,
+        description: `Interview with ${companyName} has been updated.`,
       })
     } else {
       // Immutable creation of new interview
@@ -265,7 +269,7 @@ function DashboardContent() {
       }
       setInterviews((prev) => [created, ...prev])
       toast.success('Interview scheduled!', {
-        description: `${data.interviewType} with ${companyName} added to calendar.`,
+        description: `Interview with ${companyName} added to calendar.`,
       })
     }
 
@@ -288,7 +292,7 @@ function DashboardContent() {
 
     if (target) {
       toast.success('Interview removed', {
-        description: `${target.interviewType} round has been cancelled.`,
+        description: 'Interview round has been cancelled.',
       })
     }
   }
@@ -498,6 +502,8 @@ function DashboardContent() {
               onDeleteApplication={handleOpenDelete}
               onUpdateStatus={handleUpdateStatus}
               onAddNew={handleOpenAdd}
+              onSelectApplication={(app) => setSelectedApplicationForDetails(app)}
+              onScheduleInterview={handleOpenScheduleInterview}
             />
           )}
 
@@ -526,11 +532,42 @@ function DashboardContent() {
                 onEditApplication={handleOpenEdit}
                 onDeleteApplication={handleOpenDelete}
                 onUpdateStatus={handleUpdateStatus}
+                onSelectApplication={(app) => setSelectedApplicationForDetails(app)}
+                onScheduleInterview={handleOpenScheduleInterview}
               />
             </div>
           )}
         </main>
       </div>
+
+      {/* 2.5 Full Application Details Popup Dialog */}
+      <ApplicationDetailsDialog
+        application={
+          selectedApplicationForDetails
+            ? applications.find((a) => a.id === selectedApplicationForDetails.id) ||
+              selectedApplicationForDetails
+            : null
+        }
+        interviews={
+          selectedApplicationForDetails
+            ? interviews.filter((i) => i.applicationId === selectedApplicationForDetails.id)
+            : []
+        }
+        open={Boolean(selectedApplicationForDetails)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedApplicationForDetails(null)
+        }}
+        onEdit={(app) => {
+          handleOpenEdit(app)
+        }}
+        onDelete={(app) => {
+          handleOpenDelete(app)
+        }}
+        onScheduleInterview={(appId) => {
+          setSelectedApplicationForDetails(null)
+          handleOpenScheduleInterview(appId)
+        }}
+      />
 
       {/* 3. Reusable Application Form Dialog (Add & Edit) */}
       <ApplicationFormDialog

@@ -159,7 +159,7 @@ export function UpcomingInterviews({
                   className="rounded-xl border border-slate-200/80 p-3 sm:p-3.5 bg-slate-50/60 hover:bg-slate-100/50 transition-colors space-y-2 sm:space-y-2.5 flex flex-col justify-between"
                 >
                   <div className="space-y-2">
-                    {/* Header: Company & Interview Type */}
+                    {/* Header: Company & Role */}
                     <div className="flex items-start justify-between gap-1.5 sm:gap-2 min-w-0">
                       <div className="min-w-0 flex-1">
                         <h4
@@ -175,10 +175,6 @@ export function UpcomingInterviews({
                           {app?.role || 'Interview Round'}
                         </p>
                       </div>
-
-                      <span className="inline-flex items-center text-[9px] sm:text-[10px] font-medium px-1.5 sm:px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200 shrink-0">
-                        {interview.interviewType}
-                      </span>
                     </div>
 
                     {/* Date & Time */}

@@ -20,6 +20,8 @@ export interface KanbanColumnProps {
   onDelete: (application: JobApplication) => void
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
   onAddNew?: () => void
+  onSelect?: (application: JobApplication) => void
+  onScheduleInterview?: (applicationId: string) => void
 }
 
 export function KanbanColumn({
@@ -36,6 +38,8 @@ export function KanbanColumn({
   onDelete,
   onUpdateStatus,
   onAddNew,
+  onSelect,
+  onScheduleInterview,
 }: KanbanColumnProps) {
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -112,6 +116,8 @@ export function KanbanColumn({
               onEdit={onEdit}
               onDelete={onDelete}
               onUpdateStatus={onUpdateStatus}
+              onSelect={onSelect}
+              onScheduleInterview={onScheduleInterview}
             />
           ))
         ) : (

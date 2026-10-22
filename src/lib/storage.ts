@@ -75,7 +75,7 @@ export const InterviewSchema = z.object({
   id: z.string().min(1),
   applicationId: z.string().min(1),
   scheduledAt: z.string().min(1),
-  interviewType: InterviewTypeSchema,
+  interviewType: InterviewTypeSchema.optional().default('Video interview'),
   notes: z.string().optional(),
   locationOrLink: z.string().optional(),
   interviewer: z.string().optional(),

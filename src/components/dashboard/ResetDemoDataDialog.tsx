@@ -23,35 +23,39 @@ export function ResetDemoDataDialog({
 }: ResetDemoDataDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-2 text-foreground font-semibold">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-              <RotateCcw className="size-4" />
+      <AlertDialogContent className="sm:max-w-[420px] p-5 sm:p-6 rounded-2xl border-slate-200/90 shadow-xl bg-white gap-5">
+        <AlertDialogHeader className="p-0 text-left">
+          <div className="flex items-start gap-3.5">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-50 border border-amber-100 text-amber-600 mt-0.5 shadow-2xs">
+              <RotateCcw className="size-4.5" />
             </div>
-            <AlertDialogTitle className="text-base font-semibold">
-              Reset to Demonstration Data?
-            </AlertDialogTitle>
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <AlertDialogTitle className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-snug">
+                Reset demonstration data?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                This will reset your dashboard to the sample template records. Any custom applications and interviews will be replaced.
+              </AlertDialogDescription>
+            </div>
           </div>
-          <AlertDialogDescription className="text-xs text-muted-foreground pt-1 leading-relaxed">
-            This will clear your local changes and restore the default sample job applications,
-            pipeline stages, and interview schedules. Any custom records you have added or edited
-            will be replaced.
-          </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="gap-2 sm:gap-0 pt-2">
-          <AlertDialogCancel className="cursor-pointer text-xs h-8">
+        <AlertDialogFooter className="p-0 m-0 bg-transparent border-t-0 flex-row justify-end gap-2.5 pt-1">
+          <AlertDialogCancel
+            onClick={() => onOpenChange(false)}
+            className="h-9 px-4 text-xs sm:text-sm font-medium border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer rounded-lg m-0"
+          >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="cursor-pointer bg-red-600 hover:bg-red-700 text-white text-xs h-8"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold bg-amber-600 hover:bg-amber-700 active:bg-amber-800 active:scale-95 text-white shadow-xs transition-all cursor-pointer rounded-lg m-0"
           >
-            Reset Demo Data
+            Reset
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   )
 }
+

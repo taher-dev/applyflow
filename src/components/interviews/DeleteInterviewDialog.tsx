@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import type { Interview, JobApplication } from '@/types/dashboard'
-import { Trash2, Calendar, Clock } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 
 interface DeleteInterviewDialogProps {
   interview: Interview | null
@@ -32,73 +32,46 @@ export function DeleteInterviewDialog({
     onConfirmDelete(interview.id)
   }
 
-  const interviewDate = new Date(interview.scheduledAt)
-  const formattedDate = !isNaN(interviewDate.getTime())
-    ? interviewDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : interview.scheduledAt
-
-  const formattedTime = !isNaN(interviewDate.getTime())
-    ? interviewDate.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : ''
-
   const companyName = application?.company || 'this company'
   const roleName = application?.role || 'Job Opportunity'
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <div className="flex items-center gap-2 text-destructive">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+      <AlertDialogContent className="sm:max-w-[420px] p-5 sm:p-6 rounded-2xl border-slate-200/90 shadow-xl bg-white gap-5">
+        <AlertDialogHeader className="p-0 text-left">
+          <div className="flex items-start gap-3.5">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-rose-50 border border-rose-100 text-rose-600 mt-0.5 shadow-2xs">
               <Trash2 className="size-4.5" />
             </div>
-            <AlertDialogTitle className="text-lg">Cancel & Delete Interview</AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-sm text-muted-foreground pt-1.5 leading-relaxed">
-            Are you sure you want to delete the{' '}
-            <strong className="text-foreground">{interview.interviewType}</strong> for{' '}
-            <strong className="text-foreground">{roleName}</strong> at{' '}
-            <strong className="text-foreground">{companyName}</strong>?
-          </AlertDialogDescription>
-
-          <div className="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-1.5 text-slate-500">
-            <div className="flex items-center gap-2 text-slate-900 font-medium">
-              <Calendar className="size-3.5 text-slate-700 shrink-0" />
-              <span>{formattedDate}</span>
-              {formattedTime && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <Clock className="size-3.5 text-slate-400 shrink-0" />
-                  <span>{formattedTime}</span>
-                </>
-              )}
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <AlertDialogTitle className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight leading-snug">
+                Delete interview?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                This will permanently delete the scheduled interview for{' '}
+                <span className="font-semibold text-slate-900">{roleName}</span> at{' '}
+                <span className="font-semibold text-slate-900">{companyName}</span>. This action cannot be undone.
+              </AlertDialogDescription>
             </div>
-            {interview.notes && (
-              <p className="line-clamp-2 text-slate-500 italic pt-1 border-t border-slate-200/60">
-                &quot;{interview.notes}&quot;
-              </p>
-            )}
           </div>
         </AlertDialogHeader>
-        <AlertDialogFooter className="gap-2 pt-2">
-          <AlertDialogCancel onClick={() => onOpenChange(false)}>
-            Keep Interview
+
+        <AlertDialogFooter className="p-0 m-0 bg-transparent border-t-0 flex-row justify-end gap-2.5 pt-1">
+          <AlertDialogCancel
+            onClick={() => onOpenChange(false)}
+            className="h-9 px-4 text-xs sm:text-sm font-medium border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer rounded-lg m-0"
+          >
+            Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+            className="h-9 px-4 text-xs sm:text-sm font-semibold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 active:scale-95 text-white shadow-xs transition-all cursor-pointer rounded-lg m-0"
           >
-            Delete Interview
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   )
 }
+

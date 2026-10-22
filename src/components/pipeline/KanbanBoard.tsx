@@ -19,6 +19,8 @@ export interface KanbanBoardProps {
   onDeleteApplication: (application: JobApplication) => void
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
   onAddNew: () => void
+  onSelectApplication?: (application: JobApplication) => void
+  onScheduleInterview?: (applicationId: string) => void
 }
 
 export function KanbanBoard({
@@ -29,6 +31,8 @@ export function KanbanBoard({
   onDeleteApplication,
   onUpdateStatus,
   onAddNew,
+  onSelectApplication,
+  onScheduleInterview,
 }: KanbanBoardProps) {
   const [internalSearchQuery, setInternalSearchQuery] = useState('')
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
@@ -225,6 +229,8 @@ export function KanbanBoard({
                 onDelete={onDeleteApplication}
                 onUpdateStatus={onUpdateStatus}
                 onAddNew={onAddNew}
+                onSelect={onSelectApplication}
+                onScheduleInterview={onScheduleInterview}
               />
             </div>
           )

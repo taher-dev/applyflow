@@ -24,13 +24,6 @@ import {
   CardContent,
 } from '@/components/ui/card'
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select'
-import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -38,8 +31,9 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
-import type { Interview, JobApplication, InterviewType } from '@/types/dashboard'
+import type { Interview, JobApplication } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
+import { InterviewDetailsDialog } from './InterviewDetailsDialog'
 
 interface InterviewsPageProps {
   interviews: Interview[]
@@ -52,23 +46,7 @@ interface InterviewsPageProps {
   onNavigateToApplications?: () => void
 }
 
-// Color badges for each interview type
-function getInterviewTypeBadgeClass(type: InterviewType) {
-  switch (type) {
-    case 'Technical interview':
-      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
-    case 'Final interview':
-      return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800'
-    case 'Phone screening':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-    case 'Video interview':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-    case 'On-site interview':
-      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-  }
-}
+
 
 // Relative date helper (e.g. "Tomorrow", "In 2 days", "3 days ago")
 function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
@@ -103,6 +81,7 @@ export function InterviewsPage({
   const [currentTime] = useState(() => Date.now())
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming')
   const [internalSearchQuery, setInternalSearchQuery] = useState('')
+  const [selectedInterviewForDetails, setSelectedInterviewForDetails] = useState<Interview | null>(null)
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
 
   const handleSearchChange = (val: string) => {
@@ -113,8 +92,6 @@ export function InterviewsPage({
     }
   }
 
-  const [typeFilter, setTypeFilter] = useState<string>('ALL')
-
   // Map applicationId -> JobApplication for fast, safe resolution
   const applicationMap = useMemo(() => {
     const map = new Map<string, JobApplication>()
@@ -124,17 +101,12 @@ export function InterviewsPage({
     return map
   }, [applications])
 
-  // Filter interviews by search query and interview type
+  // Filter interviews by search query
   const filteredInterviews = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
     return interviews.filter((interview) => {
       const app = applicationMap.get(interview.applicationId)
-
-      // Type filter
-      if (typeFilter !== 'ALL' && interview.interviewType !== typeFilter) {
-        return false
-      }
 
       // Search matching company, role, interviewer, or notes
       if (query) {
@@ -142,16 +114,15 @@ export function InterviewsPage({
         const roleMatch = app?.role.toLowerCase().includes(query) ?? false
         const interviewerMatch = interview.interviewer?.toLowerCase().includes(query) ?? false
         const notesMatch = interview.notes?.toLowerCase().includes(query) ?? false
-        const typeMatch = interview.interviewType.toLowerCase().includes(query)
 
-        if (!companyMatch && !roleMatch && !interviewerMatch && !notesMatch && !typeMatch) {
+        if (!companyMatch && !roleMatch && !interviewerMatch && !notesMatch) {
           return false
         }
       }
 
       return true
     })
-  }, [interviews, searchQuery, typeFilter, applicationMap])
+  }, [interviews, searchQuery, applicationMap])
 
   // Split into Upcoming (future) and Past (historical) using exact timestamps
   const { upcomingInterviews, pastInterviews } = useMemo(() => {
@@ -185,7 +156,7 @@ export function InterviewsPage({
   }, [interviews, currentTime])
 
   const activeList = activeTab === 'upcoming' ? upcomingInterviews : pastInterviews
-  const hasActiveFilters = searchQuery.trim().length > 0 || typeFilter !== 'ALL'
+  const hasActiveFilters = searchQuery.trim().length > 0
 
   return (
     <div className="space-y-6 w-full min-w-0">
@@ -313,9 +284,9 @@ export function InterviewsPage({
               </button>
             </div>
 
-            {/* Quick search input & type filter */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 flex-1 lg:max-w-md xl:max-w-lg">
-              <div className="relative flex-1 min-w-[160px]">
+            {/* Quick search input */}
+            <div className="flex items-center gap-2 flex-1 lg:max-w-md xl:max-w-lg">
+              <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400 pointer-events-none" />
                 <Input
                   id="interviews-search-input"
@@ -336,34 +307,13 @@ export function InterviewsPage({
                 )}
               </div>
 
-              {/* Type filter - sized comfortably for 'Technical interview' */}
-              <div className="w-full sm:w-[165px] md:w-[175px] shrink-0">
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-8.5 text-xs bg-slate-50 border-slate-200 text-slate-900 px-2.5">
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="ALL">All Types</SelectItem>
-                    <SelectItem value="Phone screening">Phone screening</SelectItem>
-                    <SelectItem value="Video interview">Video interview</SelectItem>
-                    <SelectItem value="Technical interview">Technical interview</SelectItem>
-                    <SelectItem value="On-site interview">On-site interview</SelectItem>
-                    <SelectItem value="Final interview">Final interview</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => {
-                    handleSearchChange('')
-                    setTypeFilter('ALL')
-                  }}
+                  onClick={() => handleSearchChange('')}
                   className="size-8.5 shrink-0 text-slate-400 hover:text-slate-700 cursor-pointer"
-                  title="Reset filters"
+                  title="Clear search"
                 >
                   <RotateCcw className="size-3.5" />
                 </Button>
@@ -391,20 +341,16 @@ export function InterviewsPage({
                     No matching interviews found
                   </h3>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    No {activeTab} interviews match your current search and type filters. Try
-                    adjusting your search terms or clearing filters.
+                    No {activeTab} interviews match your search. Try adjusting your search terms or clearing the search.
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      handleSearchChange('')
-                      setTypeFilter('ALL')
-                    }}
+                    onClick={() => handleSearchChange('')}
                     className="mt-2 text-xs gap-1.5"
                   >
                     <RotateCcw className="size-3" />
-                    <span>Reset filters</span>
+                    <span>Clear search</span>
                   </Button>
                 </div>
               ) : activeTab === 'upcoming' ? (
@@ -437,8 +383,8 @@ export function InterviewsPage({
               )}
             </div>
           ) : (
-            /* Interview Cards List - 2 columns on small screens */
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            /* Clean, Structured Interview Cards Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {activeList.map((interview) => {
                 const app = applicationMap.get(interview.applicationId)
                 const interviewDate = new Date(interview.scheduledAt)
@@ -466,9 +412,10 @@ export function InterviewsPage({
                 return (
                   <div
                     key={interview.id}
-                    className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-3 sm:p-4 hover:shadow-xs transition-shadow space-y-3 sm:space-y-3.5"
+                    onClick={() => setSelectedInterviewForDetails(interview)}
+                    className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-3 sm:p-4 hover:shadow-xs transition-shadow space-y-3 sm:space-y-3.5 cursor-pointer"
                   >
-                    {/* Top Row: Company Monogram + Title + Type Badge + Actions */}
+                    {/* Top Row: Company Monogram + Title + Actions */}
                     <div className="space-y-2 sm:space-y-2.5">
                       <div className="flex items-start justify-between gap-1.5 sm:gap-2 min-w-0">
                         <div className="flex items-start gap-2 sm:gap-2.5 min-w-0 flex-1">
@@ -487,61 +434,52 @@ export function InterviewsPage({
                           </div>
                         </div>
 
-                        {/* Top-Right Action Menu */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-6 sm:size-7 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer -mr-1 -mt-1"
-                              aria-label={`Actions for interview at ${app?.company}`}
+                        {/* Top-Right: Relative Countdown & Action Menu */}
+                        <div className="flex items-center gap-1 shrink-0 -mr-1 -mt-1">
+                          {relativeLabel && (
+                            <span
+                              className={cn(
+                                'text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded border',
+                                isUpcoming
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200 font-semibold'
+                                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                              )}
                             >
-                              <MoreHorizontal className="size-3.5 sm:size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => onEditInterview(interview)}
-                              className="cursor-pointer text-xs"
-                            >
-                              <Pencil className="size-3.5 mr-2" />
-                              <span>Edit Interview</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDeleteInterview(interview)}
-                              className="text-destructive focus:text-destructive cursor-pointer text-xs"
-                            >
-                              <Trash2 className="size-3.5 mr-2" />
-                              <span>Delete Interview</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      {/* Type Badge & Relative Countdown */}
-                      <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            'inline-flex items-center text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full border',
-                            getInterviewTypeBadgeClass(interview.interviewType)
+                              {relativeLabel}
+                            </span>
                           )}
-                        >
-                          {interview.interviewType}
-                        </span>
 
-                        {relativeLabel && (
-                          <span
-                            className={cn(
-                              'text-[9px] sm:text-[10px] font-medium px-1 sm:px-1.5 py-0.5 rounded',
-                              isUpcoming
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                                : 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {relativeLabel}
-                          </span>
-                        )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()}
+                                className="size-6 sm:size-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                                aria-label={`Actions for interview at ${app?.company}`}
+                              >
+                                <MoreHorizontal className="size-3.5 sm:size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem
+                                onClick={() => onEditInterview(interview)}
+                                className="cursor-pointer text-xs"
+                              >
+                                <Pencil className="size-3.5 mr-2" />
+                                <span>Edit Interview</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => onDeleteInterview(interview)}
+                                className="text-destructive focus:text-destructive cursor-pointer text-xs"
+                              >
+                                <Trash2 className="size-3.5 mr-2" />
+                                <span>Delete Interview</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
 
@@ -560,39 +498,42 @@ export function InterviewsPage({
                     </div>
 
                     {/* Meta Info: Interviewer & Location/Link */}
-                    <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-xs text-slate-500 pt-1 border-t border-slate-200/60">
-                      {interview.interviewer && (
-                        <div className="flex items-center gap-1.5 truncate">
-                          <User className="size-3 text-slate-400 shrink-0" />
-                          <span className="truncate font-medium text-slate-900">
-                            {interview.interviewer}
-                          </span>
-                        </div>
-                      )}
+                    {(interview.interviewer || interview.locationOrLink) && (
+                      <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-xs text-slate-500 pt-1 border-t border-slate-200/60">
+                        {interview.interviewer && (
+                          <div className="flex items-center gap-1.5 truncate">
+                            <User className="size-3 text-slate-400 shrink-0" />
+                            <span className="truncate font-medium text-slate-900">
+                              {interview.interviewer}
+                            </span>
+                          </div>
+                        )}
 
-                      {interview.locationOrLink && (
-                        <div className="flex items-center gap-1.5 truncate">
-                          {interview.locationOrLink.startsWith('http') ? (
-                            <>
-                              <ExternalLink className="size-3 text-slate-700 shrink-0" />
-                              <a
-                                href={interview.locationOrLink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-slate-900 hover:underline truncate font-medium"
-                              >
-                                {interview.locationOrLink}
-                              </a>
-                            </>
-                          ) : (
-                            <>
-                              <Video className="size-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{interview.locationOrLink}</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        {interview.locationOrLink && (
+                          <div className="flex items-center gap-1.5 truncate">
+                            {interview.locationOrLink.startsWith('http') ? (
+                              <>
+                                <ExternalLink className="size-3 text-slate-700 shrink-0" />
+                                <a
+                                  href={interview.locationOrLink}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-slate-900 hover:underline truncate font-medium"
+                                >
+                                  {interview.locationOrLink}
+                                </a>
+                              </>
+                            ) : (
+                              <>
+                                <Video className="size-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{interview.locationOrLink}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Preparation Notes (if available) */}
                     {interview.notes && (
@@ -601,33 +542,11 @@ export function InterviewsPage({
                           <FileText className="size-3" />
                           <span>Preparation Notes</span>
                         </div>
-                        <p className="text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere]">
+                        <p className="text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere] line-clamp-2">
                           {interview.notes}
                         </p>
                       </div>
                     )}
-
-                    {/* Card Actions Footer */}
-                    <div className="flex items-center justify-end gap-1 pt-1.5 sm:pt-2 border-t border-border/40">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEditInterview(interview)}
-                        className="h-6.5 sm:h-7 px-2 text-[11px] sm:text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-1"
-                      >
-                        <Pencil className="size-3" />
-                        <span>Edit</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteInterview(interview)}
-                        className="h-6.5 sm:h-7 px-2 text-[11px] sm:text-xs text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer gap-1"
-                      >
-                        <Trash2 className="size-3" />
-                        <span>Delete</span>
-                      </Button>
-                    </div>
                   </div>
                 )
               })}
@@ -635,6 +554,26 @@ export function InterviewsPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Full Interview Details Popup Modal */}
+      <InterviewDetailsDialog
+        interview={selectedInterviewForDetails}
+        application={
+          selectedInterviewForDetails
+            ? applicationMap.get(selectedInterviewForDetails.applicationId)
+            : null
+        }
+        open={Boolean(selectedInterviewForDetails)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedInterviewForDetails(null)
+        }}
+        onEdit={(interview) => {
+          onEditInterview(interview)
+        }}
+        onDelete={(interview) => {
+          onDeleteInterview(interview)
+        }}
+      />
     </div>
   )
 }

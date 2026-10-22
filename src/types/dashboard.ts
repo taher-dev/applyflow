@@ -51,7 +51,7 @@ export interface Interview {
   id: string
   applicationId: string
   scheduledAt: string // ISO 8601 string: YYYY-MM-DDTHH:mm
-  interviewType: InterviewType
+  interviewType?: InterviewType
   notes?: string
   locationOrLink?: string
   interviewer?: string

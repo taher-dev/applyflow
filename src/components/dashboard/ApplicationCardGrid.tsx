@@ -1,5 +1,5 @@
 import type { JobApplication, ApplicationStatus } from '@/types/dashboard'
-import { X } from 'lucide-react'
+import { X, CalendarPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ApplicationCardGridProps {
@@ -7,6 +7,8 @@ interface ApplicationCardGridProps {
   onEditApplication: (application: JobApplication) => void
   onDeleteApplication: (application: JobApplication) => void
   onUpdateStatus?: (id: string, newStatus: ApplicationStatus) => void
+  onSelectApplication?: (application: JobApplication) => void
+  onScheduleInterview?: (applicationId: string) => void
 }
 
 interface PastelTheme {
@@ -103,7 +105,17 @@ export function ApplicationCardGrid({
   applications,
   onEditApplication,
   onDeleteApplication,
+  onSelectApplication,
+  onScheduleInterview,
 }: ApplicationCardGridProps) {
+  const handleCardClick = (app: JobApplication) => {
+    if (onSelectApplication) {
+      onSelectApplication(app)
+    } else {
+      onEditApplication(app)
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-4 sm:p-6">
       {applications.map((app, index) => {
@@ -112,7 +124,7 @@ export function ApplicationCardGrid({
         return (
           <div
             key={app.id}
-            onClick={() => onEditApplication(app)}
+            onClick={() => handleCardClick(app)}
             className={cn(
               'group relative rounded-2xl sm:rounded-3xl border p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5',
               theme.bg,
@@ -167,20 +179,26 @@ export function ApplicationCardGrid({
               </div>
             </div>
 
-            {/* Bottom row: Salary and Details Button */}
-            <div className="flex items-center justify-between gap-2 mt-6 pt-1">
-              <div className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
+            {/* Bottom section: Salary and Schedule Interview Button underneath */}
+            <div className="mt-5 space-y-2">
+              <div className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                 {formatSalary(app)}
               </div>
+
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
-                  onEditApplication(app)
+                  if (onScheduleInterview) {
+                    onScheduleInterview(app.id)
+                  }
                 }}
-                className="bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-full px-4 py-1.5 text-xs font-semibold shadow-2xs hover:shadow-xs transition-all duration-150 cursor-pointer shrink-0"
+                className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white rounded-full py-2.5 px-3.5 text-xs font-semibold shadow-xs hover:shadow-xs active:translate-y-px transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                aria-label={`Schedule interview for ${app.role} at ${app.company}`}
+                title="Schedule interview"
               >
-                Details
+                <CalendarPlus className="size-3.5 text-white/90" />
+                <span className="tracking-wide">Schedule Interview</span>
               </button>
             </div>
           </div>

@@ -55,6 +55,8 @@ import {
   SlidersHorizontal,
   Search,
   X,
+  Eye,
+  CalendarPlus,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ApplicationCardGrid } from './ApplicationCardGrid'
@@ -72,6 +74,8 @@ interface RecentApplicationsProps {
   onEditApplication: (application: JobApplication) => void
   onDeleteApplication: (application: JobApplication) => void
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
+  onSelectApplication?: (application: JobApplication) => void
+  onScheduleInterview?: (applicationId: string) => void
 }
 
 const ALL_STATUSES: ApplicationStatus[] = [
@@ -155,6 +159,8 @@ export function RecentApplications({
   onEditApplication,
   onDeleteApplication,
   onUpdateStatus,
+  onSelectApplication,
+  onScheduleInterview,
 }: RecentApplicationsProps) {
   // Local Filter, Sort, View, and Pagination State
   const [categoryTab, setCategoryTab] = useState<CategoryTab>('all')
@@ -571,6 +577,8 @@ export function RecentApplications({
                   onEditApplication={onEditApplication}
                   onDeleteApplication={onDeleteApplication}
                   onUpdateStatus={onUpdateStatus}
+                  onSelectApplication={onSelectApplication}
+                  onScheduleInterview={onScheduleInterview}
                 />
               ) : (
                 <>
@@ -579,7 +587,11 @@ export function RecentApplications({
               {paginatedApplications.map((app) => (
                 <div
                   key={app.id}
-                  className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors"
+                  onClick={() => onSelectApplication?.(app)}
+                  className={cn(
+                    'p-4 space-y-3 hover:bg-slate-50/60 transition-colors',
+                    onSelectApplication && 'cursor-pointer'
+                  )}
                 >
                   {/* Top row: Monogram + Company & Role (wrapped) + Actions Menu */}
                   <div className="flex items-start justify-between gap-3">
@@ -613,6 +625,27 @@ export function RecentApplications({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
+                        {onSelectApplication && (
+                          <DropdownMenuItem
+                            onClick={() => onSelectApplication(app)}
+                            className="cursor-pointer"
+                          >
+                            <Eye className="size-3.5 mr-2" />
+                            <span>View Details</span>
+                          </DropdownMenuItem>
+                        )}
+                        {onScheduleInterview && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onScheduleInterview(app.id)
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <CalendarPlus className="size-3.5 mr-2" />
+                            <span>Schedule Interview</span>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => onEditApplication(app)}
                           className="cursor-pointer"
@@ -767,7 +800,11 @@ export function RecentApplications({
                   {paginatedApplications.map((app) => (
                     <TableRow
                       key={app.id}
-                      className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors"
+                      onClick={() => onSelectApplication?.(app)}
+                      className={cn(
+                        'border-b border-slate-100 hover:bg-slate-50/60 transition-colors',
+                        onSelectApplication && 'cursor-pointer'
+                      )}
                     >
                       {/* Company & Role */}
                       <TableCell className="pl-5 py-3.5">
@@ -874,8 +911,35 @@ export function RecentApplications({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
+                            {onSelectApplication && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onSelectApplication(app)
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="size-3.5 mr-2" />
+                                <span>View Details</span>
+                              </DropdownMenuItem>
+                            )}
+                            {onScheduleInterview && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onScheduleInterview(app.id)
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <CalendarPlus className="size-3.5 mr-2" />
+                                <span>Schedule Interview</span>
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
-                              onClick={() => onEditApplication(app)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onEditApplication(app)
+                              }}
                               className="cursor-pointer"
                             >
                               <Pencil className="size-3.5 mr-2" />

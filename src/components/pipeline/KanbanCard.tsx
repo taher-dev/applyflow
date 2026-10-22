@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Eye,
+  CalendarPlus,
 } from 'lucide-react'
 import {
   PIPELINE_COLUMNS,
@@ -41,6 +43,8 @@ export interface KanbanCardProps {
   onEdit: (application: JobApplication) => void
   onDelete: (application: JobApplication) => void
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void
+  onSelect?: (application: JobApplication) => void
+  onScheduleInterview?: (applicationId: string) => void
 }
 
 export function KanbanCard({
@@ -51,6 +55,8 @@ export function KanbanCard({
   onEdit,
   onDelete,
   onUpdateStatus,
+  onSelect,
+  onScheduleInterview,
 }: KanbanCardProps) {
   const prev = getPreviousCategory(application.status)
   const next = getNextCategory(application.status)
@@ -61,11 +67,20 @@ export function KanbanCard({
     onDragStart(e, application.id)
   }
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If clicking directly on action buttons or menu, don't trigger select
+    if ((e.target as HTMLElement).closest('button, [role="menuitem"], [role="menu"]')) {
+      return
+    }
+    onSelect?.(application)
+  }
+
   return (
     <Card
       draggable
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
+      onClick={handleCardClick}
       aria-grabbed={isDragging}
       tabIndex={0}
       className={cn(
@@ -109,6 +124,24 @@ export function KanbanCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              {onSelect && (
+                <DropdownMenuItem
+                  onClick={() => onSelect(application)}
+                  className="cursor-pointer text-xs"
+                >
+                  <Eye className="size-3.5 mr-2" />
+                  <span>View Details</span>
+                </DropdownMenuItem>
+              )}
+              {onScheduleInterview && (
+                <DropdownMenuItem
+                  onClick={() => onScheduleInterview(application.id)}
+                  className="cursor-pointer text-xs"
+                >
+                  <CalendarPlus className="size-3.5 mr-2" />
+                  <span>Schedule Interview</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => onEdit(application)}
                 className="cursor-pointer text-xs"

@@ -21,7 +21,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
-import type { JobApplication, Interview, InterviewType } from '@/types/dashboard'
+import type { JobApplication, Interview } from '@/types/dashboard'
 import {
   Calendar,
   Clock,
@@ -34,29 +34,9 @@ import {
   Pencil,
 } from 'lucide-react'
 
-const INTERVIEW_TYPES: InterviewType[] = [
-  'Phone screening',
-  'Video interview',
-  'Technical interview',
-  'On-site interview',
-  'Final interview',
-  'Other',
-]
-
 // Form validation schema
 const interviewFormSchema = z.object({
   applicationId: z.string().min(1, 'Please select a job opportunity'),
-  interviewType: z.enum(
-    [
-      'Phone screening',
-      'Video interview',
-      'Technical interview',
-      'On-site interview',
-      'Final interview',
-      'Other',
-    ],
-    { errorMap: () => ({ message: 'Please select an interview type' }) }
-  ),
   date: z
     .string()
     .min(1, 'Interview date is required')
@@ -98,7 +78,6 @@ export function InterviewFormDialog({
 
   const [initialDefaultValues] = useState<InterviewFormData>(() => ({
     applicationId: preselectedApplicationId || '',
-    interviewType: 'Video interview',
     date: new Date().toISOString().split('T')[0],
     time: '14:00',
     locationOrLink: '',
@@ -121,7 +100,6 @@ export function InterviewFormDialog({
     if (!open) {
       reset({
         applicationId: preselectedApplicationId || (applications[0]?.id ?? ''),
-        interviewType: 'Video interview',
         date: new Date().toISOString().split('T')[0],
         time: '14:00',
         locationOrLink: '',
@@ -136,7 +114,6 @@ export function InterviewFormDialog({
       const [dPart = '', tPart = '14:00'] = interviewToEdit.scheduledAt.split('T')
       reset({
         applicationId: interviewToEdit.applicationId,
-        interviewType: interviewToEdit.interviewType,
         date: dPart,
         time: tPart.slice(0, 5),
         locationOrLink: interviewToEdit.locationOrLink || '',
@@ -146,7 +123,6 @@ export function InterviewFormDialog({
     } else {
       reset({
         applicationId: preselectedApplicationId || (applications[0]?.id ?? ''),
-        interviewType: 'Video interview',
         date: new Date().toISOString().split('T')[0],
         time: '14:00',
         locationOrLink: '',
@@ -163,7 +139,7 @@ export function InterviewFormDialog({
     onSaveInterview(
       {
         applicationId: data.applicationId,
-        interviewType: data.interviewType,
+        interviewType: interviewToEdit?.interviewType || 'Video interview',
         scheduledAt,
         locationOrLink: data.locationOrLink?.trim() || undefined,
         interviewer: data.interviewer?.trim() || undefined,
@@ -184,7 +160,7 @@ export function InterviewFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[82vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-xs">
@@ -280,42 +256,7 @@ export function InterviewFormDialog({
               )}
             </div>
 
-            {/* 2. Interview Type */}
-            <div className="space-y-1.5">
-              <Label htmlFor="interviewType" className="text-xs font-medium flex items-center gap-1.5">
-                <Video className="size-3.5 text-muted-foreground" />
-                <span>Interview Type</span>
-                <span className="text-destructive">*</span>
-              </Label>
-              <Controller
-                name="interviewType"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      id="interviewType"
-                      className="w-full text-xs h-9 bg-background cursor-pointer"
-                    >
-                      <SelectValue placeholder="Select interview type" />
-                    </SelectTrigger>
-                    <SelectContent position="popper">
-                      {INTERVIEW_TYPES.map((type) => (
-                        <SelectItem key={type} value={type} className="text-xs">
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.interviewType && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {errors.interviewType.message}
-                </p>
-              )}
-            </div>
-
-            {/* 3. Date & Time Row */}
+            {/* 2. Date & Time Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Date */}
               <div className="space-y-1.5">
