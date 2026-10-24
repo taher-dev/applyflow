@@ -1,6 +1,20 @@
-import { Bell, Menu, Search, X, LogOut, User as UserIcon } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import {
+  Bell,
+  Menu,
+  Search,
+  X,
+  LogOut,
+  User as UserIcon,
+  Calendar,
+  Clock,
+  CalendarClock,
+  ArrowRight,
+  Plus,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -11,6 +25,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/useAuth'
+import { cn } from '@/lib/utils'
+import type { Interview, JobApplication } from '@/types/dashboard'
 
 interface HeaderProps {
   searchQuery: string
@@ -18,6 +34,49 @@ interface HeaderProps {
   onToggleSidebar: () => void
   onSearchSubmit?: () => void
   placeholder?: string
+  interviews?: Interview[]
+  applications?: JobApplication[]
+  onSelectInterview?: (interview: Interview) => void
+  onNavigateToInterviews?: () => void
+  onScheduleInterview?: () => void
+}
+
+function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
+  const target = new Date(scheduledAt).getTime()
+  if (isNaN(target)) return ''
+
+  const diffMs = target - currentTimestamp
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) {
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60))
+    if (diffHours > 0) return `In ${diffHours}h`
+    if (diffHours < 0) return `${Math.abs(diffHours)}h ago`
+    return 'Today'
+  }
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays === -1) return 'Yesterday'
+  if (diffDays > 1) return `In ${diffDays}d`
+  return `${Math.abs(diffDays)}d ago`
+}
+
+function formatNotificationDate(scheduledAt: string) {
+  const date = new Date(scheduledAt)
+  if (isNaN(date.getTime())) return scheduledAt
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatNotificationTime(scheduledAt: string) {
+  const date = new Date(scheduledAt)
+  if (isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export function Header({
@@ -26,16 +85,41 @@ export function Header({
   onToggleSidebar,
   onSearchSubmit,
   placeholder,
+  interviews = [],
+  applications = [],
+  onSelectInterview,
+  onNavigateToInterviews,
+  onScheduleInterview,
 }: HeaderProps) {
   const { user, logout } = useAuth()
+
+  const [currentTime] = useState(() => Date.now())
+
+  const applicationMap = useMemo(() => {
+    const map = new Map<string, JobApplication>()
+    for (const app of applications) {
+      map.set(app.id, app)
+    }
+    return map
+  }, [applications])
+
+  // Upcoming interviews sorted chronologically (soonest first)
+  const upcomingInterviews = useMemo(() => {
+    return interviews
+      .filter((interview) => {
+        const time = new Date(interview.scheduledAt).getTime()
+        return !isNaN(time) && time >= currentTime
+      })
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+  }, [interviews, currentTime])
 
   const initials = user?.name
     ? user.name
         .split(' ')
         .filter(Boolean)
         .map((part) => part[0])
-        .join('')
         .slice(0, 2)
+        .join('')
         .toUpperCase()
     : 'AF'
 
@@ -104,18 +188,173 @@ export function Header({
         </form>
       </div>
 
-      {/* Right: Notifications + Profile Avatar (icon-only, zero text clutter) */}
+      {/* Right: Notifications + Profile Avatar */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Notifications */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="relative size-9 text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50 cursor-pointer"
-          aria-label="View notifications"
-        >
-          <Bell className="size-4.5" />
-          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-slate-900 ring-2 ring-white" />
-        </Button>
+        {/* Interactive Interview Notifications Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="relative size-9 text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50 cursor-pointer select-none"
+              aria-label={
+                upcomingInterviews.length > 0
+                  ? `${upcomingInterviews.length} upcoming interview notification${upcomingInterviews.length === 1 ? '' : 's'}`
+                  : 'View interview notifications'
+              }
+            >
+              <Bell className="size-4.5" />
+              {upcomingInterviews.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white shadow-2xs ring-2 ring-white">
+                  {upcomingInterviews.length > 9 ? '9+' : upcomingInterviews.length}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-80 sm:w-96 p-0 shadow-lg border border-slate-200/90 bg-white rounded-2xl overflow-hidden"
+          >
+            {/* Notification Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-50/80 border-b border-slate-200/80">
+              <div className="flex items-center gap-2">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-2xs">
+                  <Bell className="size-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 leading-snug">Interview Notifications</h4>
+                  <p className="text-[10px] text-slate-500 leading-none">Upcoming scheduled rounds</p>
+                </div>
+              </div>
+
+              {upcomingInterviews.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/80 font-medium"
+                >
+                  {upcomingInterviews.length} upcoming
+                </Badge>
+              )}
+            </div>
+
+            {/* Notification List Content */}
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 p-1">
+              {upcomingInterviews.length === 0 ? (
+                <div className="py-7 px-4 text-center space-y-2.5">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-slate-100 mx-auto text-slate-400">
+                    <CalendarClock className="size-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-slate-900">No upcoming interviews</p>
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto leading-normal">
+                      When interview rounds are scheduled, reminders and meeting details will notify you here.
+                    </p>
+                  </div>
+                  {onScheduleInterview && (
+                    <DropdownMenuItem asChild onSelect={() => onScheduleInterview()}>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-slate-900 hover:bg-slate-800 text-white rounded-lg mt-1 cursor-pointer gap-1 mx-auto"
+                      >
+                        <Plus className="size-3" />
+                        <span>Schedule an interview</span>
+                      </Button>
+                    </DropdownMenuItem>
+                  )}
+                </div>
+              ) : (
+                upcomingInterviews.slice(0, 5).map((interview) => {
+                  const app = applicationMap.get(interview.applicationId)
+                  const relativeLabel = getRelativeDateLabel(interview.scheduledAt, currentTime)
+                  const dateStr = formatNotificationDate(interview.scheduledAt)
+                  const timeStr = formatNotificationTime(interview.scheduledAt)
+                  const isUrgent = relativeLabel === 'Today' || (relativeLabel.startsWith('In') && relativeLabel.includes('h'))
+
+                  return (
+                    <DropdownMenuItem
+                      key={interview.id}
+                      asChild
+                      onSelect={() => {
+                        if (onSelectInterview) {
+                          onSelectInterview(interview)
+                        } else if (onNavigateToInterviews) {
+                          onNavigateToInterviews()
+                        }
+                      }}
+                    >
+                      <div className="p-3 hover:bg-slate-50 focus:bg-slate-50 transition-colors cursor-pointer rounded-xl flex items-start gap-3 text-left group w-full outline-hidden">
+                        {/* Monogram */}
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 mt-0.5 group-hover:bg-slate-200/80 transition-colors">
+                          {(app?.company || 'AP').slice(0, 2).toUpperCase()}
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <p className="font-semibold text-xs text-slate-900 truncate">
+                              {app?.company || 'Opportunity'}
+                            </p>
+                            {relativeLabel && (
+                              <span
+                                className={cn(
+                                  'text-[9px] font-medium px-1.5 py-0.5 rounded-md border shrink-0',
+                                  isUrgent
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200/80 font-semibold'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200/80'
+                                )}
+                              >
+                                {relativeLabel}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 truncate font-medium">
+                            {app?.role || 'Interview Round'}
+                          </p>
+
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 pt-0.5">
+                            <span className="flex items-center gap-1 font-medium text-slate-700">
+                              <Calendar className="size-3 text-slate-400 shrink-0" />
+                              {dateStr}
+                            </span>
+                            {timeStr && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="size-3 text-slate-400 shrink-0" />
+                                {timeStr}
+                              </span>
+                            )}
+                          </div>
+
+                          {interview.interviewer && (
+                            <p className="text-[10px] text-slate-500 flex items-center gap-1 truncate pt-0.5">
+                              <UserIcon className="size-3 text-slate-400 shrink-0" />
+                              <span className="truncate">With {interview.interviewer}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Notification Footer Action */}
+            {onNavigateToInterviews && (
+              <div className="p-2 bg-slate-50/80 border-t border-slate-200/80">
+                <DropdownMenuItem asChild onSelect={() => onNavigateToInterviews()}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-slate-900 hover:text-slate-900 font-medium justify-between h-8 px-3 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <span>View all interviews</span>
+                    <ArrowRight className="size-3.5 text-slate-500" />
+                  </Button>
+                </DropdownMenuItem>
+              </div>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Profile Avatar with Logout Dropdown */}
         <DropdownMenu>
@@ -158,4 +397,3 @@ export function Header({
     </header>
   )
 }
-

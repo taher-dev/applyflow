@@ -16,7 +16,6 @@ import {
 import {
   MapPin,
   Calendar,
-  DollarSign,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -201,8 +200,7 @@ export function KanbanCard({
 
         {application.salary && (
           <span className="flex items-center text-[10px] font-semibold text-foreground shrink-0 ml-auto">
-            <DollarSign className="size-2.5 text-muted-foreground mr-0.5" />
-            {application.salary}
+            {application.salary.startsWith('$') ? application.salary : `$${application.salary}`}
           </span>
         )}
       </div>

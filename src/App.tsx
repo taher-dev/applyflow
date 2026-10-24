@@ -15,6 +15,7 @@ import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicatio
 import { ApplicationDetailsDialog } from '@/components/dashboard/ApplicationDetailsDialog'
 import { InterviewFormDialog } from '@/components/interviews/InterviewFormDialog'
 import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDialog'
+import { InterviewDetailsDialog } from '@/components/interviews/InterviewDetailsDialog'
 import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
 import { LocalDataMigrationBanner } from '@/components/dashboard/LocalDataMigrationBanner'
 import { useApplyFlowStorage } from '@/lib/useApplyFlowStorage'
@@ -68,6 +69,7 @@ function DashboardContent() {
   const [preselectedAppId, setPreselectedAppId] = useState<string | null>(null)
   const [isDeleteInterviewDialogOpen, setIsDeleteInterviewDialogOpen] = useState(false)
   const [interviewToDelete, setInterviewToDelete] = useState<Interview | null>(null)
+  const [selectedInterviewForDetails, setSelectedInterviewForDetails] = useState<Interview | null>(null)
 
   // Single source of truth for persistent applications & interviews state
   const {
@@ -409,9 +411,20 @@ function DashboardContent() {
             activeTab === 'overview'
               ? 'Search applications...'
               : activeTab === 'pipeline'
-              ? 'Search pipeline...'
+              ? 'Search applications...'
               : 'Search interviews...'
           }
+          interviews={interviews}
+          applications={applications}
+          onSelectInterview={(interview) => {
+            setSelectedInterviewForDetails(interview)
+          }}
+          onNavigateToInterviews={() => {
+            setActiveTab('interviews')
+          }}
+          onScheduleInterview={() => {
+            handleOpenScheduleInterview()
+          }}
         />
 
         {/* Dashboard Workspace */}
@@ -625,6 +638,28 @@ function DashboardContent() {
           if (!open) setInterviewToDelete(null)
         }}
         onConfirmDelete={handleConfirmDeleteInterview}
+      />
+
+      {/* 6b. Full Interview Details Modal (accessible from notifications or direct click) */}
+      <InterviewDetailsDialog
+        interview={selectedInterviewForDetails}
+        application={
+          selectedInterviewForDetails
+            ? applications.find((a) => a.id === selectedInterviewForDetails.applicationId) || null
+            : null
+        }
+        open={Boolean(selectedInterviewForDetails)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedInterviewForDetails(null)
+        }}
+        onEdit={(interview) => {
+          setSelectedInterviewForDetails(null)
+          handleOpenEditInterview(interview)
+        }}
+        onDelete={(interview) => {
+          setSelectedInterviewForDetails(null)
+          handleOpenDeleteInterview(interview)
+        }}
       />
 
       {/* 7. Reset Demonstration Data Confirmation Dialog */}

@@ -193,12 +193,14 @@ export function ApplicationCardGrid({
                     onScheduleInterview(app.id)
                   }
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white rounded-full py-2.5 px-3.5 text-xs font-semibold shadow-xs hover:shadow-xs active:translate-y-px transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                className="schedule-interview-btn relative w-full inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white rounded-full py-2.5 px-3.5 text-xs font-semibold shadow-xs hover:shadow-xs active:translate-y-px transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                 aria-label={`Schedule interview for ${app.role} at ${app.company}`}
                 title="Schedule interview"
               >
-                <CalendarPlus className="size-3.5 text-white/90" />
-                <span className="tracking-wide">Schedule Interview</span>
+                <span className="schedule-interview-content">
+                  <CalendarPlus className="size-3.5 text-white/90" />
+                  <span className="tracking-wide">Schedule Interview</span>
+                </span>
               </button>
             </div>
           </div>

@@ -42,7 +42,6 @@ import {
   Building2,
   MapPin,
   Calendar,
-  DollarSign,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -478,7 +477,7 @@ export function RecentApplications({
             <Input
               id="directory-search-input"
               type="text"
-              placeholder="Search jobs..."
+              placeholder="Search applications..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-9 h-10.5 text-xs sm:text-sm bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-900 focus-visible:border-slate-900 shadow-2xs rounded-xl"
@@ -717,7 +716,6 @@ export function RecentApplications({
 
                     {/* Target Compensation */}
                     <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
-                      <DollarSign className="size-3 text-muted-foreground/70" />
                       <span>{app.salary || 'Undisclosed'}</span>
                     </div>
                   </div>

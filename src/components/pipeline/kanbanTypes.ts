@@ -30,7 +30,7 @@ export const PIPELINE_COLUMNS: ColumnDefinition[] = [
     color: 'blue',
     dotClass: 'bg-blue-600',
     badgeClass:
-      'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
+      'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     activeDropClass:
       'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-500/20',
     statuses: ['Applied', 'Active', 'Screening', 'Interview', 'Saved'],
@@ -44,7 +44,7 @@ export const PIPELINE_COLUMNS: ColumnDefinition[] = [
     color: 'rose',
     dotClass: 'bg-rose-500',
     badgeClass:
-      'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+      'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     activeDropClass:
       'border-rose-400 bg-rose-50/60 dark:bg-rose-950/40 ring-2 ring-rose-400/20',
     statuses: ['Rejected'],
@@ -58,7 +58,7 @@ export const PIPELINE_COLUMNS: ColumnDefinition[] = [
     color: 'emerald',
     dotClass: 'bg-emerald-500',
     badgeClass:
-      'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
+      'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     activeDropClass:
       'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20',
     statuses: ['Offer'],

@@ -156,11 +156,11 @@ export function KanbanBoard({
             <Input
               id="pipeline-search-input"
               type="text"
-              placeholder="Search pipeline cards by company or role..."
+              placeholder="Search applications..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-8.5 pr-8 h-9 text-xs sm:text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
-              aria-label="Search pipeline cards by company name or role"
+              aria-label="Search jobs by company name or role"
             />
             {searchQuery && (
               <button

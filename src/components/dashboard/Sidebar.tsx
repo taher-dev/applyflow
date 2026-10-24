@@ -10,6 +10,7 @@ import { navigationItems } from '@/data/mockData'
 import type { NavigationKey } from '@/types/dashboard'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/useAuth'
+import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   activeTab: NavigationKey
@@ -141,17 +142,37 @@ export function Sidebar({
 
         {/* Minimal User Profile Footer */}
         {user && (
-          <div className="p-3 border-t border-slate-200/80 mt-auto">
-            <div className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="size-8 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+          <div className="p-2.5 border-t border-slate-200/80 mt-auto">
+            <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="size-7.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
                   {userInitials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-900 truncate leading-tight">
+                  <p
+                    className={cn(
+                      'font-semibold text-slate-900 leading-snug [overflow-wrap:anywhere]',
+                      user.name.length > 24
+                        ? 'text-[10px]'
+                        : user.name.length > 16
+                        ? 'text-[11px]'
+                        : 'text-xs'
+                    )}
+                    title={user.name}
+                  >
                     {user.name}
                   </p>
-                  <p className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
+                  <p
+                    className={cn(
+                      'text-slate-500 leading-tight mt-0.5 [overflow-wrap:anywhere]',
+                      user.email.length > 24
+                        ? 'text-[8.5px]'
+                        : user.email.length > 18
+                        ? 'text-[9px]'
+                        : 'text-[9.5px]'
+                    )}
+                    title={user.email}
+                  >
                     {user.email}
                   </p>
                 </div>
@@ -160,7 +181,7 @@ export function Sidebar({
               <button
                 type="button"
                 onClick={() => logout()}
-                className="size-7 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+                className="size-7 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0 flex items-center justify-center self-center"
                 title="Sign out"
                 aria-label="Sign out of ApplyFlow"
               >

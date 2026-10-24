@@ -62,7 +62,7 @@ export function KanbanColumn({
           </h3>
           <Badge
             variant="outline"
-            className={cn('text-[11px] font-semibold px-2 py-0 h-5', column.badgeClass)}
+            className={cn('text-[11px] font-semibold px-2 py-0 h-5 rounded-full', column.badgeClass)}
           >
             {applications.length}
           </Badge>
