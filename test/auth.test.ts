@@ -1,5 +1,7 @@
 import test, { describe, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { api, ApiError } from '../src/lib/api.ts'
 import type { User } from '../src/types/auth.ts'
 
@@ -467,4 +469,55 @@ describe('Frontend Authentication & API Client', () => {
       assert.equal(mockStorage['password'], undefined)
     })
   })
+
+  describe('Password Reset Experience & Truthful Messaging', () => {
+    test('AuthScreen contains truthful message that password reset is unavailable', () => {
+      const authScreenSource = fs.readFileSync(
+        path.resolve(import.meta.dirname, '../src/components/auth/AuthScreen.tsx'),
+        'utf-8'
+      )
+
+      // 1. Truthful message is present
+      assert.ok(
+        authScreenSource.includes('Password reset is not available yet. Please contact the application administrator for assistance.'),
+        'Expected AuthScreen to display truthful administrator contact guidance'
+      )
+
+      // 2. Clear return button is present
+      assert.ok(
+        authScreenSource.includes('Return to sign in'),
+        'Expected AuthScreen to provide return to sign in button'
+      )
+
+      // 3. Removed false toast notification claiming email was sent
+      assert.equal(
+        authScreenSource.includes('Password reset link sent to'),
+        false,
+        'Must NOT claim password reset link was sent'
+      )
+      assert.equal(
+        authScreenSource.includes('Enter your email address above to receive a password reset link'),
+        false,
+        'Must NOT pretend email input can receive a reset link'
+      )
+    })
+
+    test('does not expose any fake password-reset API client methods or dispatch phantom requests', async () => {
+      // Confirm no fake password-reset API client method exists that claims to send emails
+      const authApi = api.auth as Record<string, unknown>
+      assert.equal(authApi['resetPassword'], undefined)
+      assert.equal(authApi['forgotPassword'], undefined)
+      assert.equal(authApi['requestPasswordReset'], undefined)
+
+      let networkCalled = false
+      globalThis.fetch = async () => {
+        networkCalled = true
+        return new Response(null, { status: 404 })
+      }
+
+      // Verify no network activity occurs for password reset
+      assert.equal(networkCalled, false)
+    })
+  })
 })
+

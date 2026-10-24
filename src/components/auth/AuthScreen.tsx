@@ -5,6 +5,8 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  KeyRound,
+  Info,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,7 +16,7 @@ import { useAuth } from '@/context/useAuth'
 import { ApiError } from '@/lib/api'
 import { toast } from 'sonner'
 
-type AuthMode = 'login' | 'register'
+type AuthMode = 'login' | 'register' | 'forgot-password'
 
 interface AuthScreenProps {
   initialMode?: AuthMode
@@ -150,11 +152,8 @@ export function AuthScreen({
   }
 
   const handleForgotPassword = () => {
-    if (email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.info(`Password reset link sent to ${email.trim()}`)
-    } else {
-      toast.info('Enter your email address above to receive a password reset link.')
-    }
+    switchMode('forgot-password')
+    toast.info('Password reset is not available yet. Please contact the application administrator for assistance.')
   }
 
   const activeError = localError || contextError
@@ -165,15 +164,25 @@ export function AuthScreen({
         {/* Minimal Brand Mark */}
         <div className="flex flex-col items-center text-center mb-7">
           <div className="size-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm mb-4">
-            <Briefcase className="size-5" />
+            {mode === 'forgot-password' ? (
+              <KeyRound className="size-5" />
+            ) : (
+              <Briefcase className="size-5" />
+            )}
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            {mode === 'login' ? 'Welcome back' : 'Create an account'}
+            {mode === 'login'
+              ? 'Welcome back'
+              : mode === 'register'
+              ? 'Create an account'
+              : 'Reset Password'}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             {mode === 'login'
               ? 'Sign in to access your application workspace'
-              : 'Start tracking job applications and interviews'}
+              : mode === 'register'
+              ? 'Start tracking job applications and interviews'
+              : 'Password reset is currently unavailable'}
           </p>
         </div>
 
@@ -188,58 +197,83 @@ export function AuthScreen({
           </div>
         )}
 
-        {/* Google SSO / Demo Auth Button */}
-        {enableDemoAuth ? (
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={isGoogleSubmitting || isSubmitting}
-            className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-            aria-label="Continue with Demo Google"
-          >
-            {isGoogleSubmitting ? (
-              <>
-                <Loader2 className="size-4 animate-spin text-slate-500" />
-                <span>Signing in to Demo Account...</span>
-              </>
-            ) : (
-              <>
-                <GoogleIcon className="size-4.5" />
-                <span>Continue with Demo Google</span>
-                <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0">Demo</Badge>
-              </>
-            )}
-          </button>
-        ) : (
-          <div className="w-full space-y-1.5">
-            <button
-              type="button"
-              disabled
-              className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 font-medium text-sm cursor-not-allowed select-none shadow-xs"
-              aria-label="Google Sign-In unavailable"
-              title="Google authentication is not configured in this environment"
+        {mode === 'forgot-password' ? (
+          <div className="w-full space-y-4">
+            <div
+              role="status"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 space-y-2"
             >
-              <GoogleIcon className="size-4.5 opacity-40 grayscale" />
-              <span>Continue with Google</span>
-              <Badge variant="outline" className="text-[10px] font-normal text-slate-400 border-slate-200 px-1.5 py-0">Unavailable</Badge>
-            </button>
-            <p className="text-[11px] text-slate-400 text-center">
-              Google OAuth is not configured in this environment.
-            </p>
-          </div>
-        )}
+              <div className="flex items-start gap-2.5 text-slate-800 font-medium">
+                <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>Password reset is not available yet</span>
+              </div>
+              <p className="leading-relaxed pl-6.5 text-slate-500">
+                Password reset is not available yet. Please contact the application administrator for assistance.
+              </p>
+            </div>
 
-        {/* Minimal Divider */}
-        <div className="relative w-full my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
+            <Button
+              type="button"
+              onClick={() => switchMode('login')}
+              className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99]"
+            >
+              Return to sign in
+            </Button>
           </div>
-          <div className="relative flex justify-center text-[11px] uppercase">
-            <span className="bg-white px-3 text-slate-400 font-medium tracking-wider">
-              or
-            </span>
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* Google SSO / Demo Auth Button */}
+            {enableDemoAuth ? (
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleSubmitting || isSubmitting}
+                className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                aria-label="Continue with Demo Google"
+              >
+                {isGoogleSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-slate-500" />
+                    <span>Signing in to Demo Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <GoogleIcon className="size-4.5" />
+                    <span>Continue with Demo Google</span>
+                    <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0">Demo</Badge>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="w-full space-y-1.5">
+                <button
+                  type="button"
+                  disabled
+                  className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 font-medium text-sm cursor-not-allowed select-none shadow-xs"
+                  aria-label="Google Sign-In unavailable"
+                  title="Google authentication is not configured in this environment"
+                >
+                  <GoogleIcon className="size-4.5 opacity-40 grayscale" />
+                  <span>Continue with Google</span>
+                  <Badge variant="outline" className="text-[10px] font-normal text-slate-400 border-slate-200 px-1.5 py-0">Unavailable</Badge>
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Google OAuth is not configured in this environment.
+                </p>
+              </div>
+            )}
+
+            {/* Minimal Divider */}
+            <div className="relative w-full my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-[11px] uppercase">
+                <span className="bg-white px-3 text-slate-400 font-medium tracking-wider">
+                  or
+                </span>
+              </div>
+            </div>
 
         {/* Form Container */}
         <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
@@ -370,10 +404,23 @@ export function AuthScreen({
             )}
           </Button>
         </form>
+      </>
+    )}
 
         {/* Minimal Mode Toggle */}
         <div className="text-center text-xs text-slate-500 mt-6">
-          {mode === 'login' ? (
+          {mode === 'forgot-password' ? (
+            <span>
+              Remember your password?{' '}
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="font-medium text-slate-900 hover:underline transition-all cursor-pointer ml-0.5"
+              >
+                Sign in
+              </button>
+            </span>
+          ) : mode === 'login' ? (
             <span>
               Don't have an account?{' '}
               <button
