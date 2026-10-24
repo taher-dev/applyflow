@@ -11,7 +11,10 @@ import {
   revokeSession,
 } from '../lib/session.js'
 import { registerSchema, loginSchema } from '../validations/auth.js'
-import { env } from '../config/env.js'
+import { env, isDemoAuthAllowed } from '../config/env.js'
+
+export const DEMO_GOOGLE_EMAIL = 'demo.google@applyflow.app'
+export const DEMO_GOOGLE_NAME = 'Google Demo User'
 
 export const authRouter = Router()
 
@@ -35,6 +38,15 @@ authRouter.post(
       }
 
       const { name, email, password } = parsed.data
+
+      // Reserve demo email address to prevent collision with mock authentication
+      if (email === DEMO_GOOGLE_EMAIL) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'This email is reserved for demo authentication',
+        })
+        return
+      }
 
       // Check for duplicate email
       const existingUser = await prisma.user.findUnique({
@@ -151,20 +163,51 @@ authRouter.post(
 
 /**
  * POST /api/auth/google
- * Authenticates or registers a user via Google login and establishes a session.
+ * Development-only mock Google authentication endpoint.
+ * Strictly disabled outside development environments.
+ * Prevents account takeover by rejecting any attempt to impersonate existing accounts.
  */
 authRouter.post(
   '/google',
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const email =
+      // 1. Forbid outside development or when demo auth is disabled
+      if (!isDemoAuthAllowed()) {
+        res.status(501).json({
+          error: 'Not Implemented',
+          message: 'Google authentication is not supported in this environment.',
+        })
+        return
+      }
+
+      // 2. Extract client-requested credentials if provided
+      const clientEmail =
         typeof req.body?.email === 'string' && req.body.email.trim()
           ? req.body.email.trim().toLowerCase()
-          : 'demo.google@applyflow.app'
-      const name =
+          : null
+      const clientName =
         typeof req.body?.name === 'string' && req.body.name.trim()
           ? req.body.name.trim()
-          : 'Google User'
+          : null
+
+      // 3. Prevent impersonation of existing user accounts
+      if (clientEmail) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: clientEmail },
+        })
+
+        // Reject attempts to claim an existing account via demo auth
+        if (existingUser && existingUser.email !== DEMO_GOOGLE_EMAIL) {
+          res.status(403).json({
+            error: 'Forbidden',
+            message: 'Demo authentication cannot be used to access existing user accounts.',
+          })
+          return
+        }
+      }
+
+      const email = clientEmail || DEMO_GOOGLE_EMAIL
+      const name = clientName || DEMO_GOOGLE_NAME
 
       let user = await prisma.user.findUnique({
         where: { email },
@@ -172,7 +215,7 @@ authRouter.post(
       })
 
       if (!user) {
-        const passwordHash = await hashPassword(`google-${Date.now()}-${Math.random()}`)
+        const passwordHash = await hashPassword(`google-demo-${Date.now()}-${Math.random()}`)
         user = await prisma.user.create({
           data: {
             name,

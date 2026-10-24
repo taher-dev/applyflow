@@ -249,6 +249,72 @@ describe('Frontend Authentication & API Client', () => {
       assert.equal(capturedRequest.init?.method, 'POST')
       assert.equal(capturedRequest.init?.credentials, 'include')
     })
+
+    test('googleLogin without profile sends empty body and establishes demo session', async () => {
+      let capturedBody: string | undefined
+
+      globalThis.fetch = async (_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedBody = init?.body as string
+        return new Response(JSON.stringify({ user: mockUser }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
+      const user = await api.auth.googleLogin()
+      assert.deepEqual(user, mockUser)
+      assert.equal(capturedBody, '{}')
+    })
+
+    test('googleLogin handles 501 Not Implemented error response when disabled outside development', async () => {
+      globalThis.fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            error: 'Not Implemented',
+            message: 'Google authentication is not supported in this environment.',
+          }),
+          {
+            status: 501,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      await assert.rejects(
+        () => api.auth.googleLogin(),
+        (err: unknown) => {
+          assert.ok(err instanceof ApiError)
+          assert.equal(err.status, 501)
+          assert.match(err.message, /not supported in this environment/i)
+          return true
+        }
+      )
+    })
+
+    test('googleLogin handles 403 Forbidden error response when impersonation is rejected', async () => {
+      globalThis.fetch = async () => {
+        return new Response(
+          JSON.stringify({
+            error: 'Forbidden',
+            message: 'Demo authentication cannot be used to access existing user accounts.',
+          }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      await assert.rejects(
+        () => api.auth.googleLogin({ email: 'victim@example.com' }),
+        (err: unknown) => {
+          assert.ok(err instanceof ApiError)
+          assert.equal(err.status, 403)
+          assert.match(err.message, /cannot be used to access existing user accounts/i)
+          return true
+        }
+      )
+    })
   })
 
   describe('User Logout', () => {

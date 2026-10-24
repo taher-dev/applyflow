@@ -9,11 +9,17 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/useAuth'
 import { ApiError } from '@/lib/api'
 import { toast } from 'sonner'
 
 type AuthMode = 'login' | 'register'
+
+interface AuthScreenProps {
+  initialMode?: AuthMode
+  enableDemoAuth?: boolean
+}
 
 function GoogleIcon({ className = 'size-4.5' }: { className?: string }) {
   return (
@@ -38,9 +44,14 @@ function GoogleIcon({ className = 'size-4.5' }: { className?: string }) {
   )
 }
 
-export function AuthScreen() {
+export function AuthScreen({
+  initialMode = 'login',
+  enableDemoAuth = typeof import.meta !== 'undefined' &&
+    Boolean(import.meta.env?.DEV) &&
+    import.meta.env?.VITE_ENABLE_DEMO_AUTH !== 'false',
+}: AuthScreenProps = {}) {
   const { login, register, loginWithGoogle, error: contextError, clearError } = useAuth()
-  const [mode, setMode] = useState<AuthMode>('login')
+  const [mode, setMode] = useState<AuthMode>(initialMode)
 
   // Form input states
   const [name, setName] = useState('')
@@ -127,13 +138,10 @@ export function AuthScreen() {
     setLocalError(null)
     setIsGoogleSubmitting(true)
     try {
-      await loginWithGoogle({
-        email: 'alex.morgan@gmail.com',
-        name: 'Alex Morgan',
-      })
-      toast.success('Signed in with Google successfully!')
+      await loginWithGoogle()
+      toast.success('Signed in with demo Google account!')
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Google sign-in could not be completed'
+      const msg = err instanceof ApiError ? err.message : 'Demo sign-in could not be completed'
       setLocalError(msg)
       toast.error(msg)
     } finally {
@@ -180,26 +188,46 @@ export function AuthScreen() {
           </div>
         )}
 
-        {/* Google SSO Button */}
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={isGoogleSubmitting || isSubmitting}
-          className="w-full h-11 flex items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-          aria-label="Continue with Google"
-        >
-          {isGoogleSubmitting ? (
-            <>
-              <Loader2 className="size-4 animate-spin text-slate-500" />
-              <span>Connecting to Google...</span>
-            </>
-          ) : (
-            <>
-              <GoogleIcon className="size-4.5" />
+        {/* Google SSO / Demo Auth Button */}
+        {enableDemoAuth ? (
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleSubmitting || isSubmitting}
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+            aria-label="Continue with Demo Google"
+          >
+            {isGoogleSubmitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin text-slate-500" />
+                <span>Signing in to Demo Account...</span>
+              </>
+            ) : (
+              <>
+                <GoogleIcon className="size-4.5" />
+                <span>Continue with Demo Google</span>
+                <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0">Demo</Badge>
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="w-full space-y-1.5">
+            <button
+              type="button"
+              disabled
+              className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 font-medium text-sm cursor-not-allowed select-none shadow-xs"
+              aria-label="Google Sign-In unavailable"
+              title="Google authentication is not configured in this environment"
+            >
+              <GoogleIcon className="size-4.5 opacity-40 grayscale" />
               <span>Continue with Google</span>
-            </>
-          )}
-        </button>
+              <Badge variant="outline" className="text-[10px] font-normal text-slate-400 border-slate-200 px-1.5 py-0">Unavailable</Badge>
+            </button>
+            <p className="text-[11px] text-slate-400 text-center">
+              Google OAuth is not configured in this environment.
+            </p>
+          </div>
+        )}
 
         {/* Minimal Divider */}
         <div className="relative w-full my-5">

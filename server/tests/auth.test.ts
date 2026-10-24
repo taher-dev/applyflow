@@ -11,6 +11,10 @@ const testEmailA = `test-user-${testRunId}-a@applyflow.test`
 const testEmailB = `test-user-${testRunId}-b@applyflow.test`
 const testPassword = 'StrongPassword123!'
 
+before(() => {
+  process.env.ENABLE_DEMO_AUTH = 'true'
+})
+
 after(async () => {
   // Clean up any test users created during this test run
   await prisma.user.deleteMany({
@@ -343,5 +347,144 @@ test('16. POST /api/auth/google creates or authenticates user and returns sessio
 
   // Clean up
   await prisma.user.deleteMany({ where: { email: googleEmail } })
+})
+
+test('17. POST /api/auth/google is rejected with HTTP 501 when outside development (production mode)', async () => {
+  const prevNodeEnv = process.env.NODE_ENV
+  const prodTargetEmail = `prod-attempt-${testRunId}@applyflow.test`
+
+  try {
+    process.env.NODE_ENV = 'production'
+
+    const response = await request(app)
+      .post('/api/auth/google')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: prodTargetEmail,
+        name: 'Production Attempt',
+      })
+
+    assert.equal(response.status, 501)
+    assert.equal(response.body.error, 'Not Implemented')
+    assert.match(response.body.message, /not supported/i)
+
+    // Verify no cookie was set
+    const cookies = response.headers['set-cookie']
+    assert.ok(!cookies || !cookies.some((c: string) => c.includes(SESSION_COOKIE_NAME)))
+
+    // Verify no user was created in the database
+    const userInDb = await prisma.user.findUnique({
+      where: { email: prodTargetEmail },
+    })
+    assert.equal(userInDb, null)
+  } finally {
+    process.env.NODE_ENV = prevNodeEnv
+  }
+})
+
+test('18. POST /api/auth/google is rejected with HTTP 501 when ENABLE_DEMO_AUTH is disabled', async () => {
+  const prevDemo = process.env.ENABLE_DEMO_AUTH
+  const disabledTargetEmail = `disabled-attempt-${testRunId}@applyflow.test`
+
+  try {
+    process.env.ENABLE_DEMO_AUTH = 'false'
+
+    const response = await request(app)
+      .post('/api/auth/google')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: disabledTargetEmail,
+      })
+
+    assert.equal(response.status, 501)
+    assert.equal(response.body.error, 'Not Implemented')
+
+    // Verify no session cookie set
+    const cookies = response.headers['set-cookie']
+    assert.ok(!cookies || !cookies.some((c: string) => c.includes(SESSION_COOKIE_NAME)))
+
+    // Verify no user was created
+    const userInDb = await prisma.user.findUnique({
+      where: { email: disabledTargetEmail },
+    })
+    assert.equal(userInDb, null)
+  } finally {
+    process.env.ENABLE_DEMO_AUTH = prevDemo
+  }
+})
+
+test('19. POST /api/auth/google rejects attempting to impersonate an existing user', async () => {
+  const victimEmail = `victim-account-${testRunId}@applyflow.test`
+
+  // 1. Create a legitimate existing user
+  const victim = await prisma.user.create({
+    data: {
+      name: 'Legitimate User',
+      email: victimEmail,
+      passwordHash: '$2b$10$insecuretestplaceholderforuserahash',
+    },
+  })
+
+  try {
+    // 2. Attacker attempts to sign in via mock Google using the victim's email
+    const response = await request(app)
+      .post('/api/auth/google')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: victimEmail,
+        name: 'Hacker Name',
+      })
+
+    assert.equal(response.status, 403)
+    assert.equal(response.body.error, 'Forbidden')
+    assert.match(response.body.message, /cannot be used to access existing user accounts/i)
+
+    // Verify no cookie was set
+    const cookies = response.headers['set-cookie']
+    assert.ok(!cookies || !cookies.some((c: string) => c.includes(SESSION_COOKIE_NAME)))
+
+    // Verify victim's user record in DB was not altered
+    const freshVictim = await prisma.user.findUnique({
+      where: { id: victim.id },
+    })
+    assert.equal(freshVictim?.name, 'Legitimate User')
+  } finally {
+    await prisma.user.deleteMany({ where: { id: victim.id } })
+  }
+})
+
+test('20. POST /api/auth/google safely authenticates dedicated demo account when no email is provided', async () => {
+  const response = await request(app)
+    .post('/api/auth/google')
+    .set('Origin', 'http://localhost:5173')
+    .send({})
+
+  assert.equal(response.status, 200)
+  assert.ok(response.body.user)
+  assert.equal(response.body.user.email, 'demo.google@applyflow.app')
+  assert.equal(response.body.user.name, 'Google Demo User')
+
+  // Verify session cookie was set
+  const cookies = response.headers['set-cookie']
+  assert.ok(cookies)
+  const cookieStr = Array.isArray(cookies) ? cookies.join(';') : cookies
+  assert.ok(cookieStr.includes(SESSION_COOKIE_NAME))
+
+  // Clean up demo user
+  await prisma.user.deleteMany({ where: { email: 'demo.google@applyflow.app' } })
+})
+
+test('21. POST /api/auth/register rejects registering with reserved demo email', async () => {
+  const response = await request(app)
+    .post('/api/auth/register')
+    .send({
+      name: 'Impostor',
+      email: 'demo.google@applyflow.app',
+      password: 'StrongPassword123!',
+    })
+
+  assert.equal(response.status, 400)
+  assert.equal(response.body.error, 'Validation Error')
+  assert.match(response.body.message, /reserved for demo authentication/i)
 })
 
