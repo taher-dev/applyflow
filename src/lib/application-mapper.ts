@@ -3,6 +3,8 @@ import type {
   ApplicationStatus,
   WorkplaceType,
   EmploymentType,
+  Interview,
+  InterviewType,
 } from '@/types/dashboard'
 import type {
   BackendApplication,
@@ -12,6 +14,12 @@ import type {
   CreateApplicationPayload,
   UpdateApplicationPayload,
 } from '@/types/application'
+import type {
+  BackendInterview,
+  BackendInterviewType,
+  CreateInterviewPayload,
+  UpdateInterviewPayload,
+} from '@/types/interview'
 
 // --- Enum Mappings ---
 
@@ -250,3 +258,110 @@ export function toBackendUpdatePayload(
 
   return payload
 }
+
+// --- Interview Mappings ---
+
+export const INTERVIEW_TYPE_TO_FRONTEND: Record<string, InterviewType> = {
+  PHONE_SCREENING: 'Phone screening',
+  VIDEO_INTERVIEW: 'Video interview',
+  TECHNICAL_INTERVIEW: 'Technical interview',
+  ON_SITE_INTERVIEW: 'On-site interview',
+  FINAL_INTERVIEW: 'Final interview',
+  OTHER: 'Other',
+  'Phone screening': 'Phone screening',
+  'Video interview': 'Video interview',
+  'Technical interview': 'Technical interview',
+  'On-site interview': 'On-site interview',
+  'Final interview': 'Final interview',
+  Other: 'Other',
+}
+
+export const INTERVIEW_TYPE_TO_BACKEND: Record<InterviewType, BackendInterviewType> = {
+  'Phone screening': 'PHONE_SCREENING',
+  'Video interview': 'VIDEO_INTERVIEW',
+  'Technical interview': 'TECHNICAL_INTERVIEW',
+  'On-site interview': 'ON_SITE_INTERVIEW',
+  'Final interview': 'FINAL_INTERVIEW',
+  Other: 'OTHER',
+}
+
+/**
+ * Maps a backend database interview record to the frontend Interview interface.
+ */
+export function toFrontendInterview(backend: BackendInterview): Interview {
+  const interviewType =
+    INTERVIEW_TYPE_TO_FRONTEND[backend.type] || 'Video interview'
+
+  return {
+    id: backend.id,
+    applicationId: backend.applicationId,
+    scheduledAt:
+      typeof backend.scheduledAt === 'string'
+        ? backend.scheduledAt
+        : new Date(backend.scheduledAt).toISOString(),
+    interviewType,
+    locationOrLink: backend.locationOrLink ?? undefined,
+    interviewer: backend.interviewer ?? undefined,
+    notes: backend.notes ?? undefined,
+    createdAt:
+      typeof backend.createdAt === 'string'
+        ? backend.createdAt
+        : new Date(backend.createdAt).toISOString(),
+    updatedAt:
+      typeof backend.updatedAt === 'string'
+        ? backend.updatedAt
+        : new Date(backend.updatedAt).toISOString(),
+  }
+}
+
+/**
+ * Maps a frontend interview creation input to the backend CreateInterviewPayload.
+ */
+export function toBackendInterviewCreatePayload(
+  interview: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>
+): CreateInterviewPayload {
+  const type = interview.interviewType
+    ? INTERVIEW_TYPE_TO_BACKEND[interview.interviewType] || 'VIDEO_INTERVIEW'
+    : 'VIDEO_INTERVIEW'
+
+  return {
+    applicationId: interview.applicationId,
+    scheduledAt: interview.scheduledAt,
+    type,
+    locationOrLink: interview.locationOrLink?.trim() || null,
+    interviewer: interview.interviewer?.trim() || null,
+    notes: interview.notes?.trim() || null,
+  }
+}
+
+/**
+ * Maps partial frontend interview updates to the backend UpdateInterviewPayload.
+ */
+export function toBackendInterviewUpdatePayload(
+  interview: Partial<Interview>
+): UpdateInterviewPayload {
+  const payload: UpdateInterviewPayload = {}
+
+  if (interview.applicationId !== undefined) {
+    payload.applicationId = interview.applicationId
+  }
+  if (interview.scheduledAt !== undefined) {
+    payload.scheduledAt = interview.scheduledAt
+  }
+  if (interview.interviewType !== undefined) {
+    payload.type =
+      INTERVIEW_TYPE_TO_BACKEND[interview.interviewType] || 'VIDEO_INTERVIEW'
+  }
+  if (interview.locationOrLink !== undefined) {
+    payload.locationOrLink = interview.locationOrLink?.trim() || null
+  }
+  if (interview.interviewer !== undefined) {
+    payload.interviewer = interview.interviewer?.trim() || null
+  }
+  if (interview.notes !== undefined) {
+    payload.notes = interview.notes?.trim() || null
+  }
+
+  return payload
+}
+

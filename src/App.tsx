@@ -81,12 +81,19 @@ function DashboardContent() {
     updateApplication,
     deleteApplication,
     interviews,
-    setInterviews,
+    isLoadingInterviews,
+    interviewsError,
+    refetchInterviews,
+    createInterview,
+    updateInterview,
+    deleteInterview,
     resetToDemoData,
   } = useApplyFlowStorage()
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
   const [isSavingApp, setIsSavingApp] = useState(false)
   const [isDeletingApp, setIsDeletingApp] = useState(false)
+  const [isSavingInterview, setIsSavingInterview] = useState(false)
+  const [isDeletingInterview, setIsDeletingInterview] = useState(false)
   const [currentTime] = useState(() => Date.now())
 
   // Derived metrics dynamically calculated from live applications list
@@ -206,8 +213,6 @@ function DashboardContent() {
     setIsDeletingApp(true)
     try {
       await deleteApplication(id)
-      // Cascade deletion: Remove any local interviews associated with this deleted application
-      setInterviews((prev) => prev.filter((interview) => interview.applicationId !== id))
       setApplicationToDelete(null)
       setIsDeleteDialogOpen(false)
 
@@ -237,47 +242,37 @@ function DashboardContent() {
     setIsInterviewDialogOpen(true)
   }
 
-  const handleSaveInterview = (
+  const handleSaveInterview = async (
     data: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>,
     existingId?: string
   ) => {
-    const app = applications.find((a) => a.id === data.applicationId)
-    const companyName = app?.company || 'opportunity'
+    if (isSavingInterview) return
+    setIsSavingInterview(true)
+    try {
+      const app = applications.find((a) => a.id === data.applicationId)
+      const companyName = app?.company || 'opportunity'
 
-    if (existingId) {
-      // Immutable update of existing interview
-      setInterviews((prev) =>
-        prev.map((item) =>
-          item.id === existingId
-            ? {
-                ...item,
-                ...data,
-                updatedAt: new Date().toISOString(),
-              }
-            : item
-        )
-      )
-      toast.success('Interview rescheduled!', {
-        description: `Interview with ${companyName} has been updated.`,
-      })
-    } else {
-      // Immutable creation of new interview
-      const nowIso = new Date().toISOString()
-      const created: Interview = {
-        ...data,
-        id: `int-${Date.now()}`,
-        createdAt: nowIso,
-        updatedAt: nowIso,
+      if (existingId) {
+        await updateInterview(existingId, data)
+        toast.success('Interview rescheduled!', {
+          description: `Interview with ${companyName} has been updated.`,
+        })
+      } else {
+        await createInterview(data)
+        toast.success('Interview scheduled!', {
+          description: `Interview with ${companyName} added to calendar.`,
+        })
       }
-      setInterviews((prev) => [created, ...prev])
-      toast.success('Interview scheduled!', {
-        description: `Interview with ${companyName} added to calendar.`,
-      })
+      setInterviewToEdit(null)
+      setPreselectedAppId(null)
+      setIsInterviewDialogOpen(false)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Could not save interview'
+      toast.error('Failed to save interview', { description: msg })
+      throw err
+    } finally {
+      setIsSavingInterview(false)
     }
-
-    setInterviewToEdit(null)
-    setPreselectedAppId(null)
-    setIsInterviewDialogOpen(false)
   }
 
   // Interview Delete Handlers
@@ -286,16 +281,21 @@ function DashboardContent() {
     setIsDeleteInterviewDialogOpen(true)
   }
 
-  const handleConfirmDeleteInterview = (id: string) => {
-    const target = interviews.find((i) => i.id === id)
-    setInterviews((prev) => prev.filter((item) => item.id !== id))
-    setInterviewToDelete(null)
-    setIsDeleteInterviewDialogOpen(false)
-
-    if (target) {
+  const handleConfirmDeleteInterview = async (id: string) => {
+    if (isDeletingInterview) return
+    setIsDeletingInterview(true)
+    try {
+      await deleteInterview(id)
+      setInterviewToDelete(null)
+      setIsDeleteInterviewDialogOpen(false)
       toast.success('Interview removed', {
         description: 'Interview round has been cancelled.',
       })
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to delete interview'
+      toast.error('Delete failed', { description: msg })
+    } finally {
+      setIsDeletingInterview(false)
     }
   }
 
@@ -524,6 +524,9 @@ function DashboardContent() {
             <InterviewsPage
               interviews={interviews}
               applications={applications}
+              isLoading={isLoadingInterviews}
+              error={interviewsError}
+              onRetry={refetchInterviews}
               searchQuery={searchQueries.interviews || ''}
               onSearchChange={(q) => setSearchQueryForTab('interviews', q)}
               onScheduleInterview={handleOpenScheduleInterview}

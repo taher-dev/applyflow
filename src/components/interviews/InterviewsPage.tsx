@@ -38,6 +38,9 @@ import { InterviewDetailsDialog } from './InterviewDetailsDialog'
 interface InterviewsPageProps {
   interviews: Interview[]
   applications: JobApplication[]
+  isLoading?: boolean
+  error?: string | null
+  onRetry?: () => void
   searchQuery?: string
   onSearchChange?: (query: string) => void
   onScheduleInterview: (preselectedAppId?: string) => void
@@ -71,6 +74,9 @@ function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
 export function InterviewsPage({
   interviews,
   applications,
+  isLoading,
+  error,
+  onRetry,
   searchQuery: externalSearchQuery,
   onSearchChange: externalOnSearchChange,
   onScheduleInterview,
@@ -324,7 +330,27 @@ export function InterviewsPage({
 
         {/* 4. Interviews Card Grid Content */}
         <CardContent className="p-4 sm:p-6">
-          {activeList.length === 0 ? (
+          {isLoading ? (
+            <div className="py-16 text-center space-y-2.5">
+              <div className="size-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 font-medium">Loading interviews...</p>
+            </div>
+          ) : error ? (
+            <div className="py-12 text-center space-y-3">
+              <div className="text-xs font-semibold text-rose-600">{error}</div>
+              {onRetry && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRetry}
+                  className="text-xs gap-1.5 cursor-pointer mx-auto"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Try again</span>
+                </Button>
+              )}
+            </div>
+          ) : activeList.length === 0 ? (
             /* Empty States */
             <div className="py-12 sm:py-16 text-center space-y-3">
               <div className="flex size-12 items-center justify-center rounded-full bg-muted mx-auto text-muted-foreground">

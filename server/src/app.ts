@@ -5,6 +5,7 @@ import { env } from './config/env.js'
 import { healthRouter } from './routes/health.js'
 import { authRouter } from './routes/auth.js'
 import { applicationsRouter } from './routes/applications.js'
+import { interviewsRouter } from './routes/interviews.js'
 import { csrfProtection } from './middleware/csrf.js'
 import { notFoundHandler } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
@@ -56,6 +57,7 @@ app.use(csrfProtection)
 app.use('/api', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/applications', applicationsRouter)
+app.use('/api/interviews', interviewsRouter)
 
 // Fallback 404 handler for any unmapped route
 app.use(notFoundHandler)

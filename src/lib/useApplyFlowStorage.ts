@@ -1,17 +1,13 @@
-import { useState, useEffect, useRef, useCallback, useContext } from 'react'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback, useContext } from 'react'
 import type { JobApplication, Interview } from '@/types/dashboard'
-import {
-  loadInterviews,
-  saveInterviews,
-  isStorageAvailable,
-} from './storage.ts'
-import { initialInterviews } from '../data/mockData.ts'
 import { api, ApiError } from './api.ts'
 import {
   toFrontendApplication,
   toBackendCreatePayload,
   toBackendUpdatePayload,
+  toFrontendInterview,
+  toBackendInterviewCreatePayload,
+  toBackendInterviewUpdatePayload,
 } from './application-mapper.ts'
 import { AuthContext } from '../context/auth-context.ts'
 
@@ -22,51 +18,33 @@ export function useApplyFlowStorage() {
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [isLoadingApplications, setIsLoadingApplications] = useState<boolean>(() => Boolean(user))
   const [applicationsError, setApplicationsError] = useState<string | null>(null)
+
+  const [interviews, setInterviews] = useState<Interview[]>([])
+  const [isLoadingInterviews, setIsLoadingInterviews] = useState<boolean>(() => Boolean(user))
+  const [interviewsError, setInterviewsError] = useState<string | null>(null)
+
   const [prevUser, setPrevUser] = useState(user)
 
+  // Strict user isolation: On user logout or switch, immediately wipe memory state
+  // to guarantee a user's data never flashes or leaks to another user.
   if (user !== prevUser) {
     setPrevUser(user)
     if (!user) {
       setApplications([])
+      setInterviews([])
       setIsLoadingApplications(false)
+      setIsLoadingInterviews(false)
       setApplicationsError(null)
+      setInterviewsError(null)
     } else {
+      setApplications([])
+      setInterviews([])
       setIsLoadingApplications(true)
+      setIsLoadingInterviews(true)
+      setApplicationsError(null)
+      setInterviewsError(null)
     }
   }
-
-  // Local interviews state (persisted strictly to localStorage per Step 4B specifications)
-  const [interviews, setInterviews] = useState<Interview[]>(() => {
-    const loaded = loadInterviews()
-    if (loaded.data !== null) {
-      return loaded.data
-    }
-    if (loaded.isFirstVisit) {
-      saveInterviews(initialInterviews)
-      return initialInterviews
-    }
-    return initialInterviews
-  })
-
-  const isInterviewHydratedRef = useRef(false)
-
-  // Hydration & Storage Availability Check
-  useEffect(() => {
-    if (!isStorageAvailable()) {
-      toast.warning('Browser local storage unavailable', {
-        description: 'Interview data will be preserved in memory for this session only.',
-      })
-    }
-  }, [])
-
-  // Persist interviews to localStorage on state changes
-  useEffect(() => {
-    if (!isInterviewHydratedRef.current) {
-      isInterviewHydratedRef.current = true
-      return
-    }
-    saveInterviews(interviews)
-  }, [interviews])
 
   // Fetch applications from PostgreSQL backend via typed API client
   const fetchApplications = useCallback(async () => {
@@ -94,30 +72,67 @@ export function useApplyFlowStorage() {
     }
   }, [user])
 
+  // Fetch interviews from PostgreSQL backend via typed API client
+  const fetchInterviews = useCallback(async () => {
+    if (!user) {
+      setInterviews([])
+      setIsLoadingInterviews(false)
+      return
+    }
+
+    setIsLoadingInterviews(true)
+    setInterviewsError(null)
+
+    try {
+      const backendInterviews = await api.interviews.getAll()
+      const mapped = backendInterviews.map(toFrontendInterview)
+      setInterviews(mapped)
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Unable to load interviews from server'
+      setInterviewsError(message)
+    } finally {
+      setIsLoadingInterviews(false)
+    }
+  }, [user])
+
+  // Fetch both applications and interviews on mount / user change
   useEffect(() => {
     if (!user) return
 
     let ignore = false
 
-    api.applications
-      .getAll()
-      .then((backendApps) => {
-        if (!ignore) {
-          setApplications(backendApps.map(toFrontendApplication))
+    Promise.allSettled([api.applications.getAll(), api.interviews.getAll()]).then(
+      ([appsResult, interviewsResult]) => {
+        if (ignore) return
+
+        if (appsResult.status === 'fulfilled') {
+          setApplications(appsResult.value.map(toFrontendApplication))
           setApplicationsError(null)
-          setIsLoadingApplications(false)
-        }
-      })
-      .catch((err) => {
-        if (!ignore) {
+        } else {
           const message =
-            err instanceof ApiError
-              ? err.message
+            appsResult.reason instanceof ApiError
+              ? appsResult.reason.message
               : 'Unable to load applications from server'
           setApplicationsError(message)
-          setIsLoadingApplications(false)
         }
-      })
+        setIsLoadingApplications(false)
+
+        if (interviewsResult.status === 'fulfilled') {
+          setInterviews(interviewsResult.value.map(toFrontendInterview))
+          setInterviewsError(null)
+        } else {
+          const message =
+            interviewsResult.reason instanceof ApiError
+              ? interviewsResult.reason.message
+              : 'Unable to load interviews from server'
+          setInterviewsError(message)
+        }
+        setIsLoadingInterviews(false)
+      }
+    )
 
     return () => {
       ignore = true
@@ -157,21 +172,62 @@ export function useApplyFlowStorage() {
     async (id: string): Promise<void> => {
       await api.applications.delete(id)
       setApplications((prev) => prev.filter((app) => app.id !== id))
+      // Cascade delete in client state matching database onDelete: Cascade
+      setInterviews((prev) => prev.filter((interview) => interview.applicationId !== id))
     },
     []
   )
 
-  // Reset demonstration interviews
-  const resetToDemoData = useCallback(() => {
-    setInterviews(initialInterviews)
-    saveInterviews(initialInterviews)
-  }, [])
+  // Create an interview on the backend
+  const createInterview = useCallback(
+    async (
+      interviewData: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<Interview> => {
+      const payload = toBackendInterviewCreatePayload(interviewData)
+      const createdBackend = await api.interviews.create(payload)
+      const frontendInterview = toFrontendInterview(createdBackend)
+
+      setInterviews((prev) => [frontendInterview, ...prev])
+      return frontendInterview
+    },
+    []
+  )
+
+  // Update an interview on the backend
+  const updateInterview = useCallback(
+    async (id: string, interviewData: Partial<Interview>): Promise<Interview> => {
+      const payload = toBackendInterviewUpdatePayload(interviewData)
+      const updatedBackend = await api.interviews.update(id, payload)
+      const frontendInterview = toFrontendInterview(updatedBackend)
+
+      setInterviews((prev) =>
+        prev.map((item) => (item.id === id ? frontendInterview : item))
+      )
+      return frontendInterview
+    },
+    []
+  )
+
+  // Delete an interview on the backend
+  const deleteInterview = useCallback(
+    async (id: string): Promise<void> => {
+      await api.interviews.delete(id)
+      setInterviews((prev) => prev.filter((item) => item.id !== id))
+    },
+    []
+  )
+
+  // Reset demonstration interviews / applications
+  const resetToDemoData = useCallback(async () => {
+    if (user) {
+      await Promise.allSettled([fetchApplications(), fetchInterviews()])
+    }
+  }, [user, fetchApplications, fetchInterviews])
 
   // Clear all data
   const clearAllData = useCallback(() => {
     setApplications([])
     setInterviews([])
-    saveInterviews([])
   }, [])
 
   return {
@@ -185,6 +241,12 @@ export function useApplyFlowStorage() {
     deleteApplication,
     interviews,
     setInterviews,
+    isLoadingInterviews,
+    interviewsError,
+    refetchInterviews: fetchInterviews,
+    createInterview,
+    updateInterview,
+    deleteInterview,
     resetToDemoData,
     clearAllData,
   }

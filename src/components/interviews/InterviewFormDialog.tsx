@@ -61,7 +61,7 @@ export interface InterviewFormDialogProps {
   onSaveInterview: (
     data: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>,
     existingId?: string
-  ) => void
+  ) => Promise<void> | void
   onOpenAddApplication?: () => void
 }
 
@@ -132,23 +132,26 @@ export function InterviewFormDialog({
     }
   }, [open, interviewToEdit, preselectedApplicationId, reset, applications])
 
-  const onSubmit = (data: InterviewFormData) => {
+  const onSubmit = async (data: InterviewFormData) => {
     // Combine date & time into standard ISO string
     const scheduledAt = `${data.date}T${data.time}`
 
-    onSaveInterview(
-      {
-        applicationId: data.applicationId,
-        interviewType: interviewToEdit?.interviewType || 'Video interview',
-        scheduledAt,
-        locationOrLink: data.locationOrLink?.trim() || undefined,
-        interviewer: data.interviewer?.trim() || undefined,
-        notes: data.notes?.trim() || undefined,
-      },
-      interviewToEdit?.id
-    )
-
-    onOpenChange(false)
+    try {
+      await onSaveInterview(
+        {
+          applicationId: data.applicationId,
+          interviewType: interviewToEdit?.interviewType || 'Video interview',
+          scheduledAt,
+          locationOrLink: data.locationOrLink?.trim() || undefined,
+          interviewer: data.interviewer?.trim() || undefined,
+          notes: data.notes?.trim() || undefined,
+        },
+        interviewToEdit?.id
+      )
+      onOpenChange(false)
+    } catch {
+      // Kept open on failure so the user does not lose entered details
+    }
   }
 
   const handleCancel = () => {

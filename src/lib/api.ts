@@ -11,6 +11,13 @@ import type {
   CreateApplicationPayload,
   UpdateApplicationPayload,
 } from '@/types/application'
+import type {
+  BackendInterview,
+  InterviewsResponse,
+  InterviewResponse,
+  CreateInterviewPayload,
+  UpdateInterviewPayload,
+} from '@/types/interview'
 
 /**
  * Standard typed API error carrying status code and structured validation details.
@@ -267,6 +274,59 @@ export const api = {
      */
     async delete(id: string): Promise<void> {
       await apiClient<{ message: string }>(`/applications/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      })
+    },
+  },
+
+  interviews: {
+    /**
+     * Lists all interviews owned by the authenticated user.
+     */
+    async getAll(): Promise<BackendInterview[]> {
+      const data = await apiClient<InterviewsResponse>('/interviews', {
+        method: 'GET',
+      })
+      return data.interviews
+    },
+
+    /**
+     * Retrieves a single interview by ID owned by the authenticated user.
+     */
+    async getById(id: string): Promise<BackendInterview> {
+      const data = await apiClient<InterviewResponse>(`/interviews/${encodeURIComponent(id)}`, {
+        method: 'GET',
+      })
+      return data.interview
+    },
+
+    /**
+     * Creates a new interview for an application owned by the authenticated user.
+     */
+    async create(payload: CreateInterviewPayload): Promise<BackendInterview> {
+      const data = await apiClient<InterviewResponse>('/interviews', {
+        method: 'POST',
+        body: payload,
+      })
+      return data.interview
+    },
+
+    /**
+     * Updates an existing interview owned by the authenticated user.
+     */
+    async update(id: string, payload: UpdateInterviewPayload): Promise<BackendInterview> {
+      const data = await apiClient<InterviewResponse>(`/interviews/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: payload,
+      })
+      return data.interview
+    },
+
+    /**
+     * Deletes an interview owned by the authenticated user.
+     */
+    async delete(id: string): Promise<void> {
+      await apiClient<{ message: string }>(`/interviews/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       })
     },
