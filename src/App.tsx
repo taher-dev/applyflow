@@ -87,9 +87,10 @@ function DashboardContent() {
     createInterview,
     updateInterview,
     deleteInterview,
-    resetToDemoData,
+    refreshWorkspaceData,
   } = useApplyFlowStorage()
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+  const [isRefreshingWorkspace, setIsRefreshingWorkspace] = useState(false)
   const [isSavingApp, setIsSavingApp] = useState(false)
   const [isDeletingApp, setIsDeletingApp] = useState(false)
   const [isSavingInterview, setIsSavingInterview] = useState(false)
@@ -296,6 +297,31 @@ function DashboardContent() {
       toast.error('Delete failed', { description: msg })
     } finally {
       setIsDeletingInterview(false)
+    }
+  }
+
+  const handleConfirmRefreshWorkspace = async () => {
+    if (isRefreshingWorkspace) return
+    setIsRefreshingWorkspace(true)
+    try {
+      const result = await refreshWorkspaceData()
+      if (result.success) {
+        setIsResetDialogOpen(false)
+        toast.success('Workspace refreshed', {
+          description: 'Latest applications and interviews loaded from cloud database.',
+        })
+      } else {
+        toast.error('Refresh failed', {
+          description: result.error || 'Unable to refresh data from server.',
+        })
+      }
+    } catch (err) {
+      toast.error('Refresh failed', {
+        description:
+          err instanceof Error ? err.message : 'Unable to refresh data from server.',
+      })
+    } finally {
+      setIsRefreshingWorkspace(false)
     }
   }
 
@@ -665,19 +691,12 @@ function DashboardContent() {
         }}
       />
 
-      {/* 7. Reset Demonstration Data Confirmation Dialog */}
+      {/* 7. Refresh Workspace Confirmation Dialog */}
       <ResetDemoDataDialog
         open={isResetDialogOpen}
         onOpenChange={setIsResetDialogOpen}
-        onConfirm={() => {
-          resetToDemoData()
-          setActiveTab('overview')
-          saveActiveTab('overview')
-          setIsResetDialogOpen(false)
-          toast.success('Demo data restored', {
-            description: 'Sample applications and interviews have been restored.',
-          })
-        }}
+        onConfirm={handleConfirmRefreshWorkspace}
+        isRefreshing={isRefreshingWorkspace}
       />
 
       {/* 8. Global Toast Notifications */}

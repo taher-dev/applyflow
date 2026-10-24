@@ -217,12 +217,44 @@ export function useApplyFlowStorage() {
     []
   )
 
-  // Reset demonstration interviews / applications
-  const resetToDemoData = useCallback(async () => {
-    if (user) {
-      await Promise.allSettled([fetchApplications(), fetchInterviews()])
+  // Refresh workspace data from PostgreSQL backend
+  const refreshWorkspaceData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: true }
     }
-  }, [user, fetchApplications, fetchInterviews])
+    setIsLoadingApplications(true)
+    setIsLoadingInterviews(true)
+    try {
+      const [backendApps, backendInterviews] = await Promise.all([
+        api.applications.getAll(),
+        api.interviews.getAll(),
+      ])
+      setApplications(backendApps.map(toFrontendApplication))
+      setInterviews(backendInterviews.map(toFrontendInterview))
+      setApplicationsError(null)
+      setInterviewsError(null)
+      return { success: true }
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : 'Unable to refresh data from server'
+      setApplicationsError(message)
+      setInterviewsError(message)
+      return { success: false, error: message }
+    } finally {
+      setIsLoadingApplications(false)
+      setIsLoadingInterviews(false)
+    }
+  }, [user])
+
+  // Safe fallback for demo data reset: In cloud database mode, demo records cannot be restored
+  // without risking user data deletion. Safely refreshes current user data from the server.
+  const resetToDemoData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    return refreshWorkspaceData()
+  }, [refreshWorkspaceData])
 
   // Clear all data
   const clearAllData = useCallback(() => {
@@ -247,6 +279,7 @@ export function useApplyFlowStorage() {
     createInterview,
     updateInterview,
     deleteInterview,
+    refreshWorkspaceData,
     resetToDemoData,
     clearAllData,
   }
