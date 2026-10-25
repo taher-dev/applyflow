@@ -41,6 +41,17 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.deepEqual(data, { status: 'ok' })
   })
 
+  test('GET /api with x-matched-path: /api/health (simulating Vercel destination rewrite) restores target path', async () => {
+    const res = await fetch(`${baseUrl}/api`, {
+      headers: {
+        'x-matched-path': '/api/health',
+      },
+    })
+    assert.equal(res.status, 200)
+    const data = await res.json()
+    assert.deepEqual(data, { status: 'ok' })
+  })
+
   test('non-existent endpoint returns structured 404 JSON response', async () => {
     const res = await fetch(`${baseUrl}/api/non-existent-route-999`)
     assert.equal(res.status, 404)
