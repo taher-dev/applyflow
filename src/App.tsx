@@ -23,6 +23,8 @@ import { loadActiveTab, saveActiveTab } from '@/lib/storage'
 import { ApiError } from '@/lib/api'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
+import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
+import { ScrollToTopButton } from '@/components/dashboard/ScrollToTopButton'
 import { calculateDashboardMetrics } from '@/lib/metrics'
 import type {
   JobApplication,
@@ -391,7 +393,7 @@ function DashboardContent() {
       />
 
       {/* 2. Main Content Canvas */}
-      <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
+      <div className="flex flex-1 flex-col min-w-0 overflow-x-clip">
         {/* Top Header */}
         <Header
           searchQuery={currentSearchQuery}
@@ -419,7 +421,7 @@ function DashboardContent() {
         />
 
         {/* Dashboard Workspace */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-24 md:pb-8">
           {/* 0. Optional Legacy Local Storage Migration Banner */}
           <LocalDataMigrationBanner onImportComplete={refetchApplications} />
 
@@ -666,6 +668,17 @@ function DashboardContent() {
 
       {/* 8. Global Toast Notifications */}
       <Toaster position="top-right" richColors />
+
+      {/* 9. Mobile Bottom Navigation Bar (thumb reach, zero scrolling) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        upcomingInterviewsCount={upcomingInterviewsCount}
+        onOpenMenu={() => setIsSidebarOpen(true)}
+      />
+
+      {/* 10. Quick Scroll-To-Top Button */}
+      <ScrollToTopButton />
     </div>
   )
 }

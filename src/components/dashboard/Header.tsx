@@ -137,7 +137,7 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-xs gap-3">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-md shadow-2xs gap-3">
       {/* Left: Mobile Toggle (on desktop sidebar is permanently visible) */}
       <div className="flex items-center shrink-0">
         <Button
