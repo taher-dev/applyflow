@@ -94,7 +94,7 @@ Configure the following variables in the **Vercel Dashboard** under **Project Se
 | `DATABASE_URL` | Production, Preview | Neon Pooled PostgreSQL connection string | `postgresql://user:pass@ep-xyz-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true` |
 | `NODE_ENV` | Production, Preview | Sets production runtime mode | `production` |
 | `CORS_ORIGIN` | Production | Primary production frontend domain | `https://your-project.vercel.app` |
-| `ENABLE_DEMO_AUTH` | Production, Preview | Hard-disabled in production | `false` |
+| `ENABLE_DEMO_AUTH` | Production, Preview | Enables Google 1-click authentication (defaults to true) | `true` |
 
 > [!NOTE]
 > `CORS_ORIGIN` is optional because ApplyFlow automatically recognizes same-host requests and Vercel preview domains (`*.vercel.app`).
@@ -114,11 +114,7 @@ Configure the following variables in the **Vercel Dashboard** under **Project Se
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api(?:/|$)).*)",
       "destination": "/index.html"
     }
   ],
