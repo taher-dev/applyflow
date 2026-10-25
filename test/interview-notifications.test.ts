@@ -325,4 +325,32 @@ describe('Interview Notifications & Responsive Navigation', () => {
       )
     })
   })
+
+  describe('5. Mobile Search Bar Minimization', () => {
+    test('Header.tsx minimizes search bar into a compact trigger on mobile screens', () => {
+      const headerPath = path.resolve('src/components/dashboard/Header.tsx')
+      const content = fs.readFileSync(headerPath, 'utf8')
+
+      // Ensure desktop permanent search is hidden on mobile
+      assert.match(
+        content,
+        /hidden\s+md:flex\s+flex-1[\s\S]*?<Search/i,
+        'Permanent desktop search input container must be hidden on mobile screens'
+      )
+
+      // Ensure minimized mobile search trigger button exists
+      assert.match(
+        content,
+        /onClick=\{[^}]*setIsMobileSearchOpen\(true\)[^}]*\}[\s\S]*?aria-label="Open search"/i,
+        'Header must provide a minimized search button trigger on mobile'
+      )
+
+      // Ensure mobile expanded search view has cancel/close button
+      assert.match(
+        content,
+        /onClick=\{handleCloseMobileSearch\}[\s\S]*?aria-label="Cancel search"/i,
+        'Expanded mobile search must provide a close/cancel button to return to minimized state'
+      )
+    })
+  })
 })

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Bell,
   Search,
@@ -102,6 +102,21 @@ export function Header({
   const { user, logout } = useAuth()
 
   const [currentTime] = useState(() => Date.now())
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+  const mobileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isMobileSearchOpen) {
+      mobileInputRef.current?.focus()
+    }
+  }, [isMobileSearchOpen])
+
+  const handleCloseMobileSearch = () => {
+    setIsMobileSearchOpen(false)
+    if (searchQuery) {
+      onSearchChange('')
+    }
+  }
 
   const applicationMap = useMemo(() => {
     const map = new Map<string, JobApplication>()
@@ -154,60 +169,128 @@ export function Header({
         isVisible ? 'translate-y-0' : '-translate-y-full'
       )}
     >
-      {/* Left: App Logo on mobile (desktop has logo in permanent sidebar) */}
-      <div className="flex items-center gap-2.5 shrink-0 md:hidden">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
-          <Briefcase className="size-4" />
-        </div>
-        <span className="text-base font-bold tracking-tight text-slate-900 hidden sm:inline">
-          ApplyFlow
-        </span>
-      </div>
-
-      {/* Center: Search Input with fluid responsive sizing */}
-      <div className="flex-1 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto">
-        <form onSubmit={handleSubmit} className="relative w-full">
-          <button
-            type="submit"
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 hover:text-slate-700 cursor-pointer p-0 bg-transparent border-0"
-            aria-label="Search"
-          >
-            <Search className="size-4 pointer-events-none" />
-          </button>
-          <Input
-            type="text"
-            placeholder={placeholder || 'Search...'}
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                onSearchSubmit?.()
-              }
-            }}
-            className="w-full pl-8.5 sm:pl-9 pr-8 h-9 text-xs sm:text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
-            aria-label={placeholder || 'Search'}
-          />
-          {searchQuery && (
+      {/* 1. Expanded Mobile Search View (takes full header when active) */}
+      {isMobileSearchOpen ? (
+        <div className="flex md:hidden items-center gap-2 w-full animate-in fade-in duration-150">
+          <form onSubmit={handleSubmit} className="relative flex-1">
             <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded-sm"
-              aria-label="Clear header search"
+              type="submit"
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 hover:text-slate-700 cursor-pointer p-0 bg-transparent border-0"
+              aria-label="Search"
             >
-              <X className="size-3.5" />
+              <Search className="size-4 pointer-events-none" />
             </button>
-          )}
-        </form>
-      </div>
+            <Input
+              ref={mobileInputRef}
+              type="text"
+              placeholder={placeholder || 'Search...'}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onSearchSubmit?.()
+                }
+                if (e.key === 'Escape') {
+                  setIsMobileSearchOpen(false)
+                }
+              }}
+              className="w-full pl-8.5 pr-8 h-9 text-xs bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 rounded-lg"
+              aria-label={placeholder || 'Search'}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded-sm"
+                aria-label="Clear header search"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </form>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleCloseMobileSearch}
+            className="h-9 px-2.5 text-xs text-slate-600 hover:text-slate-900 shrink-0 font-medium cursor-pointer"
+            aria-label="Cancel search"
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Left: App Logo on mobile (desktop has logo in permanent sidebar) */}
+          <div className="flex items-center gap-2.5 shrink-0 md:hidden">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
+              <Briefcase className="size-4" />
+            </div>
+            <span className="text-base font-bold tracking-tight text-slate-900">
+              ApplyFlow
+            </span>
+          </div>
 
-      {/* Right: Notifications + Profile Avatar */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Interactive Interview Notifications Dropdown (Desktop Only - hidden on mobile) */}
-        <div className="hidden md:block">
-          <DropdownMenu
-            onOpenChange={(open) => {
-              if (open) {
+          {/* Center: Search Input on Desktop (hidden on mobile, visible on md+) */}
+          <div className="hidden md:flex flex-1 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto">
+            <form onSubmit={handleSubmit} className="relative w-full">
+              <button
+                type="submit"
+                className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 hover:text-slate-700 cursor-pointer p-0 bg-transparent border-0"
+                aria-label="Search"
+              >
+                <Search className="size-4 pointer-events-none" />
+              </button>
+              <Input
+                type="text"
+                placeholder={placeholder || 'Search...'}
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    onSearchSubmit?.()
+                  }
+                }}
+                className="w-full pl-8.5 sm:pl-9 pr-8 h-9 text-xs sm:text-sm bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900"
+                aria-label={placeholder || 'Search'}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded-sm"
+                  aria-label="Clear header search"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </form>
+          </div>
+
+          {/* Right: Notifications + Minimized Mobile Search + Profile Avatar */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Minimized Mobile Search Button Trigger (mobile only) */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="relative size-9 text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50 cursor-pointer md:hidden select-none shrink-0"
+              aria-label="Open search"
+            >
+              <Search className="size-4" />
+              {searchQuery && (
+                <span className="absolute -top-1 -right-1 flex size-2.5 rounded-full bg-slate-900 ring-2 ring-white" />
+              )}
+            </Button>
+
+            {/* Interactive Interview Notifications Dropdown (Desktop Only - hidden on mobile) */}
+            <div className="hidden md:block">
+              <DropdownMenu
+                onOpenChange={(open) => {
+                  if (open) {
                 onMarkNotificationsSeen?.()
               }
             }}
@@ -427,6 +510,8 @@ export function Header({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </header>
+    </>
+  )}
+</header>
   )
 }
