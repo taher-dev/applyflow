@@ -12,6 +12,7 @@ import {
   Plus,
   Briefcase,
   RotateCcw,
+  LogIn,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,7 @@ interface HeaderProps {
   unseenCount?: number
   onMarkNotificationsSeen?: () => void
   onLogoClick?: () => void
+  onOpenAuth?: (mode?: 'login' | 'register') => void
 }
 
 function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
@@ -100,6 +102,7 @@ export function Header({
   unseenCount,
   onMarkNotificationsSeen,
   onLogoClick,
+  onOpenAuth,
 }: HeaderProps) {
   const { user, logout } = useAuth()
 
@@ -476,32 +479,16 @@ export function Header({
           </DropdownMenu>
         </div>
 
-        {/* Profile Avatar with Logout Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="rounded-full ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
-              aria-label="User account menu"
-            >
-              <Avatar className="size-9 border border-slate-200 shrink-0 overflow-hidden">
-                {user?.avatarUrl && (
-                  <AvatarImage
-                    src={user.avatarUrl}
-                    alt={user.name || 'User avatar'}
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <AvatarFallback className="bg-slate-900 text-white font-semibold text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-md border-slate-200 bg-white">
-            <DropdownMenuLabel className="font-normal px-2.5 py-2">
-              <div className="flex items-center gap-2.5">
-                <Avatar className="size-8 border border-slate-200 shrink-0 overflow-hidden">
+        {/* Profile Avatar with Logout Dropdown or Guest Sign In */}
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="rounded-full ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
+                aria-label="User account menu"
+              >
+                <Avatar className="size-9 border border-slate-200 shrink-0 overflow-hidden">
                   {user?.avatarUrl && (
                     <AvatarImage
                       src={user.avatarUrl}
@@ -509,42 +496,77 @@ export function Header({
                       referrerPolicy="no-referrer"
                     />
                   )}
-                  <AvatarFallback className="bg-slate-900 text-white font-semibold text-[10px]">
+                  <AvatarFallback className="bg-slate-900 text-white font-semibold text-xs">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col space-y-0.5 min-w-0 flex-1">
-                  <p className="text-sm font-semibold leading-none text-slate-900 truncate">
-                    {user?.name || 'Account'}
-                  </p>
-                  <p className="text-xs leading-none text-slate-500 truncate">
-                    {user?.email || ''}
-                  </p>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-md border-slate-200 bg-white">
+              <DropdownMenuLabel className="font-normal px-2.5 py-2">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="size-8 border border-slate-200 shrink-0 overflow-hidden">
+                    {user?.avatarUrl && (
+                      <AvatarImage
+                        src={user.avatarUrl}
+                        alt={user.name || 'User avatar'}
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <AvatarFallback className="bg-slate-900 text-white font-semibold text-[10px]">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col space-y-0.5 min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-none text-slate-900 truncate">
+                      {user?.name || 'Account'}
+                    </p>
+                    <p className="text-xs leading-none text-slate-500 truncate">
+                      {user?.email || ''}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-100" />
-            {onRefreshWorkspace && (
-              <>
-                <DropdownMenuItem
-                  onClick={onRefreshWorkspace}
-                  className="cursor-pointer gap-2 py-2 text-slate-700 focus:text-slate-900"
-                >
-                  <RotateCcw className="size-4 text-slate-500" />
-                  <span>Refresh workspace data</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-100" />
-              </>
-            )}
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2 py-2"
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-slate-100" />
+              {onRefreshWorkspace && (
+                <>
+                  <DropdownMenuItem
+                    onClick={onRefreshWorkspace}
+                    className="cursor-pointer gap-2 py-2 text-slate-700 focus:text-slate-900"
+                  >
+                    <RotateCcw className="size-4 text-slate-500" />
+                    <span>Refresh workspace data</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-100" />
+                </>
+              )}
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2 py-2"
+              >
+                <LogOut className="size-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="hidden sm:inline-flex text-[11px] font-medium text-slate-600 bg-slate-100 border-slate-200/80 px-2 py-0.5 rounded-full"
             >
-              <LogOut className="size-4" />
-              <span>Sign out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              Guest Mode
+            </Badge>
+            <Button
+              size="sm"
+              onClick={() => onOpenAuth?.('login')}
+              className="h-9 px-3 sm:px-3.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              <LogIn className="size-3.5" />
+              <span>Sign In</span>
+            </Button>
+          </div>
+        )}
       </div>
     </>
   )}

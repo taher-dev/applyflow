@@ -5,6 +5,7 @@ import {
   Calendar,
   LogOut,
   RotateCcw,
+  CloudUpload,
 } from 'lucide-react'
 import { navigationItems } from '@/data/mockData'
 import type { NavigationKey } from '@/types/dashboard'
@@ -22,6 +23,7 @@ interface SidebarProps {
   onResetDemoData?: () => void
   onRefreshWorkspace?: () => void
   onLogoClick?: () => void
+  onOpenAuth?: (mode?: 'login' | 'register') => void
 }
 
 const iconMap = {
@@ -38,6 +40,7 @@ export function Sidebar({
   onResetDemoData,
   onRefreshWorkspace,
   onLogoClick,
+  onOpenAuth,
 }: SidebarProps) {
   const { user, logout } = useAuth()
   const handleRefreshWorkspace = onRefreshWorkspace || onResetDemoData
@@ -157,8 +160,8 @@ export function Sidebar({
           </div>
         )}
 
-        {/* Minimal User Profile Footer */}
-        {user && (
+        {/* Minimal User Profile Footer or Guest Sign In */}
+        {user ? (
           <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
             <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -212,6 +215,28 @@ export function Sidebar({
                 aria-label="Sign out of ApplyFlow"
               >
                 <LogOut className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="size-7.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                  G
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs text-slate-900">Guest User</p>
+                  <p className="text-[10px] text-slate-500 truncate">Saved locally on device</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenAuth?.('login')}
+                className="w-full h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+              >
+                <CloudUpload className="size-3 text-white" />
+                <span>Save to Cloud</span>
               </button>
             </div>
           </div>

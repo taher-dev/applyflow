@@ -9,34 +9,68 @@ import {
   toBackendInterviewCreatePayload,
   toBackendInterviewUpdatePayload,
 } from './application-mapper.ts'
+import {
+  loadApplications,
+  saveApplications,
+  loadInterviews,
+  saveInterviews,
+} from './storage.ts'
+import { initialApplications, initialInterviews } from '../data/mockData.ts'
 import { AuthContext } from '../context/auth-context.ts'
+
+function getInitialLocalApplications(): JobApplication[] {
+  const result = loadApplications()
+  if (result.data && result.data.length > 0) {
+    return result.data
+  }
+  saveApplications(initialApplications)
+  return initialApplications
+}
+
+function getInitialLocalInterviews(): Interview[] {
+  const result = loadInterviews()
+  if (result.data && result.data.length > 0) {
+    return result.data
+  }
+  saveInterviews(initialInterviews)
+  return initialInterviews
+}
 
 export function useApplyFlowStorage() {
   const authContext = useContext(AuthContext)
   const user = authContext?.user || null
 
-  const [applications, setApplications] = useState<JobApplication[]>([])
+  const [applications, setApplications] = useState<JobApplication[]>(() => {
+    if (user) return []
+    return getInitialLocalApplications()
+  })
   const [isLoadingApplications, setIsLoadingApplications] = useState<boolean>(() => Boolean(user))
   const [applicationsError, setApplicationsError] = useState<string | null>(null)
 
-  const [interviews, setInterviews] = useState<Interview[]>([])
+  const [interviews, setInterviews] = useState<Interview[]>(() => {
+    if (user) return []
+    return getInitialLocalInterviews()
+  })
   const [isLoadingInterviews, setIsLoadingInterviews] = useState<boolean>(() => Boolean(user))
   const [interviewsError, setInterviewsError] = useState<string | null>(null)
 
   const [prevUser, setPrevUser] = useState(user)
 
-  // Strict user isolation: On user logout or switch, immediately wipe memory state
-  // to guarantee a user's data never flashes or leaks to another user.
+  // Handle user switch / logout
   if (user !== prevUser) {
     setPrevUser(user)
     if (!user) {
-      setApplications([])
-      setInterviews([])
+      // Switched to guest mode: load local progress
+      const localApps = getInitialLocalApplications()
+      const localInts = getInitialLocalInterviews()
+      setApplications(localApps)
+      setInterviews(localInts)
       setIsLoadingApplications(false)
       setIsLoadingInterviews(false)
       setApplicationsError(null)
       setInterviewsError(null)
     } else {
+      // Switched to authenticated user: wipe guest state and load from server
       setApplications([])
       setInterviews([])
       setIsLoadingApplications(true)
@@ -46,10 +80,11 @@ export function useApplyFlowStorage() {
     }
   }
 
-  // Fetch applications from PostgreSQL backend via typed API client
+  // Fetch applications from server (or reload local storage if guest)
   const fetchApplications = useCallback(async () => {
     if (!user) {
-      setApplications([])
+      const localApps = getInitialLocalApplications()
+      setApplications(localApps)
       setIsLoadingApplications(false)
       return
     }
@@ -72,10 +107,11 @@ export function useApplyFlowStorage() {
     }
   }, [user])
 
-  // Fetch interviews from PostgreSQL backend via typed API client
+  // Fetch interviews from server (or reload local storage if guest)
   const fetchInterviews = useCallback(async () => {
     if (!user) {
-      setInterviews([])
+      const localInts = getInitialLocalInterviews()
+      setInterviews(localInts)
       setIsLoadingInterviews(false)
       return
     }
@@ -98,7 +134,7 @@ export function useApplyFlowStorage() {
     }
   }, [user])
 
-  // Fetch both applications and interviews on mount / user change
+  // Fetch both applications and interviews on mount / user change if authenticated
   useEffect(() => {
     if (!user) return
 
@@ -139,9 +175,23 @@ export function useApplyFlowStorage() {
     }
   }, [user])
 
-  // Create an application on the backend
+  // Create an application (local for guest, API for authenticated)
   const createApplication = useCallback(
     async (appData: Omit<JobApplication, 'id'>): Promise<JobApplication> => {
+      if (!user) {
+        const id = `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+        const newApp: JobApplication = {
+          ...appData,
+          id,
+        }
+        setApplications((prev) => {
+          const updated = [newApp, ...prev]
+          saveApplications(updated)
+          return updated
+        })
+        return newApp
+      }
+
       const payload = toBackendCreatePayload(appData)
       const createdBackend = await api.applications.create(payload)
       const frontendApp = toFrontendApplication(createdBackend)
@@ -149,12 +199,28 @@ export function useApplyFlowStorage() {
       setApplications((prev) => [frontendApp, ...prev])
       return frontendApp
     },
-    []
+    [user]
   )
 
-  // Update an application on the backend
+  // Update an application (local for guest, API for authenticated)
   const updateApplication = useCallback(
     async (id: string, appData: Partial<JobApplication>): Promise<JobApplication> => {
+      if (!user) {
+        let updatedApp: JobApplication | undefined
+        setApplications((prev) => {
+          const updated = prev.map((app) => {
+            if (app.id === id) {
+              updatedApp = { ...app, ...appData }
+              return updatedApp
+            }
+            return app
+          })
+          saveApplications(updated)
+          return updated
+        })
+        return updatedApp || ({ id, ...appData } as JobApplication)
+      }
+
       const payload = toBackendUpdatePayload(appData)
       const updatedBackend = await api.applications.update(id, payload)
       const frontendApp = toFrontendApplication(updatedBackend)
@@ -164,25 +230,55 @@ export function useApplyFlowStorage() {
       )
       return frontendApp
     },
-    []
+    [user]
   )
 
-  // Delete an application on the backend
+  // Delete an application (local for guest, API for authenticated)
   const deleteApplication = useCallback(
     async (id: string): Promise<void> => {
+      if (!user) {
+        setApplications((prev) => {
+          const updated = prev.filter((app) => app.id !== id)
+          saveApplications(updated)
+          return updated
+        })
+        setInterviews((prev) => {
+          const updated = prev.filter((interview) => interview.applicationId !== id)
+          saveInterviews(updated)
+          return updated
+        })
+        return
+      }
+
       await api.applications.delete(id)
       setApplications((prev) => prev.filter((app) => app.id !== id))
-      // Cascade delete in client state matching database onDelete: Cascade
       setInterviews((prev) => prev.filter((interview) => interview.applicationId !== id))
     },
-    []
+    [user]
   )
 
-  // Create an interview on the backend
+  // Create an interview (local for guest, API for authenticated)
   const createInterview = useCallback(
     async (
       interviewData: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>
     ): Promise<Interview> => {
+      if (!user) {
+        const now = new Date().toISOString()
+        const id = `int-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+        const newInterview: Interview = {
+          ...interviewData,
+          id,
+          createdAt: now,
+          updatedAt: now,
+        }
+        setInterviews((prev) => {
+          const updated = [newInterview, ...prev]
+          saveInterviews(updated)
+          return updated
+        })
+        return newInterview
+      }
+
       const payload = toBackendInterviewCreatePayload(interviewData)
       const createdBackend = await api.interviews.create(payload)
       const frontendInterview = toFrontendInterview(createdBackend)
@@ -190,12 +286,29 @@ export function useApplyFlowStorage() {
       setInterviews((prev) => [frontendInterview, ...prev])
       return frontendInterview
     },
-    []
+    [user]
   )
 
-  // Update an interview on the backend
+  // Update an interview (local for guest, API for authenticated)
   const updateInterview = useCallback(
     async (id: string, interviewData: Partial<Interview>): Promise<Interview> => {
+      if (!user) {
+        const now = new Date().toISOString()
+        let updatedInterview: Interview | undefined
+        setInterviews((prev) => {
+          const updated = prev.map((item) => {
+            if (item.id === id) {
+              updatedInterview = { ...item, ...interviewData, updatedAt: now }
+              return updatedInterview
+            }
+            return item
+          })
+          saveInterviews(updated)
+          return updated
+        })
+        return updatedInterview || ({ id, ...interviewData } as Interview)
+      }
+
       const payload = toBackendInterviewUpdatePayload(interviewData)
       const updatedBackend = await api.interviews.update(id, payload)
       const frontendInterview = toFrontendInterview(updatedBackend)
@@ -205,23 +318,37 @@ export function useApplyFlowStorage() {
       )
       return frontendInterview
     },
-    []
+    [user]
   )
 
-  // Delete an interview on the backend
+  // Delete an interview (local for guest, API for authenticated)
   const deleteInterview = useCallback(
     async (id: string): Promise<void> => {
+      if (!user) {
+        setInterviews((prev) => {
+          const updated = prev.filter((item) => item.id !== id)
+          saveInterviews(updated)
+          return updated
+        })
+        return
+      }
+
       await api.interviews.delete(id)
       setInterviews((prev) => prev.filter((item) => item.id !== id))
     },
-    []
+    [user]
   )
 
-  // Refresh workspace data from PostgreSQL backend
+  // Refresh workspace data
   const refreshWorkspaceData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
+      setApplications(initialApplications)
+      saveApplications(initialApplications)
+      setInterviews(initialInterviews)
+      saveInterviews(initialInterviews)
       return { success: true }
     }
+
     setIsLoadingApplications(true)
     setIsLoadingInterviews(true)
     try {
@@ -250,8 +377,7 @@ export function useApplyFlowStorage() {
     }
   }, [user])
 
-  // Safe fallback for demo data reset: In cloud database mode, demo records cannot be restored
-  // without risking user data deletion. Safely refreshes current user data from the server.
+  // Reset demo data
   const resetToDemoData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     return refreshWorkspaceData()
   }, [refreshWorkspaceData])
