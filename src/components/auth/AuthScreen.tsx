@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ArrowRight,
   Mail,
-  Info,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -92,7 +91,6 @@ export function AuthScreen({
   const [resetToken, setResetToken] = useState(() => tokenFromUrl)
   const [showPassword, setShowPassword] = useState(false)
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null)
-  const [devResetUrl, setDevResetUrl] = useState<string | null>(null)
   const [loginNotice, setLoginNotice] = useState<string | null>(null)
 
   // Token confirmation states (from email link)
@@ -231,7 +229,6 @@ export function AuthScreen({
     setFieldErrors({})
     setShowPassword(false)
     setResetSuccessMessage(null)
-    setDevResetUrl(null)
     setTokenConfirmError(null)
     setLoginNotice(null)
     clearError()
@@ -303,9 +300,6 @@ export function AuthScreen({
         const res = await forgotPassword(email.trim())
         if (res.resetToken) {
           setResetToken(res.resetToken)
-        }
-        if (res.resetUrl) {
-          setDevResetUrl(res.resetUrl)
         }
         setResetSuccessMessage(
           res.message || 'If an account exists with this email, a password reset link has been sent to your inbox.'
@@ -417,19 +411,23 @@ export function AuthScreen({
               : mode === 'register'
               ? 'Create an account'
               : mode === 'forgot-password'
-              ? 'Reset your password'
+              ? resetSuccessMessage
+                ? 'Check your email'
+                : 'Reset your password'
               : 'Set new password'}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 mt-1 max-w-[320px]">
             {mode === 'login'
               ? 'Sign in to access your application workspace'
               : mode === 'register'
               ? 'Start tracking job applications and interviews'
               : mode === 'forgot-password'
-              ? 'Enter your email to receive a password reset link'
+              ? resetSuccessMessage
+                ? 'We sent a confirmation link to your inbox'
+                : 'Enter your account email to receive a reset link'
               : confirmedEmail
-              ? `Confirmed for ${confirmedEmail}`
-              : 'Confirm your reset code and choose a new password'}
+              ? `Choose a new password for ${confirmedEmail}`
+              : 'Choose a new secure password for your account'}
           </p>
         </div>
 
@@ -457,66 +455,44 @@ export function AuthScreen({
 
         {/* --- FORGOT PASSWORD MODE --- */}
         {mode === 'forgot-password' && (
-          <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
+          <div className="w-full">
             {resetSuccessMessage ? (
-              <div className="w-full space-y-4 animate-in fade-in duration-200">
-                <div
-                  role="status"
-                  className="w-full rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-800 space-y-2.5"
-                >
-                  <div className="flex items-center gap-2 font-semibold text-emerald-950">
-                    <Mail className="size-4 text-emerald-600 shrink-0" />
-                    <span>Check your email</span>
+              <div className="w-full space-y-5 animate-in fade-in duration-200 text-center">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-6 space-y-3 shadow-xs">
+                  <div className="size-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shadow-xs">
+                    <Mail className="size-5" />
                   </div>
-                  <p className="leading-relaxed text-emerald-800">
-                    We sent a password reset link to <strong>{email}</strong>. Please check your inbox and click the confirmation link to reset your password.
-                  </p>
-                  <p className="text-[11px] text-emerald-700">
-                    The reset link will expire in 1 hour. If you don't see it, be sure to check your spam or junk folder.
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-500">We sent a reset link to</p>
+                    <p className="text-sm font-semibold text-slate-900 break-all">{email}</p>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed pt-2 border-t border-slate-200/60">
+                    Click the link in the email to set a new password. If you don't see it within a couple minutes, please check your spam folder.
                   </p>
                 </div>
 
-                {/* Development helper link (when running locally or in demo mode) */}
-                {devResetUrl && (
-                  <div className="w-full rounded-lg border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 space-y-1.5">
-                    <div className="font-medium flex items-center gap-1.5 text-blue-950">
-                      <Info className="size-3.5 text-blue-600 shrink-0" />
-                      <span>Development / Test Helper</span>
-                    </div>
-                    <p className="text-[11px] text-blue-700">
-                      You can click the confirmation link directly to test the flow:
-                    </p>
-                    <a
-                      href={devResetUrl}
-                      className="inline-block text-xs font-medium text-blue-600 hover:text-blue-800 underline break-all pt-1"
-                    >
-                      Confirm Reset Link Now &rarr;
-                    </a>
-                  </div>
-                )}
-
-                <div className="pt-2 space-y-2">
+                <div className="space-y-2 pt-1">
                   <Button
                     type="button"
-                    onClick={() => switchMode('reset-password')}
-                    variant="outline"
-                    className="w-full h-10 rounded-lg border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                  >
-                    Enter reset code manually
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
                     onClick={() => switchMode('login')}
-                    className="w-full h-10 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                    className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs cursor-pointer transition-colors"
                   >
-                    Return to sign in
+                    Back to sign in
                   </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetSuccessMessage(null)
+                    }}
+                    className="w-full text-xs text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer text-center"
+                  >
+                    Didn't receive the email? <span className="font-medium text-slate-900 underline">Try again</span>
+                  </button>
                 </div>
               </div>
             ) : (
-              <>
+              <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs font-medium text-slate-700">
                     Email address
@@ -553,7 +529,7 @@ export function AuthScreen({
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="size-4 animate-spin text-white" />
-                      <span>Sending reset email...</span>
+                      <span>Sending reset link...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-1.5">
@@ -563,25 +539,18 @@ export function AuthScreen({
                   )}
                 </Button>
 
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
+                <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => switchMode('login')}
-                    className="hover:text-slate-900 transition-colors cursor-pointer"
+                    className="text-xs text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
                   >
-                    Return to sign in
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchMode('reset-password')}
-                    className="text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer font-medium"
-                  >
-                    Have a reset code?
+                    &larr; Return to sign in
                   </button>
                 </div>
-              </>
+              </form>
             )}
-          </form>
+          </div>
         )}
 
         {/* --- RESET PASSWORD MODE --- */}
@@ -751,7 +720,7 @@ export function AuthScreen({
                       <span>Updating password...</span>
                     </div>
                   ) : (
-                    <span>Set New Password & Sign In</span>
+                    <span>Update password</span>
                   )}
                 </Button>
 
@@ -761,7 +730,7 @@ export function AuthScreen({
                     onClick={() => switchMode('login')}
                     className="hover:text-slate-900 transition-colors cursor-pointer"
                   >
-                    Return to sign in
+                    Cancel and return to sign in
                   </button>
                 </div>
               </form>
@@ -1001,16 +970,18 @@ export function AuthScreen({
         {/* Minimal Mode Toggle */}
         <div className="text-center text-xs text-slate-500 mt-6">
           {mode === 'forgot-password' || mode === 'reset-password' ? (
-            <span>
-              Remember your password?{' '}
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
-                className="font-medium text-slate-900 hover:underline transition-all cursor-pointer ml-0.5"
-              >
-                Sign in
-              </button>
-            </span>
+            resetSuccessMessage ? null : (
+              <span>
+                Remember your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="font-medium text-slate-900 hover:underline transition-all cursor-pointer ml-0.5"
+                >
+                  Sign in
+                </button>
+              </span>
+            )
           ) : mode === 'login' ? (
             <span>
               Don't have an account?{' '}
