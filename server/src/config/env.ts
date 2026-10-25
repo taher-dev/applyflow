@@ -1,8 +1,32 @@
+import path from 'node:path'
+import fs from 'node:fs'
 import dotenv from 'dotenv'
 import { z } from 'zod'
 
-// Load environment variables from .env file if present
+// Attempt to load .env.local and .env from project root or server directory
+const rootDir = path.resolve(import.meta.dirname, '../../../')
+const serverDir = path.resolve(import.meta.dirname, '../../')
+
+const envFiles = [
+  path.join(rootDir, '.env.local'),
+  path.join(rootDir, '.env'),
+  path.join(serverDir, '.env.local'),
+  path.join(serverDir, '.env'),
+]
+
+for (const file of envFiles) {
+  if (fs.existsSync(file)) {
+    dotenv.config({ path: file })
+  }
+}
+
+// Fallback to default dotenv lookup
 dotenv.config()
+
+// Ensure DATABASE_URL_UNPOOLED defaults to DATABASE_URL if not explicitly provided
+if (!process.env.DATABASE_URL_UNPOOLED && process.env.DATABASE_URL) {
+  process.env.DATABASE_URL_UNPOOLED = process.env.DATABASE_URL
+}
 
 // Automatically detect test runner environment to isolate tests from development data
 const isTestEnvironment =
@@ -14,6 +38,7 @@ if (isTestEnvironment) {
   process.env.NODE_ENV = 'test'
   if (!process.env.TEST_DATABASE_URL && (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('applyflow_dev'))) {
     process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/applyflow_test?schema=public'
+    process.env.DATABASE_URL_UNPOOLED = process.env.DATABASE_URL
   }
 }
 

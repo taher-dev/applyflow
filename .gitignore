@@ -34,3 +34,4 @@ server/dist
 # Local embedded database directory
 /data/
 server/data/
+.neon
