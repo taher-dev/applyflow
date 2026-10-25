@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Briefcase,
   Loader2,
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/useAuth'
 import { ApiError } from '@/lib/api'
 import { toast } from 'sonner'
+import type { GoogleCredentialResponse } from '@/types/google'
 
 type AuthMode = 'login' | 'register' | 'forgot-password'
 
@@ -54,6 +55,14 @@ export function AuthScreen({
   const { login, register, loginWithGoogle, error: contextError, clearError } = useAuth()
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
+  const googleClientId =
+    typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CLIENT_ID
+      ? (import.meta.env.VITE_GOOGLE_CLIENT_ID as string).trim()
+      : undefined
+
+  const googleButtonRef = useRef<HTMLDivElement>(null)
+  const [isGoogleSdkReady, setIsGoogleSdkReady] = useState(false)
+
   // Form input states
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -65,6 +74,94 @@ export function AuthScreen({
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // Initialize and mount Google Identity Services button if client ID is configured
+  useEffect(() => {
+    if (!googleClientId || mode === 'forgot-password') {
+      return
+    }
+
+    let isMounted = true
+
+    const initAndRenderGoogle = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) {
+        return false
+      }
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response: GoogleCredentialResponse) => {
+            if (!response.credential) {
+              toast.error('No credential received from Google')
+              return
+            }
+            setLocalError(null)
+            setIsGoogleSubmitting(true)
+            try {
+              await loginWithGoogle({ credential: response.credential })
+              toast.success('Successfully signed in with Google!')
+            } catch (err) {
+              const msg =
+                err instanceof ApiError
+                  ? err.message
+                  : 'Google authentication could not be completed'
+              setLocalError(msg)
+              toast.error(msg)
+            } finally {
+              if (isMounted) {
+                setIsGoogleSubmitting(false)
+              }
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        })
+
+        if (googleButtonRef.current) {
+          googleButtonRef.current.innerHTML = ''
+          window.google.accounts.id.renderButton(googleButtonRef.current, {
+            theme: 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'rectangular',
+            width: 380,
+            logo_alignment: 'left',
+          })
+        }
+
+        if (isMounted) {
+          setIsGoogleSdkReady(true)
+        }
+        return true
+      } catch (err) {
+        console.error('Error initializing Google Identity Services:', err)
+        return false
+      }
+    }
+
+    if (initAndRenderGoogle()) {
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (initAndRenderGoogle()) {
+        window.clearInterval(intervalId)
+      }
+    }, 100)
+
+    const timeoutId = window.setTimeout(() => {
+      window.clearInterval(intervalId)
+    }, 4000)
+
+    return () => {
+      isMounted = false
+      window.clearInterval(intervalId)
+      window.clearTimeout(timeoutId)
+    }
+  }, [googleClientId, mode, loginWithGoogle])
 
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode)
@@ -137,16 +234,35 @@ export function AuthScreen({
 
   const handleGoogleLogin = async () => {
     setLocalError(null)
-    setIsGoogleSubmitting(true)
-    try {
-      await loginWithGoogle()
-      toast.success('Signed in with Google account!')
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Demo sign-in could not be completed'
-      setLocalError(msg)
-      toast.error(msg)
-    } finally {
-      setIsGoogleSubmitting(false)
+
+    if (googleClientId && window.google?.accounts?.id) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          toast.info('Please click the Google button directly to complete sign-in.')
+        }
+      })
+      return
+    }
+
+    if (enableDemoAuth) {
+      setIsGoogleSubmitting(true)
+      try {
+        await loginWithGoogle()
+        toast.success('Signed in with Demo Google account!')
+        if (!googleClientId) {
+          toast.info(
+            'Running with Demo profile. Add VITE_GOOGLE_CLIENT_ID to connect your live Google account.',
+            { duration: 5000 }
+          )
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError ? err.message : 'Demo sign-in could not be completed'
+        setLocalError(msg)
+        toast.error(msg)
+      } finally {
+        setIsGoogleSubmitting(false)
+      }
     }
   }
 
@@ -221,27 +337,64 @@ export function AuthScreen({
           </div>
         ) : (
           <>
-            {/* Google SSO / Demo Auth Button */}
-            {enableDemoAuth ? (
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={isGoogleSubmitting || isSubmitting}
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                aria-label="Continue with Google"
-              >
-                {isGoogleSubmitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin text-slate-500" />
-                    <span>Signing in with Google...</span>
-                  </>
-                ) : (
-                  <>
+            {/* Google SSO / OAuth / Demo Auth */}
+            {googleClientId ? (
+              <div className="w-full flex flex-col items-center">
+                <div
+                  ref={googleButtonRef}
+                  className={`w-full flex justify-center min-h-[44px] ${
+                    isGoogleSubmitting ? 'opacity-40 pointer-events-none' : ''
+                  }`}
+                />
+                {isGoogleSubmitting && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 animate-pulse">
+                    <Loader2 className="size-3.5 animate-spin text-blue-600" />
+                    <span>Verifying Google account...</span>
+                  </div>
+                )}
+                {!isGoogleSdkReady && !isGoogleSubmitting && (
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99]"
+                    aria-label="Continue with Google"
+                  >
                     <GoogleIcon className="size-4.5" />
                     <span>Continue with Google</span>
-                  </>
+                  </button>
                 )}
-              </button>
+              </div>
+            ) : enableDemoAuth ? (
+              <div className="w-full space-y-1.5">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleSubmitting || isSubmitting}
+                  className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  aria-label="Continue with Google"
+                >
+                  {isGoogleSubmitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin text-slate-500" />
+                      <span>Signing in with Google...</span>
+                    </>
+                  ) : (
+                    <>
+                      <GoogleIcon className="size-4.5" />
+                      <span>Continue with Google</span>
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-normal text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0"
+                      >
+                        Demo
+                      </Badge>
+                    </>
+                  )}
+                </button>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Configure <code className="font-mono text-slate-500">VITE_GOOGLE_CLIENT_ID</code> for live Google OAuth.
+                </p>
+              </div>
             ) : (
               <div className="w-full space-y-1.5">
                 <button
@@ -253,7 +406,12 @@ export function AuthScreen({
                 >
                   <GoogleIcon className="size-4.5 opacity-40 grayscale" />
                   <span>Continue with Google</span>
-                  <Badge variant="outline" className="text-[10px] font-normal text-slate-400 border-slate-200 px-1.5 py-0">Unavailable</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-normal text-slate-400 border-slate-200 px-1.5 py-0"
+                  >
+                    Unavailable
+                  </Badge>
                 </button>
                 <p className="text-[11px] text-slate-400 text-center">
                   Google OAuth is not configured in this environment.

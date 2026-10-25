@@ -65,6 +65,7 @@ const envSchema = z
       .optional()
       .default('true')
       .transform((val) => val === 'true' || val === '1'),
+    GOOGLE_CLIENT_ID: z.string().optional(),
   })
 
 const parsed = envSchema.safeParse(process.env)

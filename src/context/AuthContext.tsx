@@ -66,10 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const loginWithGoogle = useCallback(async (profile?: { email?: string; name?: string }) => {
+  const loginWithGoogle = useCallback(async (payload?: { credential?: string; email?: string; name?: string }) => {
     setError(null)
     try {
-      const googleUser = await api.auth.googleLogin(profile)
+      const googleUser = await api.auth.googleLogin(payload)
       setUser(googleUser)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Google sign-in failed'

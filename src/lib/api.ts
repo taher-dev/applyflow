@@ -208,10 +208,10 @@ export const api = {
     /**
      * Authenticates or registers via Google, establishing session cookie.
      */
-    async googleLogin(profile?: { email?: string; name?: string }): Promise<User> {
+    async googleLogin(payload?: { credential?: string; email?: string; name?: string }): Promise<User> {
       const data = await apiClient<AuthResponse>('/auth/google', {
         method: 'POST',
-        body: profile || {},
+        body: payload || {},
       })
       return data.user
     },

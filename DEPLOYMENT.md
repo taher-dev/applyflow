@@ -94,10 +94,41 @@ Configure the following variables in the **Vercel Dashboard** under **Project Se
 | `DATABASE_URL` | Production, Preview | Neon Pooled PostgreSQL connection string | `postgresql://user:pass@ep-xyz-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true` |
 | `NODE_ENV` | Production, Preview | Sets production runtime mode | `production` |
 | `CORS_ORIGIN` | Production | Primary production frontend domain | `https://your-project.vercel.app` |
-| `ENABLE_DEMO_AUTH` | Production, Preview | Enables Google 1-click authentication (defaults to true) | `true` |
+| `ENABLE_DEMO_AUTH` | Production, Preview | Enables demo authentication fallback | `true` |
+| `VITE_GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for Frontend GIS | `xxxx.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for backend audience check | `xxxx.apps.googleusercontent.com` |
 
 > [!NOTE]
 > `CORS_ORIGIN` is optional because ApplyFlow automatically recognizes same-host requests and Vercel preview domains (`*.vercel.app`).
+
+### 4.1 Configuring Google OAuth 2.0 (Google Identity Services)
+
+To enable live Google Sign-In with real user Google accounts:
+
+1. Open the [Google Cloud Console Credentials Page](https://console.cloud.google.com/apis/credentials).
+2. Select or create a Google Cloud Project (e.g., `ApplyFlow`).
+3. Click **Configure Consent Screen** (if not already completed):
+   - Choose **External** user type.
+   - Fill in App Name (`ApplyFlow`), User support email, and Developer contact email.
+   - On the Scopes step, the default scopes (`openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`) are all you need.
+4. Go to **Credentials > Create Credentials > OAuth client ID**:
+   - **Application type**: `Web application`
+   - **Name**: `ApplyFlow Web Client`
+   - **Authorized JavaScript origins**:
+     - `http://localhost:5173` (for local development)
+     - `https://applyflow-iota-sage.vercel.app` (your production Vercel domain)
+     - Any custom domains you use
+   - Click **Create** and copy your **Client ID** (ends with `.apps.googleusercontent.com`).
+5. Set the Client ID:
+   - In `.env.local` for local development:
+     ```bash
+     VITE_GOOGLE_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
+     GOOGLE_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
+     ```
+   - In **Vercel Project Settings > Environment Variables**:
+     - Add `VITE_GOOGLE_CLIENT_ID` with your Client ID (applies to Production, Preview, Development).
+     - Add `GOOGLE_CLIENT_ID` with your Client ID.
+6. Trigger a redeploy in Vercel or push to `main` so the new Vite environment variable is baked into the frontend build.
 
 ---
 

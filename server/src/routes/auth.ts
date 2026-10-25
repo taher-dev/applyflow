@@ -163,59 +163,103 @@ authRouter.post(
 
 /**
  * POST /api/auth/google
- * Development-only mock Google authentication endpoint.
- * Strictly disabled outside development environments.
- * Prevents account takeover by rejecting any attempt to impersonate existing accounts.
+ * Authenticates user via Google OAuth (ID token) or fallback demo auth.
+ * Verifies real Google credential against Google's tokeninfo API.
  */
 authRouter.post(
   '/google',
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // 1. Forbid outside development or when demo auth is disabled
-      if (!isDemoAuthAllowed()) {
-        res.status(501).json({
-          error: 'Not Implemented',
-          message: 'Google authentication is not supported in this environment.',
-        })
-        return
-      }
+      const { credential } = req.body || {}
 
-      // 2. Extract client-requested credentials if provided
-      const clientEmail =
-        typeof req.body?.email === 'string' && req.body.email.trim()
-          ? req.body.email.trim().toLowerCase()
-          : null
-      const clientName =
-        typeof req.body?.name === 'string' && req.body.name.trim()
-          ? req.body.name.trim()
-          : null
+      let email: string
+      let name: string
 
-      // 3. Prevent impersonation of existing user accounts
-      if (clientEmail) {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: clientEmail },
-        })
+      if (typeof credential === 'string' && credential.trim()) {
+        // --- Real Google OAuth verification ---
+        const tokenResponse = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential.trim())}`
+        )
 
-        // Reject attempts to claim an existing account via demo auth
-        if (existingUser && existingUser.email !== DEMO_GOOGLE_EMAIL) {
-          res.status(403).json({
-            error: 'Forbidden',
-            message: 'Demo authentication cannot be used to access existing user accounts.',
+        if (!tokenResponse.ok) {
+          res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Invalid or expired Google authentication credential',
           })
           return
         }
+
+        const tokenPayload = (await tokenResponse.json()) as {
+          email?: string
+          name?: string
+          email_verified?: string | boolean
+          aud?: string
+        }
+
+        if (!tokenPayload.email || (tokenPayload.email_verified !== 'true' && tokenPayload.email_verified !== true)) {
+          res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Google account email is not verified',
+          })
+          return
+        }
+
+        // Verify audience if GOOGLE_CLIENT_ID is configured
+        if (env.GOOGLE_CLIENT_ID && tokenPayload.aud && tokenPayload.aud !== env.GOOGLE_CLIENT_ID) {
+          res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Google token audience does not match configured client ID',
+          })
+          return
+        }
+
+        email = tokenPayload.email.trim().toLowerCase()
+        name = tokenPayload.name?.trim() || email.split('@')[0]
+      } else {
+        // --- Fallback / Demo Auth mode ---
+        if (!isDemoAuthAllowed()) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Missing Google authentication credential',
+          })
+          return
+        }
+
+        const clientEmail =
+          typeof req.body?.email === 'string' && req.body.email.trim()
+            ? req.body.email.trim().toLowerCase()
+            : null
+        const clientName =
+          typeof req.body?.name === 'string' && req.body.name.trim()
+            ? req.body.name.trim()
+            : null
+
+        // Prevent demo impersonation of existing non-demo user accounts
+        if (clientEmail) {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: clientEmail },
+          })
+          if (existingUser && existingUser.email !== DEMO_GOOGLE_EMAIL) {
+            res.status(403).json({
+              error: 'Forbidden',
+              message: 'Demo authentication cannot be used to access existing user accounts.',
+            })
+            return
+          }
+        }
+
+        email = clientEmail || DEMO_GOOGLE_EMAIL
+        name = clientName || DEMO_GOOGLE_NAME
       }
 
-      const email = clientEmail || DEMO_GOOGLE_EMAIL
-      const name = clientName || DEMO_GOOGLE_NAME
-
+      // Upsert / find user
       let user = await prisma.user.findUnique({
         where: { email },
         select: { id: true, name: true, email: true },
       })
 
       if (!user) {
-        const passwordHash = await hashPassword(`google-demo-${Date.now()}-${Math.random()}`)
+        const passwordHash = await hashPassword(`oauth-${Date.now()}-${Math.random()}`)
         user = await prisma.user.create({
           data: {
             name,

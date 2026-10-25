@@ -7,7 +7,7 @@ export interface AuthContextType {
   error: string | null
   login: (credentials: LoginCredentials) => Promise<void>
   register: (credentials: RegisterCredentials) => Promise<void>
-  loginWithGoogle: (profile?: { email?: string; name?: string }) => Promise<void>
+  loginWithGoogle: (payload?: { credential?: string; email?: string; name?: string }) => Promise<void>
   logout: () => Promise<void>
   clearError: () => void
 }

@@ -65,7 +65,7 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.equal(data.error, 'Unauthorized')
   })
 
-  test('POST /api/auth/google responds with 200 and sets session cookie', async () => {
+  test('POST /api/auth/google responds with 200 and sets session cookie in demo mode', async () => {
     const res = await fetch(`${baseUrl}/api/auth/google`, {
       method: 'POST',
       headers: {
@@ -79,6 +79,59 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.equal(data.user.email, 'demo.google@applyflow.app')
     const cookie = res.headers.get('set-cookie')
     assert.ok(cookie && cookie.includes('applyflow_session'))
+  })
+
+  test('POST /api/auth/google with invalid credential returns 401 Unauthorized', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ credential: 'invalid-fake-token' }),
+    })
+    assert.equal(res.status, 401)
+    const data = await res.json()
+    assert.equal(data.error, 'Unauthorized')
+  })
+
+  test('POST /api/auth/google with verified Google token creates real user session', async () => {
+    const originalFetch = globalThis.fetch
+    try {
+      globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const urlStr = String(input)
+        if (urlStr.includes('oauth2.googleapis.com/tokeninfo')) {
+          return new Response(
+            JSON.stringify({
+              email: 'verified.google@example.com',
+              name: 'Verified User',
+              email_verified: true,
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        }
+        return originalFetch(input, init)
+      }
+
+      const res = await fetch(`${baseUrl}/api/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ credential: 'mock-valid-google-id-token' }),
+      })
+      assert.equal(res.status, 200)
+      const data = await res.json()
+      assert.ok(data.user)
+      assert.equal(data.user.email, 'verified.google@example.com')
+      assert.equal(data.user.name, 'Verified User')
+      const cookie = res.headers.get('set-cookie')
+      assert.ok(cookie && cookie.includes('applyflow_session'))
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   test('non-existent endpoint returns structured 404 JSON response', async () => {
