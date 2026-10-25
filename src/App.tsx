@@ -16,7 +16,6 @@ import { ApplicationDetailsDialog } from '@/components/dashboard/ApplicationDeta
 import { InterviewFormDialog } from '@/components/interviews/InterviewFormDialog'
 import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDialog'
 import { InterviewDetailsDialog } from '@/components/interviews/InterviewDetailsDialog'
-import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
 import { LocalDataMigrationBanner } from '@/components/dashboard/LocalDataMigrationBanner'
 import { useApplyFlowStorage } from '@/lib/useApplyFlowStorage'
 import { loadActiveTab, saveActiveTab } from '@/lib/storage'
@@ -91,10 +90,7 @@ function DashboardContent() {
     createInterview,
     updateInterview,
     deleteInterview,
-    refreshWorkspaceData,
   } = useApplyFlowStorage()
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
-  const [isRefreshingWorkspace, setIsRefreshingWorkspace] = useState(false)
   const [isSavingApp, setIsSavingApp] = useState(false)
   const [isDeletingApp, setIsDeletingApp] = useState(false)
   const [isSavingInterview, setIsSavingInterview] = useState(false)
@@ -276,31 +272,6 @@ function DashboardContent() {
     }
   }
 
-  const handleConfirmRefreshWorkspace = async () => {
-    if (isRefreshingWorkspace) return
-    setIsRefreshingWorkspace(true)
-    try {
-      const result = await refreshWorkspaceData()
-      if (result.success) {
-        setIsResetDialogOpen(false)
-        toast.success('Workspace refreshed', {
-          description: 'Latest applications and interviews loaded from cloud database.',
-        })
-      } else {
-        toast.error('Refresh failed', {
-          description: result.error || 'Unable to refresh data from server.',
-        })
-      }
-    } catch (err) {
-      toast.error('Refresh failed', {
-        description:
-          err instanceof Error ? err.message : 'Unable to refresh data from server.',
-      })
-    } finally {
-      setIsRefreshingWorkspace(false)
-    }
-  }
-
   // Screen-specific search target IDs and scroll containers
   const screenSearchConfig: Partial<Record<NavigationKey, { containerId: string; inputId: string }>> = {
     overview: {
@@ -397,7 +368,6 @@ function DashboardContent() {
         onSelectTab={setActiveTab}
         upcomingInterviewsCount={upcomingInterviewsCount}
         unseenInterviewsCount={unseenCount}
-        onResetDemoData={() => setIsResetDialogOpen(true)}
         onLogoClick={() => window.location.reload()}
       />
 
@@ -409,7 +379,6 @@ function DashboardContent() {
           onSearchChange={handleNavbarSearchChange}
           onSearchSubmit={handleNavbarSearchSubmit}
           isVisible={isNavVisible}
-          onRefreshWorkspace={() => setIsResetDialogOpen(true)}
           onLogoClick={() => window.location.reload()}
           placeholder={
             activeTab === 'overview'
@@ -669,14 +638,6 @@ function DashboardContent() {
           setSelectedInterviewForDetails(null)
           handleOpenDeleteInterview(interview)
         }}
-      />
-
-      {/* 7. Refresh Workspace Confirmation Dialog */}
-      <ResetDemoDataDialog
-        open={isResetDialogOpen}
-        onOpenChange={setIsResetDialogOpen}
-        onConfirm={handleConfirmRefreshWorkspace}
-        isRefreshing={isRefreshingWorkspace}
       />
 
       {/* 8. Global Toast Notifications */}

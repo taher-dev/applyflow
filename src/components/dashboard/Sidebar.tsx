@@ -4,7 +4,6 @@ import {
   Kanban,
   Calendar,
   LogOut,
-  RotateCcw,
   LogIn,
 } from 'lucide-react'
 import { navigationItems } from '@/data/mockData'
@@ -21,8 +20,6 @@ interface SidebarProps {
   onClose?: () => void
   upcomingInterviewsCount?: number
   unseenInterviewsCount?: number
-  onResetDemoData?: () => void
-  onRefreshWorkspace?: () => void
   onLogoClick?: () => void
 }
 
@@ -37,12 +34,9 @@ export function Sidebar({
   onSelectTab,
   upcomingInterviewsCount,
   unseenInterviewsCount,
-  onResetDemoData,
-  onRefreshWorkspace,
   onLogoClick,
 }: SidebarProps) {
   const { user, logout, openAuthDialog } = useAuth()
-  const handleRefreshWorkspace = onRefreshWorkspace || onResetDemoData
 
   const handleLogoClick = () => {
     if (onLogoClick) {
@@ -143,25 +137,9 @@ export function Sidebar({
           </nav>
         </div>
 
-        {/* Workspace Refresh Action */}
-        {handleRefreshWorkspace && (
-          <div className="px-3 py-2 border-t border-slate-200/80 mt-auto">
-            <button
-              type="button"
-              onClick={handleRefreshWorkspace}
-              className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Reload saved applications and interviews from the cloud database"
-              aria-label="Refresh workspace data"
-            >
-              <RotateCcw className="size-3.5 text-slate-400" />
-              <span>Refresh workspace data</span>
-            </button>
-          </div>
-        )}
-
         {/* Minimal User Profile Footer or Guest Sign In */}
         {user ? (
-          <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
+          <div className="p-2.5 border-t border-slate-200/80 mt-auto">
             <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 {user.avatarUrl ? (
@@ -218,7 +196,7 @@ export function Sidebar({
             </div>
           </div>
         ) : (
-          <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
+          <div className="p-2.5 border-t border-slate-200/80 mt-auto">
             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-2">
               <div className="flex items-center gap-1.5">
                 <div className="size-2 rounded-full bg-emerald-500" />

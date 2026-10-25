@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Plus,
   Briefcase,
-  RotateCcw,
   LogIn,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -41,7 +40,6 @@ interface HeaderProps {
   onSelectInterview?: (interview: Interview) => void
   onNavigateToInterviews?: () => void
   onScheduleInterview?: () => void
-  onRefreshWorkspace?: () => void
   isVisible?: boolean
   unseenCount?: number
   onMarkNotificationsSeen?: () => void
@@ -96,7 +94,6 @@ export function Header({
   onSelectInterview,
   onNavigateToInterviews,
   onScheduleInterview,
-  onRefreshWorkspace,
   isVisible = true,
   unseenCount,
   onMarkNotificationsSeen,
@@ -535,18 +532,6 @@ export function Header({
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-slate-100" />
-              {onRefreshWorkspace && (
-                <>
-                  <DropdownMenuItem
-                    onClick={onRefreshWorkspace}
-                    className="cursor-pointer gap-2 py-2 text-slate-700 focus:text-slate-900"
-                  >
-                    <RotateCcw className="size-4 text-slate-500" />
-                    <span>Refresh workspace data</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-100" />
-                </>
-              )}
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2 py-2"

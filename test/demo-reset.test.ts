@@ -79,98 +79,58 @@ describe('Demo Data Reset & Workspace Refresh Verification', () => {
     globalThis.fetch = originalFetch
   })
 
-  describe('1. Action Label & Confirmation Text Accuracy', () => {
-    test('Sidebar displays truthful refresh label and explanatory tooltip', () => {
+  describe('1. Removal of redundant refresh workspace button from production app', () => {
+    test('Sidebar does not render redundant refresh workspace button', () => {
       const sidebarSource = fs.readFileSync(
         path.resolve(import.meta.dirname, '../src/components/dashboard/Sidebar.tsx'),
         'utf-8'
       )
 
-      // Must have truthful label
-      assert.ok(
-        sidebarSource.includes('Refresh workspace data'),
-        'Expected Sidebar to display "Refresh workspace data"'
-      )
-
-      // Must have accurate tooltip
-      assert.ok(
-        sidebarSource.includes('Reload saved applications and interviews from the cloud database'),
-        'Expected Sidebar button title to explain that it reloads saved data from the database'
-      )
-
-      // Must NOT claim that it resets to mock demonstration data
       assert.equal(
-        sidebarSource.includes('Restore initial demonstration applications and interviews'),
+        sidebarSource.includes('Refresh workspace data'),
         false,
-        'Sidebar must not claim to restore initial demonstration applications'
+        'Expected Sidebar to not display "Refresh workspace data"'
+      )
+      assert.equal(
+        sidebarSource.includes('handleRefreshWorkspace'),
+        false,
+        'Expected Sidebar to not have handleRefreshWorkspace'
       )
     })
 
-    test('ResetDemoDataDialog contains truthful description and clarifies that demo reset is disabled', () => {
-      const dialogSource = fs.readFileSync(
-        path.resolve(import.meta.dirname, '../src/components/dashboard/ResetDemoDataDialog.tsx'),
+    test('Header does not render redundant refresh workspace button in user menu', () => {
+      const headerSource = fs.readFileSync(
+        path.resolve(import.meta.dirname, '../src/components/dashboard/Header.tsx'),
         'utf-8'
       )
 
-      // Must state that data will be reloaded and user data is not deleted
-      assert.ok(
-        dialogSource.includes('Refresh workspace data?'),
-        'Expected dialog title to be "Refresh workspace data?"'
-      )
-      assert.ok(
-        dialogSource.includes('Your saved applications and interviews will not be deleted or replaced.'),
-        'Expected dialog to explicitly state saved applications and interviews will not be deleted'
-      )
-      assert.ok(
-        dialogSource.includes('Demo data reset is disabled for database-backed accounts to protect your real applications and interviews'),
-        'Expected dialog to explain why demo data reset is disabled in cloud database mode'
-      )
-
-      // Action button must reflect actual non-destructive refresh action
-      assert.ok(
-        dialogSource.includes('Refresh data'),
-        'Expected dialog action button to say "Refresh data"'
-      )
-
-      // Must NOT falsely claim that custom data will be replaced or sample templates restored
       assert.equal(
-        dialogSource.includes('This will reset your dashboard to the sample template records'),
+        headerSource.includes('Refresh workspace data'),
         false,
-        'Must NOT claim to reset dashboard to sample template records'
+        'Expected Header to not display "Refresh workspace data"'
       )
       assert.equal(
-        dialogSource.includes('Any custom applications and interviews will be replaced'),
+        headerSource.includes('onRefreshWorkspace'),
         false,
-        'Must NOT claim that custom applications and interviews will be replaced'
+        'Expected Header to not have onRefreshWorkspace'
       )
     })
 
-    test('App.tsx displays accurate workspace refresh toast and removes false demo restored claims', () => {
+    test('App.tsx does not mount ResetDemoDataDialog or refresh button handlers', () => {
       const appSource = fs.readFileSync(
         path.resolve(import.meta.dirname, '../src/App.tsx'),
         'utf-8'
       )
 
-      // Must show truthful toast description
-      assert.ok(
-        appSource.includes("toast.success('Workspace refreshed'"),
-        'Expected App.tsx to show "Workspace refreshed" on success'
-      )
-      assert.ok(
-        appSource.includes('Latest applications and interviews loaded from cloud database.'),
-        'Expected App.tsx to describe loading latest applications and interviews'
-      )
-
-      // Must NOT claim sample applications and interviews were restored
       assert.equal(
-        appSource.includes("toast.success('Demo data restored'"),
+        appSource.includes('ResetDemoDataDialog'),
         false,
-        'Must NOT claim demo data was restored'
+        'Expected App.tsx to not import or mount ResetDemoDataDialog'
       )
       assert.equal(
-        appSource.includes('Sample applications and interviews have been restored.'),
+        appSource.includes('handleConfirmRefreshWorkspace'),
         false,
-        'Must NOT claim sample applications and interviews have been restored'
+        'Expected App.tsx to not define handleConfirmRefreshWorkspace'
       )
     })
   })
