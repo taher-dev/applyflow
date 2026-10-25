@@ -8,8 +8,6 @@ import {
   markInterviewsAsSeen,
   getUnseenInterviewsCount,
   type NotificationRecordStore,
-  THIRTY_MINUTES_MS,
-  FIVE_MINUTES_MS,
 } from '../src/lib/interviewNotifications.ts'
 import type { Interview, JobApplication } from '../src/types/dashboard.ts'
 

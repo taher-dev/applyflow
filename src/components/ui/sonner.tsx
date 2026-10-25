@@ -14,6 +14,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       className="toaster group"
       closeButton
+      duration={3500}
       swipeDirections={['right', 'left', 'top', 'bottom']}
       icons={{
         success: <CircleCheckIcon className="size-4 text-emerald-600" />,
@@ -27,7 +28,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             'group-[.toaster]:bg-white group-[.toaster]:text-slate-900 group-[.toaster]:border-slate-200/90 group-[.toaster]:shadow-lg group-[.toaster]:rounded-xl font-sans group-[.toaster]:pr-14',
-          description: 'group-[.toast]:text-slate-500',
+          title: 'group-[.toast]:text-xs group-[.toast]:font-semibold group-[.toast]:text-slate-900',
+          description: 'group-[.toast]:text-[11px] group-[.toast]:text-slate-500 group-[.toast]:leading-normal',
           closeButton:
             '!opacity-100 !bg-white hover:!bg-slate-100 !text-slate-500 hover:!text-slate-900 !border !border-slate-200/90 !shadow-2xs transition-all duration-150 cursor-pointer !w-8 !h-8 active:!scale-90',
         },

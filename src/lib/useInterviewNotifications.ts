@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
+import { CalendarClock, Clock } from 'lucide-react'
 import type { Interview, JobApplication, NavigationKey } from '@/types/dashboard'
 import {
   loadNotificationStore,
@@ -74,11 +75,15 @@ export function useInterviewNotifications(
       const timeSuffix = timeStr ? ` at ${timeStr}` : ''
 
       if (trigger.milestone === '5m') {
-        const title = `Interview starts in 5 minutes!`
-        const description = `Urgent: ${trigger.role} with ${trigger.companyName} starts in 5 minutes${timeSuffix}. Get ready!`
-        toast.error(title, {
+        const title = 'Interview in 5 minutes'
+        const description = `${trigger.role} with ${trigger.companyName}${timeSuffix}`
+
+        toast(title, {
           description,
-          duration: 12000,
+          duration: 3500,
+          icon: React.createElement(CalendarClock, {
+            className: 'size-4 text-slate-900 shrink-0',
+          }),
         })
 
         try {
@@ -96,11 +101,15 @@ export function useInterviewNotifications(
           // Graceful fallback for non-browser or test environments
         }
       } else {
-        const title = `Upcoming Interview in 30 minutes`
-        const description = `${trigger.role} with ${trigger.companyName} is scheduled in 30 minutes${timeSuffix}.`
-        toast.warning(title, {
+        const title = 'Interview in 30 minutes'
+        const description = `${trigger.role} with ${trigger.companyName}${timeSuffix}`
+
+        toast(title, {
           description,
-          duration: 10000,
+          duration: 3500,
+          icon: React.createElement(Clock, {
+            className: 'size-4 text-slate-700 shrink-0',
+          }),
         })
 
         try {

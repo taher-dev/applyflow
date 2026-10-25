@@ -678,7 +678,7 @@ function DashboardContent() {
       />
 
       {/* 8. Global Toast Notifications */}
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" />
 
       {/* 9. Mobile Bottom Navigation Bar (auto-hides on scroll) */}
       <MobileBottomNav
@@ -718,7 +718,7 @@ function AppRoot() {
     return (
       <>
         <AuthScreen />
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" />
       </>
     )
   }
