@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
   Bell,
-  Menu,
   Search,
   X,
   LogOut,
@@ -11,6 +10,8 @@ import {
   CalendarClock,
   ArrowRight,
   Plus,
+  Briefcase,
+  RotateCcw,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ import type { Interview, JobApplication } from '@/types/dashboard'
 interface HeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
-  onToggleSidebar: () => void
+  onToggleSidebar?: () => void
   onSearchSubmit?: () => void
   placeholder?: string
   interviews?: Interview[]
@@ -39,6 +40,8 @@ interface HeaderProps {
   onSelectInterview?: (interview: Interview) => void
   onNavigateToInterviews?: () => void
   onScheduleInterview?: () => void
+  onRefreshWorkspace?: () => void
+  isVisible?: boolean
 }
 
 function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
@@ -82,7 +85,6 @@ function formatNotificationTime(scheduledAt: string) {
 export function Header({
   searchQuery,
   onSearchChange,
-  onToggleSidebar,
   onSearchSubmit,
   placeholder,
   interviews = [],
@@ -90,6 +92,8 @@ export function Header({
   onSelectInterview,
   onNavigateToInterviews,
   onScheduleInterview,
+  onRefreshWorkspace,
+  isVisible = true,
 }: HeaderProps) {
   const { user, logout } = useAuth()
 
@@ -137,18 +141,20 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-md shadow-2xs gap-3">
-      {/* Left: Mobile Toggle (on desktop sidebar is permanently visible) */}
-      <div className="flex items-center shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          className="md:hidden text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
-          aria-label="Toggle navigation menu"
-        >
-          <Menu className="size-5" />
-        </Button>
+    <header
+      className={cn(
+        'sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-md shadow-2xs gap-3 transition-transform duration-300 ease-in-out',
+        isVisible ? 'translate-y-0' : '-translate-y-full'
+      )}
+    >
+      {/* Left: App Logo on mobile (desktop has logo in permanent sidebar) */}
+      <div className="flex items-center gap-2.5 shrink-0 md:hidden">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
+          <Briefcase className="size-4" />
+        </div>
+        <span className="text-base font-bold tracking-tight text-slate-900 hidden sm:inline">
+          ApplyFlow
+        </span>
       </div>
 
       {/* Center: Search Input with fluid responsive sizing */}
@@ -384,6 +390,18 @@ export function Header({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-100" />
+            {onRefreshWorkspace && (
+              <>
+                <DropdownMenuItem
+                  onClick={onRefreshWorkspace}
+                  className="cursor-pointer gap-2 py-2 text-slate-700 focus:text-slate-900"
+                >
+                  <RotateCcw className="size-4 text-slate-500" />
+                  <span>Refresh workspace data</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-slate-100" />
+              </>
+            )}
             <DropdownMenuItem
               onClick={handleLogout}
               className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2 py-2"

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Kanban, Calendar, Menu } from 'lucide-react'
+import { LayoutDashboard, Kanban, Calendar } from 'lucide-react'
 import type { NavigationKey } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -6,7 +6,7 @@ interface MobileBottomNavProps {
   activeTab: NavigationKey
   onSelectTab: (tab: NavigationKey) => void
   upcomingInterviewsCount?: number
-  onOpenMenu: () => void
+  isVisible?: boolean
 }
 
 interface TabItem {
@@ -25,7 +25,7 @@ export function MobileBottomNav({
   activeTab,
   onSelectTab,
   upcomingInterviewsCount = 0,
-  onOpenMenu,
+  isVisible = true,
 }: MobileBottomNavProps) {
   const handleTabClick = (key: NavigationKey) => {
     if (activeTab === key) {
@@ -38,10 +38,13 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom,0px)]"
+      className={cn(
+        'fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom,0px)] transition-transform duration-300 ease-in-out',
+        isVisible ? 'translate-y-0' : 'translate-y-full'
+      )}
       aria-label="Mobile Bottom Navigation"
     >
-      <div className="flex h-16 items-center justify-around px-2 max-w-md mx-auto">
+      <div className="flex h-16 items-center justify-around px-4 max-w-md mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.key
@@ -54,7 +57,7 @@ export function MobileBottomNav({
               type="button"
               onClick={() => handleTabClick(tab.key)}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all duration-150 relative cursor-pointer select-none active:scale-95',
+                'flex flex-1 flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-150 relative cursor-pointer select-none active:scale-95',
                 isActive
                   ? 'text-slate-900 font-semibold'
                   : 'text-slate-400 hover:text-slate-700 font-medium'
@@ -89,21 +92,6 @@ export function MobileBottomNav({
             </button>
           )
         })}
-
-        {/* 4th Tab: More / Menu to access secondary actions (Refresh Workspace, Profile, Logout) */}
-        <button
-          type="button"
-          onClick={onOpenMenu}
-          className="flex flex-1 flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-400 hover:text-slate-700 transition-all duration-150 relative cursor-pointer select-none active:scale-95"
-          aria-label="Open navigation menu"
-        >
-          <div className="relative flex items-center justify-center">
-            <Menu className="size-5 text-slate-400 stroke-[1.75]" />
-          </div>
-          <span className="text-[10px] font-medium text-slate-400 tracking-tight mt-1">
-            More
-          </span>
-        </button>
       </div>
     </nav>
   )

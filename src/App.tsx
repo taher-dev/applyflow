@@ -25,6 +25,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
 import { ScrollToTopButton } from '@/components/dashboard/ScrollToTopButton'
+import { useScrollDirection } from '@/lib/useScrollDirection'
 import { calculateDashboardMetrics } from '@/lib/metrics'
 import type {
   JobApplication,
@@ -42,7 +43,7 @@ function DashboardContent() {
     saveActiveTab(activeTab)
   }, [activeTab])
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const isNavVisible = useScrollDirection()
   const [searchQueries, setSearchQueries] = useState<Partial<Record<NavigationKey, string>>>({
     overview: '',
     pipeline: '',
@@ -382,12 +383,10 @@ function DashboardContent() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* 1. Left Minimal White Sidebar */}
+      {/* 1. Left Minimal White Sidebar (desktop) */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
         upcomingInterviewsCount={upcomingInterviewsCount}
         onResetDemoData={() => setIsResetDialogOpen(true)}
       />
@@ -399,7 +398,8 @@ function DashboardContent() {
           searchQuery={currentSearchQuery}
           onSearchChange={handleNavbarSearchChange}
           onSearchSubmit={handleNavbarSearchSubmit}
-          onToggleSidebar={() => setIsSidebarOpen(true)}
+          isVisible={isNavVisible}
+          onRefreshWorkspace={() => setIsResetDialogOpen(true)}
           placeholder={
             activeTab === 'overview'
               ? 'Search applications...'
@@ -669,16 +669,16 @@ function DashboardContent() {
       {/* 8. Global Toast Notifications */}
       <Toaster position="top-right" richColors />
 
-      {/* 9. Mobile Bottom Navigation Bar (thumb reach, zero scrolling) */}
+      {/* 9. Mobile Bottom Navigation Bar (auto-hides on scroll) */}
       <MobileBottomNav
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         upcomingInterviewsCount={upcomingInterviewsCount}
-        onOpenMenu={() => setIsSidebarOpen(true)}
+        isVisible={isNavVisible}
       />
 
       {/* 10. Quick Scroll-To-Top Button */}
-      <ScrollToTopButton />
+      <ScrollToTopButton isNavVisible={isNavVisible} />
     </div>
   )
 }

@@ -3,7 +3,6 @@ import {
   Briefcase,
   Kanban,
   Calendar,
-  X,
   LogOut,
   RotateCcw,
 } from 'lucide-react'
@@ -16,8 +15,8 @@ import { cn } from '@/lib/utils'
 interface SidebarProps {
   activeTab: NavigationKey
   onSelectTab: (key: NavigationKey) => void
-  isOpen: boolean
-  onClose: () => void
+  isOpen?: boolean
+  onClose?: () => void
   upcomingInterviewsCount?: number
   onResetDemoData?: () => void
   onRefreshWorkspace?: () => void
@@ -32,8 +31,6 @@ const iconMap = {
 export function Sidebar({
   activeTab,
   onSelectTab,
-  isOpen,
-  onClose,
   upcomingInterviewsCount,
   onResetDemoData,
   onRefreshWorkspace,
@@ -52,41 +49,20 @@ export function Sidebar({
     : 'AF'
 
   return (
-    <>
-      {/* Mobile backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs md:hidden"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Sidebar container */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 md:w-56 lg:w-60 xl:w-64 flex-col bg-white border-r border-slate-200/80 text-slate-700 transition-all duration-200 ease-in-out md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-4 xl:px-5 border-b border-slate-200/80">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
-              <Briefcase className="size-4" />
-            </div>
-            <span className="text-base font-bold tracking-tight text-slate-900 truncate">
-              ApplyFlow
-            </span>
+    <aside
+      className="hidden md:flex md:w-56 lg:w-60 xl:w-64 flex-col bg-white border-r border-slate-200/80 text-slate-700 md:sticky md:top-0 md:h-screen md:shrink-0"
+    >
+      {/* Brand Header */}
+      <div className="flex h-16 items-center px-4 xl:px-5 border-b border-slate-200/80">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
+            <Briefcase className="size-4" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="md:hidden rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 shrink-0 cursor-pointer"
-            aria-label="Close sidebar"
-          >
-            <X className="size-5" />
-          </button>
+          <span className="text-base font-bold tracking-tight text-slate-900 truncate">
+            ApplyFlow
+          </span>
         </div>
+      </div>
 
         {/* Navigation List */}
         <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -109,7 +85,6 @@ export function Sidebar({
                   type="button"
                   onClick={() => {
                     onSelectTab(item.key)
-                    onClose()
                   }}
                   className={`group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                     isActive
@@ -211,7 +186,6 @@ export function Sidebar({
             </div>
           </div>
         )}
-      </aside>
-    </>
+    </aside>
   )
 }

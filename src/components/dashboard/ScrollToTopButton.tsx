@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export function ScrollToTopButton() {
+interface ScrollToTopButtonProps {
+  isNavVisible?: boolean
+}
+
+export function ScrollToTopButton({ isNavVisible = true }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -27,7 +31,8 @@ export function ScrollToTopButton() {
       type="button"
       onClick={scrollToTop}
       className={cn(
-        'fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 flex size-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg transition-all duration-200 hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer',
+        'fixed right-4 md:bottom-6 md:right-6 z-30 flex size-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg transition-all duration-300 hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer',
+        isNavVisible ? 'bottom-20' : 'bottom-5',
         isVisible
           ? 'opacity-100 translate-y-0 pointer-events-auto'
           : 'opacity-0 translate-y-3 pointer-events-none'
