@@ -398,6 +398,7 @@ function DashboardContent() {
         upcomingInterviewsCount={upcomingInterviewsCount}
         unseenInterviewsCount={unseenCount}
         onResetDemoData={() => setIsResetDialogOpen(true)}
+        onLogoClick={() => window.location.reload()}
       />
 
       {/* 2. Main Content Canvas */}
@@ -409,6 +410,7 @@ function DashboardContent() {
           onSearchSubmit={handleNavbarSearchSubmit}
           isVisible={isNavVisible}
           onRefreshWorkspace={() => setIsResetDialogOpen(true)}
+          onLogoClick={() => window.location.reload()}
           placeholder={
             activeTab === 'overview'
               ? 'Search applications...'

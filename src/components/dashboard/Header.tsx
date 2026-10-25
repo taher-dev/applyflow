@@ -44,6 +44,7 @@ interface HeaderProps {
   isVisible?: boolean
   unseenCount?: number
   onMarkNotificationsSeen?: () => void
+  onLogoClick?: () => void
 }
 
 function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
@@ -98,6 +99,7 @@ export function Header({
   isVisible = true,
   unseenCount,
   onMarkNotificationsSeen,
+  onLogoClick,
 }: HeaderProps) {
   const { user, logout } = useAuth()
 
@@ -115,6 +117,14 @@ export function Header({
     setIsMobileSearchOpen(false)
     if (searchQuery) {
       onSearchChange('')
+    }
+  }
+
+  const handleLogoClick = () => {
+    if (onLogoClick) {
+      onLogoClick()
+    } else if (typeof window !== 'undefined' && window.location) {
+      window.location.reload()
     }
   }
 
@@ -223,14 +233,20 @@ export function Header({
       ) : (
         <>
           {/* Left: App Logo on mobile (desktop has logo in permanent sidebar) */}
-          <div className="flex items-center gap-2.5 shrink-0 md:hidden">
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2.5 shrink-0 md:hidden cursor-pointer hover:opacity-80 active:scale-95 transition-all bg-transparent border-0 p-0 text-left"
+            aria-label="Refresh page"
+            title="Refresh page"
+          >
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
               <Briefcase className="size-4" />
             </div>
             <span className="text-base font-bold tracking-tight text-slate-900">
               ApplyFlow
             </span>
-          </div>
+          </button>
 
           {/* Center: Search Input on Desktop (hidden on mobile, visible on md+) */}
           <div className="hidden md:flex flex-1 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto">

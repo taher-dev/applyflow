@@ -353,4 +353,61 @@ describe('Interview Notifications & Responsive Navigation', () => {
       )
     })
   })
+
+  describe('6. ApplyFlow Logo Refresh Action', () => {
+    test('Header.tsx makes ApplyFlow logo an interactive button that refreshes the page on click', () => {
+      const headerPath = path.resolve('src/components/dashboard/Header.tsx')
+      const content = fs.readFileSync(headerPath, 'utf8')
+
+      // Ensure button element wraps the logo with handleLogoClick
+      assert.match(
+        content,
+        /<button[\s\S]*?onClick=\{handleLogoClick\}[\s\S]*?aria-label="Refresh page"[\s\S]*?ApplyFlow/i,
+        'Header must render ApplyFlow logo as an interactive button with handleLogoClick and aria-label="Refresh page"'
+      )
+
+      // Ensure handleLogoClick reloads the page or invokes onLogoClick
+      assert.match(
+        content,
+        /handleLogoClick\s*=\s*\(\)\s*=>\s*\{[\s\S]*?window\.location\.reload\(\)/,
+        'handleLogoClick in Header must trigger page refresh via window.location.reload()'
+      )
+    })
+
+    test('Sidebar.tsx makes ApplyFlow logo an interactive button that refreshes the page on click', () => {
+      const sidebarPath = path.resolve('src/components/dashboard/Sidebar.tsx')
+      const content = fs.readFileSync(sidebarPath, 'utf8')
+
+      // Ensure button element wraps the sidebar logo with handleLogoClick
+      assert.match(
+        content,
+        /<button[\s\S]*?onClick=\{handleLogoClick\}[\s\S]*?aria-label="Refresh page"[\s\S]*?ApplyFlow/i,
+        'Sidebar must render ApplyFlow logo as an interactive button with handleLogoClick and aria-label="Refresh page"'
+      )
+
+      // Ensure handleLogoClick reloads the page or invokes onLogoClick
+      assert.match(
+        content,
+        /handleLogoClick\s*=\s*\(\)\s*=>\s*\{[\s\S]*?window\.location\.reload\(\)/,
+        'handleLogoClick in Sidebar must trigger page refresh via window.location.reload()'
+      )
+    })
+
+    test('App.tsx wires onLogoClick to reload the page for Header and Sidebar', () => {
+      const appPath = path.resolve('src/App.tsx')
+      const content = fs.readFileSync(appPath, 'utf8')
+
+      assert.match(
+        content,
+        /<Header[\s\S]*?onLogoClick=\{\(\)\s*=>\s*window\.location\.reload\(\)\}/i,
+        'App.tsx must pass onLogoClick to Header'
+      )
+      assert.match(
+        content,
+        /<Sidebar[\s\S]*?onLogoClick=\{\(\)\s*=>\s*window\.location\.reload\(\)\}/i,
+        'App.tsx must pass onLogoClick to Sidebar'
+      )
+    })
+  })
 })
+

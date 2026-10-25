@@ -21,6 +21,7 @@ interface SidebarProps {
   unseenInterviewsCount?: number
   onResetDemoData?: () => void
   onRefreshWorkspace?: () => void
+  onLogoClick?: () => void
 }
 
 const iconMap = {
@@ -36,9 +37,18 @@ export function Sidebar({
   unseenInterviewsCount,
   onResetDemoData,
   onRefreshWorkspace,
+  onLogoClick,
 }: SidebarProps) {
   const { user, logout } = useAuth()
   const handleRefreshWorkspace = onRefreshWorkspace || onResetDemoData
+
+  const handleLogoClick = () => {
+    if (onLogoClick) {
+      onLogoClick()
+    } else if (typeof window !== 'undefined' && window.location) {
+      window.location.reload()
+    }
+  }
 
   const userInitials = user?.name
     ? user.name
@@ -56,14 +66,20 @@ export function Sidebar({
     >
       {/* Brand Header */}
       <div className="flex h-16 items-center px-4 xl:px-5 border-b border-slate-200/80">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-80 active:scale-95 transition-all bg-transparent border-0 p-0 text-left"
+          aria-label="Refresh page"
+          title="Refresh page"
+        >
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-xs">
             <Briefcase className="size-4" />
           </div>
           <span className="text-base font-bold tracking-tight text-slate-900 truncate">
             ApplyFlow
           </span>
-        </div>
+        </button>
       </div>
 
         {/* Navigation List */}
