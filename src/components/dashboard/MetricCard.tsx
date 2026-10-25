@@ -43,11 +43,13 @@ export function MetricCard({ metric }: MetricCardProps) {
             {metric.value}
           </div>
           <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5">
-            <span
-              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold shrink-0 ${trendColorClass}`}
-            >
-              {metric.change}
-            </span>
+            {metric.change && (
+              <span
+                className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold shrink-0 ${trendColorClass}`}
+              >
+                {metric.change}
+              </span>
+            )}
             <span className="text-[10px] sm:text-[11px] text-slate-500 leading-tight">
               {metric.description}
             </span>

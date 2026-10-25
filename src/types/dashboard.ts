@@ -78,8 +78,8 @@ export interface MetricCardData {
   id: string
   title: string
   value: string | number
-  change: string
-  trend: 'positive' | 'negative' | 'neutral'
+  change?: string
+  trend?: 'positive' | 'negative' | 'neutral'
   description: string
   iconName: 'briefcase' | 'calendar' | 'award' | 'trending-up'
 }

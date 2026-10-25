@@ -23,7 +23,7 @@ import { loadActiveTab, saveActiveTab } from '@/lib/storage'
 import { ApiError } from '@/lib/api'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
-import { initialMetrics } from '@/data/mockData'
+import { calculateDashboardMetrics } from '@/lib/metrics'
 import type {
   JobApplication,
   NavigationKey,
@@ -99,43 +99,8 @@ function DashboardContent() {
 
   // Derived metrics dynamically calculated from live applications list
   const metrics = useMemo<MetricCardData[]>(() => {
-    const totalCount = applications.length
-    const interviewCount = applications.filter((a) => a.status === 'Interview').length
-    const offerCount = applications.filter((a) => a.status === 'Offer').length
-
-    // Submitted applications: all applications submitted to employer (excluding draft 'Saved')
-    const submittedCount = applications.filter((a) => a.status !== 'Saved').length
-
-    // Responded applications: employer responded with Screening, Interview, Offer, or Rejection
-    const respondedCount = applications.filter(
-      (a) =>
-        a.status === 'Screening' ||
-        a.status === 'Interview' ||
-        a.status === 'Offer' ||
-        a.status === 'Rejected'
-    ).length
-
-    const responseRate =
-      submittedCount > 0
-        ? `${Math.round((respondedCount / submittedCount) * 1000) / 10}%`
-        : '0%'
-
-    return initialMetrics.map((metric) => {
-      if (metric.id === 'total-applications') {
-        return { ...metric, value: totalCount }
-      }
-      if (metric.id === 'interviews') {
-        return { ...metric, value: interviewCount }
-      }
-      if (metric.id === 'offers') {
-        return { ...metric, value: offerCount }
-      }
-      if (metric.id === 'response-rate') {
-        return { ...metric, value: responseRate }
-      }
-      return metric
-    })
-  }, [applications])
+    return calculateDashboardMetrics(applications, interviews)
+  }, [applications, interviews])
 
   // Count of upcoming/future interviews for dynamic dashboard and sidebar badge
   const upcomingInterviewsCount = useMemo(() => {
