@@ -18,6 +18,7 @@ import { DeleteInterviewDialog } from '@/components/interviews/DeleteInterviewDi
 import { InterviewDetailsDialog } from '@/components/interviews/InterviewDetailsDialog'
 import { ResetDemoDataDialog } from '@/components/dashboard/ResetDemoDataDialog'
 import { LocalDataMigrationBanner } from '@/components/dashboard/LocalDataMigrationBanner'
+import { LegacyInterviewMigrationBanner } from '@/components/dashboard/LegacyInterviewMigrationBanner'
 import { useApplyFlowStorage } from '@/lib/useApplyFlowStorage'
 import { loadActiveTab, saveActiveTab } from '@/lib/storage'
 import { ApiError } from '@/lib/api'
@@ -435,8 +436,13 @@ function DashboardContent() {
 
         {/* Dashboard Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-24 md:pb-8">
-          {/* 0. Optional Legacy Local Storage Migration Banner */}
+          {/* 0. Optional Legacy Local Storage Migration Banners */}
           <LocalDataMigrationBanner onImportComplete={refetchApplications} />
+          <LegacyInterviewMigrationBanner
+            applications={applications}
+            interviews={interviews}
+            onImportComplete={refetchInterviews}
+          />
 
           {/* Error Banner when server communication fails */}
           {applicationsError && (
