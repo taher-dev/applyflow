@@ -103,8 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = useCallback(async (payload: { token: string; newPassword: string }) => {
     setError(null)
     try {
-      const user = await api.auth.resetPassword(payload)
-      setUser(user)
+      return await api.auth.resetPassword(payload)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Password reset failed'
       setError(msg)

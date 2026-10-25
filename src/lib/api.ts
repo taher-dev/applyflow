@@ -237,14 +237,13 @@ export const api = {
     },
 
     /**
-     * Resets user password using a verified single-use reset token and signs in.
+     * Resets user password using a verified single-use reset token.
      */
-    async resetPassword(payload: { token: string; newPassword: string }): Promise<User> {
-      const data = await apiClient<AuthResponse>('/auth/reset-password', {
+    async resetPassword(payload: { token: string; newPassword: string }): Promise<{ message: string; email?: string }> {
+      return await apiClient<{ message: string; email?: string }>('/auth/reset-password', {
         method: 'POST',
         body: payload,
       })
-      return data.user
     },
 
     /**

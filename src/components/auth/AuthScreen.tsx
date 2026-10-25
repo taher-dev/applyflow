@@ -93,6 +93,7 @@ export function AuthScreen({
   const [showPassword, setShowPassword] = useState(false)
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null)
   const [devResetUrl, setDevResetUrl] = useState<string | null>(null)
+  const [loginNotice, setLoginNotice] = useState<string | null>(null)
 
   // Token confirmation states (from email link)
   const [isConfirmingToken, setIsConfirmingToken] = useState(() => !!tokenFromUrl)
@@ -232,6 +233,7 @@ export function AuthScreen({
     setResetSuccessMessage(null)
     setDevResetUrl(null)
     setTokenConfirmError(null)
+    setLoginNotice(null)
     clearError()
   }
 
@@ -310,11 +312,32 @@ export function AuthScreen({
         )
         toast.success('Password reset link sent to your email!')
       } else if (mode === 'reset-password') {
-        await resetPassword({
+        const res = await resetPassword({
           token: resetToken.trim(),
           newPassword: password,
         })
-        toast.success('Password successfully reset! You are now signed in.')
+
+        // Clean token parameter from browser address bar
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('reset_token')
+          url.searchParams.delete('token')
+          window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''))
+        } catch {
+          // ignore if history API is restricted
+        }
+
+        // Redirect to login screen, pre-fill email, and notify user
+        const targetEmail = confirmedEmail || res?.email || email
+        setEmail(targetEmail)
+        setPassword('')
+        setConfirmPassword('')
+        setResetToken('')
+        setConfirmedEmail(null)
+        setTokenConfirmError(null)
+        setMode('login')
+        setLoginNotice('Password successfully reset! Please sign in with your new password.')
+        toast.success('Password reset successfully! Please sign in with your new password.')
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -418,6 +441,17 @@ export function AuthScreen({
           >
             <AlertCircle className="size-4 text-red-600 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium leading-relaxed">{activeError}</div>
+          </div>
+        )}
+
+        {/* Success / Status Banner (e.g. after password reset) */}
+        {loginNotice && mode === 'login' && !activeError && (
+          <div
+            role="status"
+            className="w-full mb-4 flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-800 animate-in fade-in duration-200"
+          >
+            <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium leading-relaxed">{loginNotice}</div>
           </div>
         )}
 

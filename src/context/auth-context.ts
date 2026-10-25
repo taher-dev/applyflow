@@ -10,7 +10,7 @@ export interface AuthContextType {
   loginWithGoogle: (payload?: { credential?: string; email?: string; name?: string }) => Promise<void>
   forgotPassword: (email: string) => Promise<{ message: string; resetToken?: string; resetUrl?: string }>
   confirmResetToken: (token: string) => Promise<{ valid: boolean; email?: string; name?: string; message: string }>
-  resetPassword: (payload: { token: string; newPassword: string }) => Promise<void>
+  resetPassword: (payload: { token: string; newPassword: string }) => Promise<{ message: string; email?: string }>
   logout: () => Promise<void>
   clearError: () => void
 }

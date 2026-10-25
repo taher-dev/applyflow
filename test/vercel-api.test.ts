@@ -245,17 +245,15 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     })
     assert.equal(invalidResetRes.status, 400)
 
-    // Reset password with valid token succeeds and establishes session
+    // Reset password with valid token succeeds and clears session
     const resetRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword }),
     })
     assert.equal(resetRes.status, 200)
-    const resetData = await resetRes.json()
-    assert.equal(resetData.user.email, email)
-    const resetCookie = resetRes.headers.get('set-cookie')
-    assert.ok(resetCookie && resetCookie.includes('applyflow_session'))
+    const resetData = (await resetRes.json()) as { message: string; email?: string }
+    assert.equal(resetData.email, email)
 
     // Old password no longer works
     const oldLoginRes = await fetch(`${baseUrl}/api/auth/login`, {

@@ -363,17 +363,13 @@ authRouter.post(
         where: { userId: validUser.id },
       })
 
-      // Create fresh session and set session cookie
-      const { rawToken } = await createSession(validUser.id)
-      res.cookie(SESSION_COOKIE_NAME, rawToken, getSessionCookieOptions())
+      // Clear any session cookie so the user must authenticate on login screen
+      res.clearCookie(SESSION_COOKIE_NAME, getClearSessionCookieOptions())
 
       res.status(200).json({
-        message: 'Password has been successfully reset.',
-        user: {
-          id: validUser.id,
-          name: validUser.name,
-          email: validUser.email,
-        },
+        message: 'Password has been successfully reset. Please sign in with your new password.',
+        email: validUser.email,
+        success: true,
       })
     } catch (error) {
       next(error)
