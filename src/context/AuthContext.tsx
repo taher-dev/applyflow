@@ -6,9 +6,16 @@ import { AuthContext } from './auth-context'
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isGuest, setIsGuest] = useState<boolean>(true)
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const params = new URLSearchParams(window.location.search)
+    return Boolean(params.get('reset_token') || params.get('token'))
+  })
   const [error, setError] = useState<string | null>(null)
 
   // Verify cookie-backed session on initial mount
+  // If no session → guest mode (not an error, it's the default state)
   useEffect(() => {
     let isSubscribed = true
 
@@ -17,12 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = await api.auth.getMe()
         if (isSubscribed) {
           setUser(currentUser)
+          setIsGuest(false)
           setError(null)
         }
       } catch (err) {
-        // 401 Unauthorized simply indicates no active session
+        // 401 Unauthorized simply indicates no active session → guest mode
         if (isSubscribed) {
           setUser(null)
+          setIsGuest(true)
           // Do not flag expected 401 as an application error on initial load
           if (err instanceof ApiError && err.status !== 401) {
             setError(err.message)
@@ -47,6 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const authenticatedUser = await api.auth.login(credentials)
       setUser(authenticatedUser)
+      setIsGuest(false)
+      setIsAuthDialogOpen(false)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Login failed'
       setError(msg)
@@ -59,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const registeredUser = await api.auth.register(credentials)
       setUser(registeredUser)
+      setIsGuest(false)
+      setIsAuthDialogOpen(false)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Registration failed'
       setError(msg)
@@ -71,6 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const googleUser = await api.auth.googleLogin(payload)
       setUser(googleUser)
+      setIsGuest(false)
+      setIsAuthDialogOpen(false)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Google sign-in failed'
       setError(msg)
@@ -116,8 +131,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await api.auth.logout()
     } finally {
       setUser(null)
+      setIsGuest(true)
       setError(null)
     }
+  }, [])
+
+  const openAuthDialog = useCallback(() => {
+    setIsAuthDialogOpen(true)
+  }, [])
+
+  const closeAuthDialog = useCallback(() => {
+    setIsAuthDialogOpen(false)
+    setError(null)
   }, [])
 
   const clearError = useCallback(() => {
@@ -127,6 +152,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     isLoading,
+    isGuest,
+    isAuthDialogOpen,
     error,
     login,
     register,
@@ -135,6 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     confirmResetToken,
     resetPassword,
     logout,
+    openAuthDialog,
+    closeAuthDialog,
     clearError,
   }
 

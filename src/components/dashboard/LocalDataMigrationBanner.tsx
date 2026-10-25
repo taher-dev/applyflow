@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import {
   CloudUpload,
   Download,
@@ -23,10 +23,12 @@ import {
   getImportLedger,
   importApplicationsToCloud,
   removeImportedFromLocalStorage,
+  type LegacyDetectionResult,
   type ImportSummary,
 } from '@/lib/local-import'
-import { useAuth } from '@/context/useAuth'
+import type { JobApplication } from '@/types/dashboard'
 import { toast } from 'sonner'
+import { useAuth } from '@/context/useAuth'
 
 interface LocalDataMigrationBannerProps {
   onImportComplete?: () => Promise<void> | void
@@ -36,25 +38,20 @@ export function LocalDataMigrationBanner({
   onImportComplete,
 }: LocalDataMigrationBannerProps) {
   const { user } = useAuth()
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [detection, setDetection] = useState<LegacyDetectionResult | null>(() =>
+    detectLegacyApplications()
+  )
+  const [unimportedRecords, setUnimportedRecords] = useState<JobApplication[]>(() => {
+    const result = detectLegacyApplications()
+    if (!result.hasLegacyData) return []
+    const ledger = getImportLedger()
+    return result.customRecords.filter((app) => !ledger[app.id])
+  })
   const [isDismissed, setIsDismissed] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; name: string } | null>(null)
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
-
-  const detection = useMemo(() => {
-    if (!user) return null
-    if (refreshTrigger < 0) return null
-    return detectLegacyApplications()
-  }, [user, refreshTrigger])
-
-  const unimportedRecords = useMemo(() => {
-    if (!detection || !detection.hasLegacyData) return []
-    const ledger = getImportLedger()
-    const records = detection.customRecords.length > 0 ? detection.customRecords : detection.demoRecords
-    return records.filter((app) => !ledger[app.id])
-  }, [detection])
 
   if (!user || isDismissed || !detection || unimportedRecords.length === 0) {
     return null
@@ -123,8 +120,12 @@ export function LocalDataMigrationBanner({
     const succeededIds = importSummary.succeeded.map((s) => s.legacyId)
     removeImportedFromLocalStorage(succeededIds)
 
-    // Refresh detection via trigger
-    setRefreshTrigger((prev) => prev + 1)
+    // Re-check detection
+    const refreshed = detectLegacyApplications()
+    setDetection(refreshed)
+    const ledger = getImportLedger()
+    const pending = refreshed.customRecords.filter((app) => !ledger[app.id])
+    setUnimportedRecords(pending)
 
     setIsDialogOpen(false)
     toast.success('Local copies cleared', {
@@ -143,14 +144,14 @@ export function LocalDataMigrationBanner({
             </div>
             <div className="min-w-0">
               <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <span>Guest progress detected</span>
+                <span>Local application records detected</span>
                 <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-800">
                   {unimportedRecords.length} record{unimportedRecords.length === 1 ? '' : 's'}
                 </span>
               </h4>
               <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                 You have {unimportedRecords.length} application(s) saved in this browser.
-                Store your progress in the cloud to access your applications and interviews anywhere.
+                Migrate them to your cloud account to access them anywhere.
               </p>
             </div>
           </div>
@@ -173,7 +174,7 @@ export function LocalDataMigrationBanner({
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 cursor-pointer shadow-2xs gap-1.5"
             >
               <CloudUpload className="size-3.5" />
-              <span>Store in cloud</span>
+              <span>Migrate to cloud</span>
             </Button>
 
             <button
@@ -195,10 +196,10 @@ export function LocalDataMigrationBanner({
           <DialogHeader>
             <DialogTitle className="text-slate-900 flex items-center gap-2">
               <HardDrive className="size-5 text-blue-600" />
-              <span>Store progress in cloud</span>
+              <span>Migrate applications to cloud</span>
             </DialogTitle>
             <DialogDescription className="text-slate-500 text-xs mt-1">
-              Transfer your locally saved applications and interviews to your PostgreSQL cloud account.
+              Transfer your locally saved applications to your PostgreSQL account.
               Existing cloud records will never be overwritten.
             </DialogDescription>
           </DialogHeader>

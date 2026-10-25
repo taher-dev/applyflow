@@ -7,11 +7,7 @@ import {
 } from './storage.ts'
 import { initialApplications } from '../data/mockData.ts'
 import { api, ApiError } from './api.ts'
-import {
-  toBackendCreatePayload,
-  toFrontendApplication,
-  toBackendInterviewCreatePayload,
-} from './application-mapper.ts'
+import { toBackendCreatePayload, toFrontendApplication } from './application-mapper.ts'
 
 export const IMPORT_LEDGER_KEY = 'applyflow_import_ledger_v1'
 
@@ -202,31 +198,6 @@ export async function importApplicationsToCloud(
       // Re-key local interviews that referenced this legacy local application
       updateInterviewForeignKeys(app.id, backendCreated.id)
 
-      // Import any related local interviews to the newly created cloud application
-      if (typeof api?.interviews?.create === 'function') {
-        try {
-          const loadedInterviews = loadInterviews()
-          if (loadedInterviews.data && loadedInterviews.data.length > 0) {
-            const related = loadedInterviews.data.filter(
-              (item) => item.applicationId === app.id || item.applicationId === backendCreated.id
-            )
-            for (const item of related) {
-              try {
-                const interviewPayload = toBackendInterviewCreatePayload({
-                  ...item,
-                  applicationId: backendCreated.id,
-                })
-                await api.interviews.create(interviewPayload)
-              } catch {
-                // Ignore individual interview migration errors
-              }
-            }
-          }
-        } catch {
-          // Ignore if interviews cannot be accessed
-        }
-      }
-
       summary.succeeded.push({
         legacyId: app.id,
         newId: backendCreated.id,
@@ -252,28 +223,14 @@ export async function importApplicationsToCloud(
 }
 
 /**
- * Clears only the legacy applications and their interviews that were confirmed to have been imported.
+ * Clears only the legacy applications that were confirmed to have been imported.
  * Retains failed or unselected records safely.
  */
 export function removeImportedFromLocalStorage(importedLegacyIds: string[]): void {
   const loaded = loadApplications()
+  if (!loaded.data) return
+
   const importedSet = new Set(importedLegacyIds)
-
-  if (loaded.data) {
-    const remaining = loaded.data.filter((app) => !importedSet.has(app.id))
-    saveApplications(remaining)
-  }
-
-  const loadedInts = loadInterviews()
-  if (loadedInts.data) {
-    const ledger = getImportLedger()
-    const remainingInts = loadedInts.data.filter((item) => {
-      if (importedSet.has(item.applicationId)) return false
-      for (const legId of importedLegacyIds) {
-        if (ledger[legId] === item.applicationId) return false
-      }
-      return true
-    })
-    saveInterviews(remainingInts)
-  }
+  const remaining = loaded.data.filter((app) => !importedSet.has(app.id))
+  saveApplications(remaining)
 }

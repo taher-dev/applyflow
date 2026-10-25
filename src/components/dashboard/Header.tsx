@@ -46,7 +46,6 @@ interface HeaderProps {
   unseenCount?: number
   onMarkNotificationsSeen?: () => void
   onLogoClick?: () => void
-  onOpenAuth?: (mode?: 'login' | 'register') => void
 }
 
 function getRelativeDateLabel(scheduledAt: string, currentTimestamp: number) {
@@ -102,9 +101,8 @@ export function Header({
   unseenCount,
   onMarkNotificationsSeen,
   onLogoClick,
-  onOpenAuth,
 }: HeaderProps) {
-  const { user, logout } = useAuth()
+  const { user, logout, openAuthDialog } = useAuth()
 
   const [currentTime] = useState(() => Date.now())
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
@@ -480,7 +478,16 @@ export function Header({
         </div>
 
         {/* Profile Avatar with Logout Dropdown or Guest Sign In */}
-        {user ? (
+        {!user ? (
+          <Button
+            size="sm"
+            onClick={openAuthDialog}
+            className="bg-slate-900 hover:bg-slate-800 text-white text-xs h-9 px-3.5 gap-1.5 shadow-2xs font-medium cursor-pointer"
+          >
+            <LogIn className="size-3.5" />
+            <span>Sign in</span>
+          </Button>
+        ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -549,23 +556,6 @@ export function Header({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="hidden sm:inline-flex text-[11px] font-medium text-slate-600 bg-slate-100 border-slate-200/80 px-2 py-0.5 rounded-full"
-            >
-              Guest Mode
-            </Badge>
-            <Button
-              size="sm"
-              onClick={() => onOpenAuth?.('login')}
-              className="h-9 px-3 sm:px-3.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
-            >
-              <LogIn className="size-3.5" />
-              <span>Sign In</span>
-            </Button>
-          </div>
         )}
       </div>
     </>

@@ -5,11 +5,12 @@ import {
   Calendar,
   LogOut,
   RotateCcw,
-  CloudUpload,
+  LogIn,
 } from 'lucide-react'
 import { navigationItems } from '@/data/mockData'
 import type { NavigationKey } from '@/types/dashboard'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -23,7 +24,6 @@ interface SidebarProps {
   onResetDemoData?: () => void
   onRefreshWorkspace?: () => void
   onLogoClick?: () => void
-  onOpenAuth?: (mode?: 'login' | 'register') => void
 }
 
 const iconMap = {
@@ -40,9 +40,8 @@ export function Sidebar({
   onResetDemoData,
   onRefreshWorkspace,
   onLogoClick,
-  onOpenAuth,
 }: SidebarProps) {
-  const { user, logout } = useAuth()
+  const { user, logout, openAuthDialog } = useAuth()
   const handleRefreshWorkspace = onRefreshWorkspace || onResetDemoData
 
   const handleLogoClick = () => {
@@ -221,23 +220,21 @@ export function Sidebar({
         ) : (
           <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="size-7.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                  G
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-xs text-slate-900">Guest User</p>
-                  <p className="text-[10px] text-slate-500 truncate">Saved locally on device</p>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <div className="size-2 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-semibold text-slate-800">Guest Mode (Local)</span>
               </div>
-              <button
-                type="button"
-                onClick={() => onOpenAuth?.('login')}
-                className="w-full h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+              <p className="text-[10.5px] text-slate-500 leading-tight">
+                Data is saved locally. Sign in to sync across devices.
+              </p>
+              <Button
+                size="sm"
+                onClick={openAuthDialog}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs h-7.5 cursor-pointer gap-1.5 font-medium shadow-2xs"
               >
-                <CloudUpload className="size-3 text-white" />
-                <span>Save to Cloud</span>
-              </button>
+                <LogIn className="size-3" />
+                <span>Sign in to save</span>
+              </Button>
             </div>
           </div>
         )}

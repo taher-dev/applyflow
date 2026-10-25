@@ -1,15 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Plus, Briefcase, Loader2, AlertCircle, X } from 'lucide-react'
+import { Plus, Briefcase, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/context/useAuth'
-import { AuthScreen } from '@/components/auth/AuthScreen'
+import { AuthDialog } from '@/components/auth/AuthDialog'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
 import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
@@ -42,11 +36,7 @@ import type {
   Interview,
 } from '@/types/dashboard'
 
-interface DashboardContentProps {
-  onOpenAuth?: (mode?: 'login' | 'register') => void
-}
-
-function DashboardContent({ onOpenAuth }: DashboardContentProps = {}) {
+function DashboardContent() {
   const [activeTab, setActiveTab] = useState<NavigationKey>(() => loadActiveTab())
 
   // Persist active navigation tab across browser refreshes
@@ -409,7 +399,6 @@ function DashboardContent({ onOpenAuth }: DashboardContentProps = {}) {
         unseenInterviewsCount={unseenCount}
         onResetDemoData={() => setIsResetDialogOpen(true)}
         onLogoClick={() => window.location.reload()}
-        onOpenAuth={onOpenAuth}
       />
 
       {/* 2. Main Content Canvas */}
@@ -442,17 +431,12 @@ function DashboardContent({ onOpenAuth }: DashboardContentProps = {}) {
           onScheduleInterview={() => {
             handleOpenScheduleInterview()
           }}
-          onOpenAuth={onOpenAuth}
         />
 
         {/* Dashboard Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto pb-24 md:pb-8">
-          {/* 0. Optional Legacy / Guest Local Storage Migration Banner */}
-          <LocalDataMigrationBanner
-            onImportComplete={async () => {
-              await Promise.allSettled([refetchApplications(), refetchInterviews()])
-            }}
-          />
+          {/* 0. Optional Legacy Local Storage Migration Banner */}
+          <LocalDataMigrationBanner onImportComplete={refetchApplications} />
 
           {/* Error Banner when server communication fails */}
           {applicationsError && (
@@ -714,28 +698,9 @@ function DashboardContent({ onOpenAuth }: DashboardContentProps = {}) {
 }
 
 function AppRoot() {
-  const { user, isLoading } = useAuth()
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [authModalInitialMode, setAuthModalInitialMode] = useState<'login' | 'register'>('login')
+  const { isLoading, isAuthDialogOpen, closeAuthDialog } = useAuth()
 
-  // Check if opened with reset token in URL
-  const [tokenFromUrl] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    const params = new URLSearchParams(window.location.search)
-    return (params.get('reset_token') || params.get('token') || '').trim()
-  })
-
-  // 1. If user opened a password reset link, show dedicated reset password screen
-  if (tokenFromUrl && !user) {
-    return (
-      <>
-        <AuthScreen initialMode="reset-password" />
-        <Toaster position="top-right" />
-      </>
-    )
-  }
-
-  // 2. Initial loading splash while verifying cookie-backed session
+  // 1. Initial loading splash while verifying cookie-backed session
   if (isLoading) {
     return (
       <div className="min-h-screen w-full flex flex-col justify-center items-center bg-slate-50 text-slate-900 space-y-4 font-sans">
@@ -750,40 +715,12 @@ function AppRoot() {
     )
   }
 
-  // 3. Direct launch into workspace as guest (or authenticated user if cookie session restored)
+  // 2. Guest-First Architecture: Dashboard always renders immediately!
+  // Sign in is accessible via modal dialog without interrupting or wiping the guest experience.
   return (
     <>
-      <DashboardContent
-        onOpenAuth={(mode) => {
-          setAuthModalInitialMode(mode || 'login')
-          setIsAuthModalOpen(true)
-        }}
-      />
-
-      {/* Auth Dialog for Guest Users */}
-      <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-        <DialogContent className="max-w-[420px] p-0 bg-transparent border-0 shadow-none overflow-hidden">
-          <DialogTitle className="sr-only">Sign In to ApplyFlow</DialogTitle>
-          <DialogDescription className="sr-only">
-            Sign in or create an account to store your progress with the cloud.
-          </DialogDescription>
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 p-6 sm:p-8 relative">
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              aria-label="Close dialog"
-            >
-              <X className="size-4" />
-            </button>
-            <AuthScreen
-              initialMode={authModalInitialMode}
-              onClose={() => setIsAuthModalOpen(false)}
-              isModal={true}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DashboardContent />
+      <AuthDialog open={isAuthDialogOpen} onOpenChange={(open) => !open && closeAuthDialog()} />
     </>
   )
 }

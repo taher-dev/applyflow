@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext } from 'react'
+import { useState, useEffect, useCallback, useContext, useRef } from 'react'
 import type { JobApplication, Interview } from '@/types/dashboard'
 import { api, ApiError } from './api.ts'
 import {
@@ -9,83 +9,234 @@ import {
   toBackendInterviewCreatePayload,
   toBackendInterviewUpdatePayload,
 } from './application-mapper.ts'
+import { AuthContext } from '../context/auth-context.ts'
 import {
   loadApplications,
   saveApplications,
   loadInterviews,
   saveInterviews,
 } from './storage.ts'
-import { initialApplications, initialInterviews } from '../data/mockData.ts'
-import { AuthContext } from '../context/auth-context.ts'
+import {
+  detectLegacyApplications,
+  importApplicationsToCloud,
+  removeImportedFromLocalStorage,
+  isDemoApplication,
+} from './local-import.ts'
+import { toast } from 'sonner'
+import { initialInterviews } from '../data/mockData.ts'
 
-function getInitialLocalApplications(): JobApplication[] {
-  const result = loadApplications()
-  if (result.data && result.data.length > 0) {
-    return result.data
+function generateLocalId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
   }
-  saveApplications(initialApplications)
-  return initialApplications
-}
-
-function getInitialLocalInterviews(): Interview[] {
-  const result = loadInterviews()
-  if (result.data && result.data.length > 0) {
-    return result.data
-  }
-  saveInterviews(initialInterviews)
-  return initialInterviews
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
 }
 
 export function useApplyFlowStorage() {
   const authContext = useContext(AuthContext)
   const user = authContext?.user || null
 
-  const [applications, setApplications] = useState<JobApplication[]>(() => {
-    if (user) return []
-    return getInitialLocalApplications()
-  })
-  const [isLoadingApplications, setIsLoadingApplications] = useState<boolean>(() => Boolean(user))
+  const [applications, setApplications] = useState<JobApplication[]>([])
+  const [isLoadingApplications, setIsLoadingApplications] = useState<boolean>(true)
   const [applicationsError, setApplicationsError] = useState<string | null>(null)
 
-  const [interviews, setInterviews] = useState<Interview[]>(() => {
-    if (user) return []
-    return getInitialLocalInterviews()
-  })
-  const [isLoadingInterviews, setIsLoadingInterviews] = useState<boolean>(() => Boolean(user))
+  const [interviews, setInterviews] = useState<Interview[]>([])
+  const [isLoadingInterviews, setIsLoadingInterviews] = useState<boolean>(true)
   const [interviewsError, setInterviewsError] = useState<string | null>(null)
 
-  const [prevUser, setPrevUser] = useState(user)
+  const prevUserRef = useRef(user)
 
-  // Handle user switch / logout
-  if (user !== prevUser) {
-    setPrevUser(user)
-    if (!user) {
-      // Switched to guest mode: load local progress
-      const localApps = getInitialLocalApplications()
-      const localInts = getInitialLocalInterviews()
-      setApplications(localApps)
-      setInterviews(localInts)
-      setIsLoadingApplications(false)
-      setIsLoadingInterviews(false)
-      setApplicationsError(null)
-      setInterviewsError(null)
-    } else {
-      // Switched to authenticated user: wipe guest state and load from server
+  // Load guest data from localStorage without any populated/mock data
+  const loadGuestData = useCallback(() => {
+    setIsLoadingApplications(true)
+    setIsLoadingInterviews(true)
+    setApplicationsError(null)
+    setInterviewsError(null)
+
+    try {
+      const appResult = loadApplications()
+      let currentApps: JobApplication[] = []
+
+      if (appResult.data !== null && Array.isArray(appResult.data)) {
+        // Strip out any previously seeded demo applications so guest mode is completely clean
+        currentApps = appResult.data.filter((app) => !isDemoApplication(app))
+        if (currentApps.length !== appResult.data.length) {
+          saveApplications(currentApps)
+        }
+      } else {
+        saveApplications([])
+      }
+      setApplications(currentApps)
+
+      const validAppIds = new Set(currentApps.map((a) => a.id))
+      const intResult = loadInterviews(validAppIds)
+      let currentInts: Interview[] = []
+
+      if (intResult.data !== null && Array.isArray(intResult.data)) {
+        // Filter out demo interviews and orphaned interviews
+        currentInts = intResult.data.filter(
+          (item) =>
+            validAppIds.has(item.applicationId) &&
+            !initialInterviews.some((demo) => demo.id === item.id)
+        )
+        if (currentInts.length !== intResult.data.length) {
+          saveInterviews(currentInts)
+        }
+      } else {
+        saveInterviews([])
+      }
+      setInterviews(currentInts)
+    } catch {
       setApplications([])
       setInterviews([])
+      saveApplications([])
+      saveInterviews([])
+    } finally {
+      setIsLoadingApplications(false)
+      setIsLoadingInterviews(false)
+    }
+  }, [])
+
+  // User state transition effect (login/logout/switch)
+  useEffect(() => {
+    const prevUser = prevUserRef.current
+    prevUserRef.current = user
+
+    // Switching between guest and logged in, or between different accounts
+    if (user !== prevUser) {
+      if (!user) {
+        // Logged out -> revert to guest mode with local data
+        loadGuestData()
+      } else {
+        // Logged in -> auto-sync local guest applications to cloud, then fetch cloud data
+        setIsLoadingApplications(true)
+        setIsLoadingInterviews(true)
+        setApplications([])
+        setInterviews([])
+        setApplicationsError(null)
+        setInterviewsError(null)
+
+        let ignore = false
+
+        async function syncAndLoad() {
+          // If transitioning from guest mode, automatically migrate custom local records to cloud
+          if (!prevUser) {
+            try {
+              const legacy = detectLegacyApplications()
+              if (legacy.hasLegacyData && legacy.customRecords.length > 0) {
+                const summary = await importApplicationsToCloud(legacy.customRecords)
+                if (summary.succeeded.length > 0) {
+                  removeImportedFromLocalStorage(summary.succeeded.map((s) => s.legacyId))
+                  toast.success(
+                    `Saved ${summary.succeeded.length} local application${summary.succeeded.length === 1 ? '' : 's'} to your cloud account!`
+                  )
+                }
+              }
+            } catch (err) {
+              console.warn('[ApplyFlow] Failed to auto-sync local data:', err)
+            }
+          }
+
+          if (ignore) return
+
+          try {
+            const [appsResult, interviewsResult] = await Promise.allSettled([
+              api.applications.getAll(),
+              api.interviews.getAll(),
+            ])
+
+            if (ignore) return
+
+            if (appsResult.status === 'fulfilled') {
+              setApplications(appsResult.value.map(toFrontendApplication))
+              setApplicationsError(null)
+            } else {
+              const message =
+                appsResult.reason instanceof ApiError
+                  ? appsResult.reason.message
+                  : 'Unable to load applications from server'
+              setApplicationsError(message)
+            }
+            setIsLoadingApplications(false)
+
+            if (interviewsResult.status === 'fulfilled') {
+              setInterviews(interviewsResult.value.map(toFrontendInterview))
+              setInterviewsError(null)
+            } else {
+              const message =
+                interviewsResult.reason instanceof ApiError
+                  ? interviewsResult.reason.message
+                  : 'Unable to load interviews from server'
+              setInterviewsError(message)
+            }
+            setIsLoadingInterviews(false)
+          } catch {
+            if (!ignore) {
+              setIsLoadingApplications(false)
+              setIsLoadingInterviews(false)
+            }
+          }
+        }
+
+        syncAndLoad()
+
+        return () => {
+          ignore = true
+        }
+      }
+    }
+  }, [user, loadGuestData])
+
+  // Initial load when component mounts
+  useEffect(() => {
+    let ignore = false
+
+    if (!user) {
+      loadGuestData()
+    } else {
       setIsLoadingApplications(true)
       setIsLoadingInterviews(true)
-      setApplicationsError(null)
-      setInterviewsError(null)
-    }
-  }
 
-  // Fetch applications from server (or reload local storage if guest)
+      Promise.allSettled([api.applications.getAll(), api.interviews.getAll()]).then(
+        ([appsResult, interviewsResult]) => {
+          if (ignore) return
+
+          if (appsResult.status === 'fulfilled') {
+            setApplications(appsResult.value.map(toFrontendApplication))
+            setApplicationsError(null)
+          } else {
+            const message =
+              appsResult.reason instanceof ApiError
+                ? appsResult.reason.message
+                : 'Unable to load applications from server'
+            setApplicationsError(message)
+          }
+          setIsLoadingApplications(false)
+
+          if (interviewsResult.status === 'fulfilled') {
+            setInterviews(interviewsResult.value.map(toFrontendInterview))
+            setInterviewsError(null)
+          } else {
+            const message =
+              interviewsResult.reason instanceof ApiError
+                ? interviewsResult.reason.message
+                : 'Unable to load interviews from server'
+            setInterviewsError(message)
+          }
+          setIsLoadingInterviews(false)
+        }
+      )
+    }
+
+    return () => {
+      ignore = true
+    }
+  }, []) // Mount-only effect
+
+  // Fetch applications
   const fetchApplications = useCallback(async () => {
     if (!user) {
-      const localApps = getInitialLocalApplications()
-      setApplications(localApps)
-      setIsLoadingApplications(false)
+      loadGuestData()
       return
     }
 
@@ -105,14 +256,12 @@ export function useApplyFlowStorage() {
     } finally {
       setIsLoadingApplications(false)
     }
-  }, [user])
+  }, [user, loadGuestData])
 
-  // Fetch interviews from server (or reload local storage if guest)
+  // Fetch interviews
   const fetchInterviews = useCallback(async () => {
     if (!user) {
-      const localInts = getInitialLocalInterviews()
-      setInterviews(localInts)
-      setIsLoadingInterviews(false)
+      loadGuestData()
       return
     }
 
@@ -132,64 +281,23 @@ export function useApplyFlowStorage() {
     } finally {
       setIsLoadingInterviews(false)
     }
-  }, [user])
+  }, [user, loadGuestData])
 
-  // Fetch both applications and interviews on mount / user change if authenticated
-  useEffect(() => {
-    if (!user) return
-
-    let ignore = false
-
-    Promise.allSettled([api.applications.getAll(), api.interviews.getAll()]).then(
-      ([appsResult, interviewsResult]) => {
-        if (ignore) return
-
-        if (appsResult.status === 'fulfilled') {
-          setApplications(appsResult.value.map(toFrontendApplication))
-          setApplicationsError(null)
-        } else {
-          const message =
-            appsResult.reason instanceof ApiError
-              ? appsResult.reason.message
-              : 'Unable to load applications from server'
-          setApplicationsError(message)
-        }
-        setIsLoadingApplications(false)
-
-        if (interviewsResult.status === 'fulfilled') {
-          setInterviews(interviewsResult.value.map(toFrontendInterview))
-          setInterviewsError(null)
-        } else {
-          const message =
-            interviewsResult.reason instanceof ApiError
-              ? interviewsResult.reason.message
-              : 'Unable to load interviews from server'
-          setInterviewsError(message)
-        }
-        setIsLoadingInterviews(false)
-      }
-    )
-
-    return () => {
-      ignore = true
-    }
-  }, [user])
-
-  // Create an application (local for guest, API for authenticated)
+  // Create an application (Dual-mode: local storage vs cloud API)
   const createApplication = useCallback(
     async (appData: Omit<JobApplication, 'id'>): Promise<JobApplication> => {
       if (!user) {
-        const id = `app-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-        const newApp: JobApplication = {
+        const id = generateLocalId('app')
+        const frontendApp: JobApplication = {
           ...appData,
           id,
         }
         setApplications((prev) => {
-          const updated = [newApp, ...prev]
-          saveApplications(updated)
-          return updated
+          const next = [frontendApp, ...prev]
+          saveApplications(next)
+          return next
         })
-        return newApp
+        return frontendApp
       }
 
       const payload = toBackendCreatePayload(appData)
@@ -202,23 +310,26 @@ export function useApplyFlowStorage() {
     [user]
   )
 
-  // Update an application (local for guest, API for authenticated)
+  // Update an application (Dual-mode: local storage vs cloud API)
   const updateApplication = useCallback(
     async (id: string, appData: Partial<JobApplication>): Promise<JobApplication> => {
       if (!user) {
-        let updatedApp: JobApplication | undefined
+        let updatedApp: JobApplication | null = null
         setApplications((prev) => {
-          const updated = prev.map((app) => {
+          const next = prev.map((app) => {
             if (app.id === id) {
               updatedApp = { ...app, ...appData }
               return updatedApp
             }
             return app
           })
-          saveApplications(updated)
-          return updated
+          saveApplications(next)
+          return next
         })
-        return updatedApp || ({ id, ...appData } as JobApplication)
+        if (!updatedApp) {
+          throw new Error('Application not found')
+        }
+        return updatedApp
       }
 
       const payload = toBackendUpdatePayload(appData)
@@ -233,19 +344,19 @@ export function useApplyFlowStorage() {
     [user]
   )
 
-  // Delete an application (local for guest, API for authenticated)
+  // Delete an application (Dual-mode: local storage vs cloud API)
   const deleteApplication = useCallback(
     async (id: string): Promise<void> => {
       if (!user) {
         setApplications((prev) => {
-          const updated = prev.filter((app) => app.id !== id)
-          saveApplications(updated)
-          return updated
+          const next = prev.filter((app) => app.id !== id)
+          saveApplications(next)
+          return next
         })
         setInterviews((prev) => {
-          const updated = prev.filter((interview) => interview.applicationId !== id)
-          saveInterviews(updated)
-          return updated
+          const next = prev.filter((interview) => interview.applicationId !== id)
+          saveInterviews(next)
+          return next
         })
         return
       }
@@ -257,26 +368,26 @@ export function useApplyFlowStorage() {
     [user]
   )
 
-  // Create an interview (local for guest, API for authenticated)
+  // Create an interview (Dual-mode: local storage vs cloud API)
   const createInterview = useCallback(
     async (
       interviewData: Omit<Interview, 'id' | 'createdAt' | 'updatedAt'>
     ): Promise<Interview> => {
       if (!user) {
+        const id = generateLocalId('int')
         const now = new Date().toISOString()
-        const id = `int-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-        const newInterview: Interview = {
+        const frontendInterview: Interview = {
           ...interviewData,
           id,
           createdAt: now,
           updatedAt: now,
         }
         setInterviews((prev) => {
-          const updated = [newInterview, ...prev]
-          saveInterviews(updated)
-          return updated
+          const next = [frontendInterview, ...prev]
+          saveInterviews(next)
+          return next
         })
-        return newInterview
+        return frontendInterview
       }
 
       const payload = toBackendInterviewCreatePayload(interviewData)
@@ -289,24 +400,30 @@ export function useApplyFlowStorage() {
     [user]
   )
 
-  // Update an interview (local for guest, API for authenticated)
+  // Update an interview (Dual-mode: local storage vs cloud API)
   const updateInterview = useCallback(
     async (id: string, interviewData: Partial<Interview>): Promise<Interview> => {
       if (!user) {
-        const now = new Date().toISOString()
-        let updatedInterview: Interview | undefined
+        let updatedInterview: Interview | null = null
         setInterviews((prev) => {
-          const updated = prev.map((item) => {
+          const next = prev.map((item) => {
             if (item.id === id) {
-              updatedInterview = { ...item, ...interviewData, updatedAt: now }
+              updatedInterview = {
+                ...item,
+                ...interviewData,
+                updatedAt: new Date().toISOString(),
+              }
               return updatedInterview
             }
             return item
           })
-          saveInterviews(updated)
-          return updated
+          saveInterviews(next)
+          return next
         })
-        return updatedInterview || ({ id, ...interviewData } as Interview)
+        if (!updatedInterview) {
+          throw new Error('Interview not found')
+        }
+        return updatedInterview
       }
 
       const payload = toBackendInterviewUpdatePayload(interviewData)
@@ -321,14 +438,14 @@ export function useApplyFlowStorage() {
     [user]
   )
 
-  // Delete an interview (local for guest, API for authenticated)
+  // Delete an interview (Dual-mode: local storage vs cloud API)
   const deleteInterview = useCallback(
     async (id: string): Promise<void> => {
       if (!user) {
         setInterviews((prev) => {
-          const updated = prev.filter((item) => item.id !== id)
-          saveInterviews(updated)
-          return updated
+          const next = prev.filter((item) => item.id !== id)
+          saveInterviews(next)
+          return next
         })
         return
       }
@@ -342,13 +459,9 @@ export function useApplyFlowStorage() {
   // Refresh workspace data
   const refreshWorkspaceData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
-      setApplications(initialApplications)
-      saveApplications(initialApplications)
-      setInterviews(initialInterviews)
-      saveInterviews(initialInterviews)
+      loadGuestData()
       return { success: true }
     }
-
     setIsLoadingApplications(true)
     setIsLoadingInterviews(true)
     try {
@@ -375,18 +488,29 @@ export function useApplyFlowStorage() {
       setIsLoadingApplications(false)
       setIsLoadingInterviews(false)
     }
-  }, [user])
+  }, [user, loadGuestData])
 
-  // Reset demo data
+  // Reset to clean workspace
   const resetToDemoData = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      saveApplications([])
+      saveInterviews([])
+      setApplications([])
+      setInterviews([])
+      return { success: true }
+    }
     return refreshWorkspaceData()
-  }, [refreshWorkspaceData])
+  }, [user, refreshWorkspaceData])
 
   // Clear all data
   const clearAllData = useCallback(() => {
+    if (!user) {
+      saveApplications([])
+      saveInterviews([])
+    }
     setApplications([])
     setInterviews([])
-  }, [])
+  }, [user])
 
   return {
     applications,

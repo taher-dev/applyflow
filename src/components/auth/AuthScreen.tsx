@@ -24,8 +24,8 @@ type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password'
 interface AuthScreenProps {
   initialMode?: AuthMode
   enableDemoAuth?: boolean
+  isDialog?: boolean
   onClose?: () => void
-  isModal?: boolean
 }
 
 function GoogleIcon({ className = 'size-4.5' }: { className?: string }) {
@@ -55,11 +55,10 @@ export function AuthScreen({
   initialMode = 'login',
   enableDemoAuth = typeof import.meta !== 'undefined' &&
     import.meta.env?.VITE_ENABLE_DEMO_AUTH !== 'false',
+  isDialog = false,
   onClose,
-  isModal = false,
 }: AuthScreenProps = {}) {
   const {
-    user,
     login,
     register,
     loginWithGoogle,
@@ -79,13 +78,6 @@ export function AuthScreen({
     if (tokenFromUrl) return 'reset-password'
     return initialMode
   })
-
-  // Auto-close if rendered as modal once user logs in
-  useEffect(() => {
-    if (user && isModal && onClose) {
-      onClose()
-    }
-  }, [user, isModal, onClose])
 
   const googleClientId =
     typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CLIENT_ID
@@ -406,8 +398,8 @@ export function AuthScreen({
   return (
     <div
       className={
-        isModal
-          ? 'w-full flex flex-col justify-center items-center bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900'
+        isDialog
+          ? 'w-full flex flex-col items-center font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 py-1'
           : 'min-h-screen w-full flex flex-col justify-center items-center bg-white px-4 py-8 sm:px-6 font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900'
       }
     >
