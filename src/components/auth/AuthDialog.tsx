@@ -10,7 +10,7 @@ interface AuthDialogProps {
 export function AuthDialog({ open, onOpenChange, initialMode }: AuthDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-1.5rem)] sm:w-full max-w-[420px] p-4 sm:p-6 max-h-[92vh] sm:max-h-[88vh] overflow-y-auto overscroll-contain bg-white border-slate-200 rounded-2xl shadow-xl">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:w-full max-w-[410px] p-4 sm:px-6 sm:py-5 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-white border-slate-200 rounded-2xl shadow-xl [scrollbar-width:thin] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:rgba(203,213,225,0.8)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-track]:bg-transparent">
         <AuthScreen isDialog onClose={() => onOpenChange(false)} initialMode={initialMode} />
       </DialogContent>
     </Dialog>

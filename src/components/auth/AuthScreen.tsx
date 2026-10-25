@@ -425,14 +425,14 @@ export function AuthScreen({
     <div
       className={
         isDialog
-          ? 'w-full flex flex-col items-center font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 py-1 px-1'
+          ? 'w-full flex flex-col items-center font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 py-0.5 px-0.5'
           : 'min-h-screen w-full flex flex-col justify-center items-center bg-white px-3 py-6 sm:py-12 sm:px-6 lg:px-8 font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900'
       }
     >
       <div className="w-full max-w-[340px] xs:max-w-[360px] sm:max-w-[380px] flex flex-col items-center">
         {/* Minimal Brand Mark */}
-        <div className="flex flex-col items-center text-center mb-5 sm:mb-7">
-          <div className="size-10 sm:size-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs mb-3 sm:mb-4">
+        <div className={`flex flex-col items-center text-center ${isDialog ? 'mb-3.5 sm:mb-4' : 'mb-5 sm:mb-7'}`}>
+          <div className={`${isDialog ? 'size-9 sm:size-10 mb-2 sm:mb-2.5' : 'size-10 sm:size-11 mb-3 sm:mb-4'} rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs`}>
             {mode === 'forgot-password' ? (
               <Mail className="size-4.5 sm:size-5" />
             ) : mode === 'reset-password' ? (
@@ -441,7 +441,7 @@ export function AuthScreen({
               <Briefcase className="size-4.5 sm:size-5" />
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className={`${isDialog ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'} font-semibold tracking-tight text-slate-900`}>
             {mode === 'login'
               ? 'Welcome back'
               : mode === 'register'
@@ -452,7 +452,7 @@ export function AuthScreen({
                 : 'Reset your password'
               : 'Set new password'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-[280px] sm:max-w-[320px] leading-relaxed">
+          <p className={`${isDialog ? 'text-xs text-slate-500 mt-0.5' : 'text-xs sm:text-sm text-slate-500 mt-1'} max-w-[280px] sm:max-w-[320px] leading-relaxed`}>
             {mode === 'login'
               ? 'Sign in to access your application workspace'
               : mode === 'register'
@@ -560,7 +560,7 @@ export function AuthScreen({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-10 sm:h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`w-full ${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-10.5'} rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
@@ -748,7 +748,7 @@ export function AuthScreen({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-10 sm:h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`w-full ${isDialog ? 'h-9.5 sm:h-10 mt-1.5' : 'h-10 sm:h-10.5 mt-2'} rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
@@ -782,7 +782,7 @@ export function AuthScreen({
               <div className="w-full flex flex-col items-center">
                 <div
                   ref={googleButtonRef}
-                  className={`w-full flex justify-center min-h-[40px] sm:min-h-[44px] overflow-hidden ${
+                  className={`w-full flex justify-center py-1 overflow-visible select-none [WebkitTapHighlightColor:transparent] [&_iframe]:!block [&_iframe]:!rounded-[4px] [&_iframe]:!overflow-hidden [&_iframe]:!bg-transparent [&_iframe]:!border-none [&>div]:!rounded-[4px] [&>div]:!overflow-hidden [&>div]:!bg-transparent ${
                     isGoogleSubmitting ? 'opacity-40 pointer-events-none' : ''
                   }`}
                 />
@@ -796,7 +796,7 @@ export function AuthScreen({
                   <button
                     type="button"
                     onClick={handleGoogleLogin}
-                    className="w-full h-10 sm:h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99]"
+                    className={`w-full ${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-11'} flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] select-none [WebkitTapHighlightColor:transparent]`}
                     aria-label="Continue with Google"
                   >
                     <GoogleIcon className="size-4.5" />
@@ -810,7 +810,7 @@ export function AuthScreen({
                   type="button"
                   onClick={handleGoogleLogin}
                   disabled={isGoogleSubmitting || isSubmitting}
-                  className="w-full h-10 sm:h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-xs sm:text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`w-full ${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-11'} flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-xs sm:text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed select-none [WebkitTapHighlightColor:transparent]`}
                   aria-label="Continue with Google"
                 >
                   {isGoogleSubmitting ? (
@@ -860,7 +860,7 @@ export function AuthScreen({
             )}
 
             {/* Minimal Divider */}
-            <div className="relative w-full my-4 sm:my-5">
+            <div className={`relative w-full ${isDialog ? 'my-3 sm:my-3.5' : 'my-4 sm:my-5'}`}>
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200" />
               </div>
@@ -872,10 +872,10 @@ export function AuthScreen({
             </div>
 
             {/* Form Container */}
-            <form onSubmit={handleSubmit} noValidate className="w-full space-y-3.5 sm:space-y-4">
+            <form onSubmit={handleSubmit} noValidate className={`w-full ${isDialog ? 'space-y-2.5 sm:space-y-3' : 'space-y-3.5 sm:space-y-4'}`}>
               {/* Full Name (Register mode only) */}
               {mode === 'register' && (
-                <div className="space-y-1.5">
+                <div className="space-y-1 sm:space-y-1.5">
                   <Label htmlFor="name" className="text-xs font-medium text-slate-700">
                     Full name
                   </Label>
@@ -890,7 +890,7 @@ export function AuthScreen({
                       if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }))
                     }}
                     disabled={isSubmitting || isGoogleSubmitting}
-                    className="h-10 sm:h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    className={`${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-10.5'} rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors`}
                     aria-invalid={!!fieldErrors.name}
                     aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                     autoComplete="name"
@@ -904,7 +904,7 @@ export function AuthScreen({
               )}
 
               {/* Email Address */}
-              <div className="space-y-1.5">
+              <div className="space-y-1 sm:space-y-1.5">
                 <Label htmlFor="email" className="text-xs font-medium text-slate-700">
                   Email address
                 </Label>
@@ -919,7 +919,7 @@ export function AuthScreen({
                     if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }))
                   }}
                   disabled={isSubmitting || isGoogleSubmitting}
-                  className="h-10 sm:h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                  className={`${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-10.5'} rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors`}
                   aria-invalid={!!fieldErrors.email}
                   aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                   autoComplete="email"
@@ -932,7 +932,7 @@ export function AuthScreen({
               </div>
 
               {/* Password */}
-              <div className="space-y-1.5">
+              <div className="space-y-1 sm:space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-xs font-medium text-slate-700">
                     Password
@@ -962,7 +962,7 @@ export function AuthScreen({
                       if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
                     }}
                     disabled={isSubmitting || isGoogleSubmitting}
-                    className="h-10 sm:h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    className={`${isDialog ? 'h-9.5 sm:h-10' : 'h-10 sm:h-10.5'} pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-base sm:text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors`}
                     aria-invalid={!!fieldErrors.password}
                     aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -988,7 +988,7 @@ export function AuthScreen({
               <Button
                 type="submit"
                 disabled={isSubmitting || isGoogleSubmitting}
-                className="w-full h-10 sm:h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className={`w-full ${isDialog ? 'h-9.5 sm:h-10 mt-1.5' : 'h-10 sm:h-10.5 mt-2'} rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center gap-2">
@@ -1004,7 +1004,7 @@ export function AuthScreen({
         )}
 
         {/* Minimal Mode Toggle */}
-        <div className="text-center text-xs text-slate-500 mt-5 sm:mt-6">
+        <div className={`text-center text-xs text-slate-500 ${isDialog ? 'mt-3 sm:mt-3.5' : 'mt-5 sm:mt-6'}`}>
           {mode === 'forgot-password' || mode === 'reset-password' ? (
             resetSuccessMessage ? null : (
               <span>
@@ -1047,7 +1047,7 @@ export function AuthScreen({
 
         {/* Continue as guest action for dialog modal */}
         {isDialog && onClose && (
-          <div className="w-full text-center mt-3">
+          <div className="w-full text-center mt-2.5">
             <button
               type="button"
               onClick={onClose}
@@ -1059,7 +1059,7 @@ export function AuthScreen({
         )}
 
         {/* Minimal Footer Note */}
-        <p className="text-[11px] text-slate-400 text-center mt-5 sm:mt-7 leading-relaxed max-w-[280px] sm:max-w-[320px]">
+        <p className={`text-[11px] text-slate-400 text-center ${isDialog ? 'mt-3 sm:mt-3.5' : 'mt-5 sm:mt-7'} leading-relaxed max-w-[280px] sm:max-w-[320px]`}>
           By continuing, you agree to ApplyFlow's{' '}
           <span className="text-slate-500 hover:text-slate-700 cursor-pointer transition-colors">
             Terms of Service
