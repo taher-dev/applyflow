@@ -12,6 +12,15 @@ export default defineConfig({
     },
   },
   server: {
+    watch: {
+      ignored: [
+        '**/server/**',
+        '**/data/**',
+        '**/.git/**',
+        '**/test/**',
+        '**/dist/**',
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

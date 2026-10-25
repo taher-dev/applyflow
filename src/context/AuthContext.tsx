@@ -43,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    setIsLoading(true)
     setError(null)
     try {
       const authenticatedUser = await api.auth.login(credentials)
@@ -52,13 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = err instanceof ApiError ? err.message : 'Login failed'
       setError(msg)
       throw err
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
   const register = useCallback(async (credentials: RegisterCredentials) => {
-    setIsLoading(true)
     setError(null)
     try {
       const registeredUser = await api.auth.register(credentials)
@@ -67,13 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = err instanceof ApiError ? err.message : 'Registration failed'
       setError(msg)
       throw err
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
   const loginWithGoogle = useCallback(async (profile?: { email?: string; name?: string }) => {
-    setIsLoading(true)
     setError(null)
     try {
       const googleUser = await api.auth.googleLogin(profile)
@@ -82,19 +75,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = err instanceof ApiError ? err.message : 'Google sign-in failed'
       setError(msg)
       throw err
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
   const logout = useCallback(async () => {
-    setIsLoading(true)
     try {
       await api.auth.logout()
     } finally {
       setUser(null)
       setError(null)
-      setIsLoading(false)
     }
   }, [])
 
