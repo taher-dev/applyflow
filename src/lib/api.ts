@@ -227,6 +227,16 @@ export const api = {
     },
 
     /**
+     * Confirms that a password reset token from an email link is valid and unexpired.
+     */
+    async confirmResetToken(token: string): Promise<{ valid: boolean; email?: string; name?: string; message: string }> {
+      return await apiClient<{ valid: boolean; email?: string; name?: string; message: string }>('/auth/confirm-reset-token', {
+        method: 'POST',
+        body: { token },
+      })
+    },
+
+    /**
      * Resets user password using a verified single-use reset token and signs in.
      */
     async resetPassword(payload: { token: string; newPassword: string }): Promise<User> {

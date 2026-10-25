@@ -8,6 +8,8 @@ import {
   KeyRound,
   CheckCircle2,
   ArrowRight,
+  Mail,
+  Info,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,11 +60,21 @@ export function AuthScreen({
     register,
     loginWithGoogle,
     forgotPassword,
+    confirmResetToken,
     resetPassword,
     error: contextError,
     clearError,
   } = useAuth()
-  const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [tokenFromUrl] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    const params = new URLSearchParams(window.location.search)
+    return (params.get('reset_token') || params.get('token') || '').trim()
+  })
+
+  const [mode, setMode] = useState<AuthMode>(() => {
+    if (tokenFromUrl) return 'reset-password'
+    return initialMode
+  })
 
   const googleClientId =
     typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CLIENT_ID
@@ -77,15 +89,52 @@ export function AuthScreen({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [resetToken, setResetToken] = useState('')
+  const [resetToken, setResetToken] = useState(() => tokenFromUrl)
   const [showPassword, setShowPassword] = useState(false)
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null)
+  const [devResetUrl, setDevResetUrl] = useState<string | null>(null)
+
+  // Token confirmation states (from email link)
+  const [isConfirmingToken, setIsConfirmingToken] = useState(() => !!tokenFromUrl)
+  const [confirmedEmail, setConfirmedEmail] = useState<string | null>(null)
+  const [tokenConfirmError, setTokenConfirmError] = useState<string | null>(null)
 
   // Status states
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // Asynchronously verify token if present in URL
+  useEffect(() => {
+    if (!tokenFromUrl) return
+
+    let isMounted = true
+
+    confirmResetToken(tokenFromUrl)
+      .then((res) => {
+        if (!isMounted) return
+        setConfirmedEmail(res.email || null)
+        toast.success('Reset link confirmed! Please enter your new password.')
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : 'The password reset link is invalid, expired, or has already been used.'
+        setTokenConfirmError(msg)
+        toast.error(msg)
+      })
+      .finally(() => {
+        if (!isMounted) return
+        setIsConfirmingToken(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [tokenFromUrl, confirmResetToken])
 
   // Initialize and mount Google Identity Services button if client ID is configured
   useEffect(() => {
@@ -181,6 +230,8 @@ export function AuthScreen({
     setFieldErrors({})
     setShowPassword(false)
     setResetSuccessMessage(null)
+    setDevResetUrl(null)
+    setTokenConfirmError(null)
     clearError()
   }
 
@@ -250,14 +301,14 @@ export function AuthScreen({
         const res = await forgotPassword(email.trim())
         if (res.resetToken) {
           setResetToken(res.resetToken)
-          setMode('reset-password')
-          toast.success('Reset code generated! Please set your new password.')
-        } else {
-          setResetSuccessMessage(
-            res.message || 'If an account exists with this email, password reset instructions have been generated.'
-          )
-          toast.success('Reset request sent!')
         }
+        if (res.resetUrl) {
+          setDevResetUrl(res.resetUrl)
+        }
+        setResetSuccessMessage(
+          res.message || 'If an account exists with this email, a password reset link has been sent to your inbox.'
+        )
+        toast.success('Password reset link sent to your email!')
       } else if (mode === 'reset-password') {
         await resetPassword({
           token: resetToken.trim(),
@@ -329,7 +380,9 @@ export function AuthScreen({
         {/* Minimal Brand Mark */}
         <div className="flex flex-col items-center text-center mb-7">
           <div className="size-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm mb-4">
-            {mode === 'forgot-password' || mode === 'reset-password' ? (
+            {mode === 'forgot-password' ? (
+              <Mail className="size-5" />
+            ) : mode === 'reset-password' ? (
               <KeyRound className="size-5" />
             ) : (
               <Briefcase className="size-5" />
@@ -350,8 +403,10 @@ export function AuthScreen({
               : mode === 'register'
               ? 'Start tracking job applications and interviews'
               : mode === 'forgot-password'
-              ? 'Enter your email to receive a password reset code'
-              : 'Enter your reset code and choose a new password'}
+              ? 'Enter your email to receive a password reset link'
+              : confirmedEmail
+              ? `Confirmed for ${confirmedEmail}`
+              : 'Confirm your reset code and choose a new password'}
           </p>
         </div>
 
@@ -373,33 +428,58 @@ export function AuthScreen({
               <div className="w-full space-y-4 animate-in fade-in duration-200">
                 <div
                   role="status"
-                  className="w-full rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-800 space-y-2"
+                  className="w-full rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-800 space-y-2.5"
                 >
-                  <div className="flex items-start gap-2 font-medium text-emerald-900">
-                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Instructions Generated</span>
+                  <div className="flex items-center gap-2 font-semibold text-emerald-950">
+                    <Mail className="size-4 text-emerald-600 shrink-0" />
+                    <span>Check your email</span>
                   </div>
-                  <p className="leading-relaxed pl-6 text-emerald-700">
-                    {resetSuccessMessage}
+                  <p className="leading-relaxed text-emerald-800">
+                    We sent a password reset link to <strong>{email}</strong>. Please check your inbox and click the confirmation link to reset your password.
+                  </p>
+                  <p className="text-[11px] text-emerald-700">
+                    The reset link will expire in 1 hour. If you don't see it, be sure to check your spam or junk folder.
                   </p>
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={() => switchMode('reset-password')}
-                  className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99]"
-                >
-                  Enter reset code & new password
-                </Button>
+                {/* Development helper link (when running locally or in demo mode) */}
+                {devResetUrl && (
+                  <div className="w-full rounded-lg border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 space-y-1.5">
+                    <div className="font-medium flex items-center gap-1.5 text-blue-950">
+                      <Info className="size-3.5 text-blue-600 shrink-0" />
+                      <span>Development / Test Helper</span>
+                    </div>
+                    <p className="text-[11px] text-blue-700">
+                      You can click the confirmation link directly to test the flow:
+                    </p>
+                    <a
+                      href={devResetUrl}
+                      className="inline-block text-xs font-medium text-blue-600 hover:text-blue-800 underline break-all pt-1"
+                    >
+                      Confirm Reset Link Now &rarr;
+                    </a>
+                  </div>
+                )}
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => switchMode('login')}
-                  className="w-full h-10 text-xs text-slate-500 hover:text-slate-800"
-                >
-                  Return to sign in
-                </Button>
+                <div className="pt-2 space-y-2">
+                  <Button
+                    type="button"
+                    onClick={() => switchMode('reset-password')}
+                    variant="outline"
+                    className="w-full h-10 rounded-lg border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Enter reset code manually
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => switchMode('login')}
+                    className="w-full h-10 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                  >
+                    Return to sign in
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -439,11 +519,11 @@ export function AuthScreen({
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="size-4 animate-spin text-white" />
-                      <span>Generating instructions...</span>
+                      <span>Sending reset email...</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-1.5">
-                      <span>Send reset instructions</span>
+                      <span>Send reset link</span>
                       <ArrowRight className="size-4" />
                     </div>
                   )}
@@ -472,132 +552,187 @@ export function AuthScreen({
 
         {/* --- RESET PASSWORD MODE --- */}
         {mode === 'reset-password' && (
-          <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
-            {/* Reset Code */}
-            <div className="space-y-1.5">
-              <Label htmlFor="resetToken" className="text-xs font-medium text-slate-700">
-                Reset code / token
-              </Label>
-              <Input
-                id="resetToken"
-                name="resetToken"
-                type="text"
-                placeholder="Paste your reset code"
-                value={resetToken}
-                onChange={(e) => {
-                  setResetToken(e.target.value)
-                  if (fieldErrors.resetToken) setFieldErrors((prev) => ({ ...prev, resetToken: '' }))
-                }}
-                disabled={isSubmitting}
-                className="h-10.5 font-mono text-xs rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-                aria-invalid={!!fieldErrors.resetToken}
-                aria-describedby={fieldErrors.resetToken ? 'resetToken-error' : undefined}
-                autoFocus={!resetToken}
-              />
-              {fieldErrors.resetToken && (
-                <p id="resetToken-error" className="text-[11px] font-medium text-red-600">
-                  {fieldErrors.resetToken}
-                </p>
-              )}
-            </div>
-
-            {/* New Password */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-medium text-slate-700">
-                  New password
-                </Label>
-                <span className="text-[11px] text-slate-400">Min. 8 characters</span>
+          <div className="w-full">
+            {isConfirmingToken ? (
+              <div className="w-full py-8 flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="size-6 animate-spin text-slate-700" />
+                <p className="text-sm text-slate-600 font-medium">Confirming password reset link...</p>
               </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
-                  }}
-                  disabled={isSubmitting}
-                  className="h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-                  aria-invalid={!!fieldErrors.password}
-                  aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  tabIndex={-1}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+            ) : tokenConfirmError ? (
+              <div className="w-full space-y-4 animate-in fade-in duration-200">
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50/80 p-4 text-xs text-red-700 space-y-2"
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-              {fieldErrors.password && (
-                <p id="password-error" className="text-[11px] font-medium text-red-600">
-                  {fieldErrors.password}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm New Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword" className="text-xs font-medium text-slate-700">
-                Confirm new password
-              </Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Re-enter your new password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value)
-                  if (fieldErrors.confirmPassword)
-                    setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }))
-                }}
-                disabled={isSubmitting}
-                className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-                aria-invalid={!!fieldErrors.confirmPassword}
-                aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
-                autoComplete="new-password"
-              />
-              {fieldErrors.confirmPassword && (
-                <p id="confirmPassword-error" className="text-[11px] font-medium text-red-600">
-                  {fieldErrors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="size-4 animate-spin text-white" />
-                  <span>Updating password...</span>
+                  <div className="flex items-center gap-2 font-semibold text-red-900">
+                    <AlertCircle className="size-4 text-red-600 shrink-0" />
+                    <span>Invalid or Expired Link</span>
+                  </div>
+                  <p className="leading-relaxed">{tokenConfirmError}</p>
                 </div>
-              ) : (
-                <span>Update Password & Sign In</span>
-              )}
-            </Button>
 
-            <div className="flex items-center justify-center text-xs text-slate-500 pt-2">
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
-                className="hover:text-slate-900 transition-colors cursor-pointer"
-              >
-                Return to sign in
-              </button>
-            </div>
-          </form>
+                <Button
+                  type="button"
+                  onClick={() => switchMode('forgot-password')}
+                  className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs cursor-pointer"
+                >
+                  Request a new reset link
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => switchMode('login')}
+                  className="w-full h-10 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  Return to sign in
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
+                {/* Confirmation banner if token was verified from email link */}
+                {confirmedEmail && (
+                  <div
+                    role="status"
+                    className="w-full rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800 flex items-center gap-2.5"
+                  >
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                    <div className="flex-1">
+                      <span>Confirmed request for <strong>{confirmedEmail}</strong></span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset Code (only show if not prefilled/confirmed from email URL) */}
+                {!confirmedEmail && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="resetToken" className="text-xs font-medium text-slate-700">
+                      Reset code / token
+                    </Label>
+                    <Input
+                      id="resetToken"
+                      name="resetToken"
+                      type="text"
+                      placeholder="Paste your reset code"
+                      value={resetToken}
+                      onChange={(e) => {
+                        setResetToken(e.target.value)
+                        if (fieldErrors.resetToken) setFieldErrors((prev) => ({ ...prev, resetToken: '' }))
+                      }}
+                      disabled={isSubmitting}
+                      className="h-10.5 font-mono text-xs rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                      aria-invalid={!!fieldErrors.resetToken}
+                      aria-describedby={fieldErrors.resetToken ? 'resetToken-error' : undefined}
+                      autoFocus={!resetToken}
+                    />
+                    {fieldErrors.resetToken && (
+                      <p id="resetToken-error" className="text-[11px] font-medium text-red-600">
+                        {fieldErrors.resetToken}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* New Password */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-xs font-medium text-slate-700">
+                      New password
+                    </Label>
+                    <span className="text-[11px] text-slate-400">Min. 8 characters</span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
+                      }}
+                      disabled={isSubmitting}
+                      className="h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                      aria-invalid={!!fieldErrors.password}
+                      aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                      autoComplete="new-password"
+                      autoFocus={!!confirmedEmail}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      tabIndex={-1}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p id="password-error" className="text-[11px] font-medium text-red-600">
+                      {fieldErrors.password}
+                    </p>
+                  )}
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-xs font-medium text-slate-700">
+                    Confirm new password
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Re-enter your new password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (fieldErrors.confirmPassword)
+                        setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }))
+                    }}
+                    disabled={isSubmitting}
+                    className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    aria-invalid={!!fieldErrors.confirmPassword}
+                    aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
+                    autoComplete="new-password"
+                  />
+                  {fieldErrors.confirmPassword && (
+                    <p id="confirmPassword-error" className="text-[11px] font-medium text-red-600">
+                      {fieldErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-4 animate-spin text-white" />
+                      <span>Updating password...</span>
+                    </div>
+                  ) : (
+                    <span>Set New Password & Sign In</span>
+                  )}
+                </Button>
+
+                <div className="flex items-center justify-center text-xs text-slate-500 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className="hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Return to sign in
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
 
         {/* --- LOGIN AND REGISTER MODES --- */}

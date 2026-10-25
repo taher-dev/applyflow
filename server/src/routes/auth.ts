@@ -15,11 +15,13 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  confirmResetTokenSchema,
 } from '../validations/auth.js'
 import {
   createPasswordResetToken,
   verifyPasswordResetToken,
 } from '../lib/reset-token.js'
+import { sendPasswordResetEmail } from '../lib/email.js'
 import { env, isDemoAuthAllowed } from '../config/env.js'
 
 export const DEMO_GOOGLE_EMAIL = 'demo.google@applyflow.app'
@@ -172,7 +174,8 @@ authRouter.post(
 
 /**
  * POST /api/auth/forgot-password
- * Initiates password reset flow by verifying email and generating a single-use token.
+ * Initiates password reset flow by verifying email, generating a single-use token,
+ * and dispatching an email with a secure reset link.
  * Prevents account enumeration by returning a generic success message if the email is not registered.
  */
 authRouter.post(
@@ -194,22 +197,89 @@ authRouter.post(
 
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, email: true, passwordHash: true },
+        select: { id: true, name: true, email: true, passwordHash: true },
       })
 
       if (!user) {
         // Return 200 with generic message to avoid email enumeration
         res.status(200).json({
-          message: 'If an account exists with this email, password reset instructions have been generated.',
+          message: 'If an account exists with this email, a password reset link has been sent.',
+          emailSent: true,
         })
         return
       }
 
       const resetToken = createPasswordResetToken(user)
 
-      res.status(200).json({
-        message: 'Password reset instructions have been generated.',
+      // Derive application base URL
+      const origin =
+        env.APP_URL ||
+        req.get('origin') ||
+        (req.get('host') ? `${req.protocol}://${req.get('host')}` : undefined) ||
+        env.CORS_ORIGIN ||
+        'https://applyflow-iota-sage.vercel.app'
+
+      const resetUrl = `${origin.replace(/\/$/, '')}/?reset_token=${encodeURIComponent(resetToken)}`
+
+      // Dispatch password reset email
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl,
         resetToken,
+      })
+
+      res.status(200).json({
+        message: 'Password reset instructions have been sent to your email address.',
+        emailSent: true,
+        // In local/demo/test environment, also include resetToken & resetUrl for developer convenience
+        resetToken: isDemoAuthAllowed() || env.NODE_ENV !== 'production' ? resetToken : undefined,
+        resetUrl: isDemoAuthAllowed() || env.NODE_ENV !== 'production' ? resetUrl : undefined,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * POST /api/auth/confirm-reset-token
+ * Confirms that a password reset token from an email link is valid and unexpired
+ * before prompting the user for a new password.
+ */
+authRouter.post(
+  '/confirm-reset-token',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = confirmResetTokenSchema.safeParse(req.body)
+
+      if (!parsed.success) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Invalid reset token format',
+          valid: false,
+          details: parsed.error.flatten().fieldErrors,
+        })
+        return
+      }
+
+      const { token } = parsed.data
+      const validUser = await verifyPasswordResetToken(token)
+
+      if (!validUser) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'The password reset link is invalid, expired, or has already been used.',
+          valid: false,
+        })
+        return
+      }
+
+      res.status(200).json({
+        valid: true,
+        email: validUser.email,
+        name: validUser.name,
+        message: 'Password reset link confirmed.',
       })
     } catch (error) {
       next(error)

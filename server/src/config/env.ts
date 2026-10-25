@@ -66,6 +66,20 @@ const envSchema = z
       .default('true')
       .transform((val) => val === 'true' || val === '1'),
     GOOGLE_CLIENT_ID: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().default('ApplyFlow <no-reply@applyflow.app>'),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 587)),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_SECURE: z
+      .string()
+      .optional()
+      .transform((val) => val === 'true' || val === '1'),
+    APP_URL: z.string().optional(),
   })
 
 const parsed = envSchema.safeParse(process.env)

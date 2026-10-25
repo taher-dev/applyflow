@@ -98,8 +98,17 @@ Configure the following variables in the **Vercel Dashboard** under **Project Se
 | `VITE_GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for Frontend GIS | `xxxx.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for backend audience check | `xxxx.apps.googleusercontent.com` |
 
+| `RESEND_API_KEY` | Production, Preview, Dev | Resend API key for password reset email delivery (Recommended for Vercel) | `re_xxxxxxxxx` |
+| `EMAIL_FROM` | Production, Preview, Dev | Sender email address for password reset and notifications | `ApplyFlow <no-reply@yourdomain.com>` or `onboarding@resend.dev` |
+| `APP_URL` | Production | Explicit public application URL for reset link generation | `https://your-project.vercel.app` |
+| `SMTP_HOST` | Production, Preview, Dev | Optional SMTP server host (fallback if not using Resend) | `smtp.gmail.com` |
+| `SMTP_PORT` | Production, Preview, Dev | Optional SMTP server port | `587` |
+| `SMTP_USER` | Production, Preview, Dev | Optional SMTP authentication username | `your-email@gmail.com` |
+| `SMTP_PASS` | Production, Preview, Dev | Optional SMTP authentication password / app password | `your-app-password` |
+
 > [!NOTE]
 > `CORS_ORIGIN` is optional because ApplyFlow automatically recognizes same-host requests and Vercel preview domains (`*.vercel.app`).
+> If neither `RESEND_API_KEY` nor `SMTP_HOST` is configured, ApplyFlow operates in development simulation mode (logs reset links and emails directly to the server terminal and surfaces the reset URL on the UI).
 
 ### 4.1 Configuring Google OAuth 2.0 (Google Identity Services)
 
@@ -129,6 +138,26 @@ To enable live Google Sign-In with real user Google accounts:
      - Add `VITE_GOOGLE_CLIENT_ID` with your Client ID (applies to Production, Preview, Development).
      - Add `GOOGLE_CLIENT_ID` with your Client ID.
 6. Trigger a redeploy in Vercel or push to `main` so the new Vite environment variable is baked into the frontend build.
+
+### 4.2 Configuring Email Delivery for Password Reset (Resend or SMTP)
+
+ApplyFlow sends secure, responsive HTML password reset confirmation emails.
+
+#### Option A: Resend (Recommended for Vercel Serverless)
+1. Sign up for a free account at [resend.com](https://resend.com) (includes 3,000 free emails/month).
+2. Create an API Key in the Resend Dashboard under **API Keys**.
+3. In your **Vercel Project Settings > Environment Variables**:
+   - `RESEND_API_KEY`: `re_xxxxxxxxx`
+   - `EMAIL_FROM`: `ApplyFlow <onboarding@resend.dev>` (or your verified domain like `ApplyFlow <no-reply@applyflow.app>`)
+   - `APP_URL`: `https://applyflow-iota-sage.vercel.app` (or your custom domain)
+
+#### Option B: Standard SMTP (Gmail, SendGrid, Mailgun)
+If you prefer standard SMTP, configure:
+- `SMTP_HOST`: e.g. `smtp.gmail.com`
+- `SMTP_PORT`: `587`
+- `SMTP_USER`: your email address
+- `SMTP_PASS`: your SMTP or Google App Password (not your personal Gmail password)
+- `EMAIL_FROM`: `ApplyFlow <your-email@gmail.com>`
 
 ---
 

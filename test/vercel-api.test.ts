@@ -216,6 +216,27 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.ok(forgotData.resetToken)
     const token = forgotData.resetToken
 
+    // Confirming invalid token returns 400
+    const invalidConfirmRes = await fetch(`${baseUrl}/api/auth/confirm-reset-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'bogus_invalid_token' }),
+    })
+    assert.equal(invalidConfirmRes.status, 400)
+    const invalidConfirmData = await invalidConfirmRes.json()
+    assert.equal(invalidConfirmData.valid, false)
+
+    // Confirming valid token returns 200 with matching email
+    const validConfirmRes = await fetch(`${baseUrl}/api/auth/confirm-reset-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    assert.equal(validConfirmRes.status, 200)
+    const validConfirmData = await validConfirmRes.json()
+    assert.equal(validConfirmData.valid, true)
+    assert.equal(validConfirmData.email, email)
+
     // Submitting invalid reset token returns 400
     const invalidResetRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
       method: 'POST',

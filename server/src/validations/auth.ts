@@ -70,3 +70,15 @@ export const resetPasswordSchema = z.object({
 })
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+
+/**
+ * Zod schema for confirming reset token validity before password update.
+ */
+export const confirmResetTokenSchema = z.object({
+  token: z
+    .string({ required_error: 'Reset token is required' })
+    .trim()
+    .min(10, 'Reset token is invalid or malformed'),
+})
+
+export type ConfirmResetTokenInput = z.infer<typeof confirmResetTokenSchema>

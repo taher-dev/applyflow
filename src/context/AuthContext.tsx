@@ -89,6 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const confirmResetToken = useCallback(async (token: string) => {
+    setError(null)
+    try {
+      return await api.auth.confirmResetToken(token)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Password reset confirmation failed'
+      setError(msg)
+      throw err
+    }
+  }, [])
+
   const resetPassword = useCallback(async (payload: { token: string; newPassword: string }) => {
     setError(null)
     try {
@@ -122,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     loginWithGoogle,
     forgotPassword,
+    confirmResetToken,
     resetPassword,
     logout,
     clearError,
