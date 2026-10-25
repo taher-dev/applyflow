@@ -164,6 +164,7 @@ export function AuthScreen({
             setIsGoogleSubmitting(true)
             try {
               await loginWithGoogle({ credential: response.credential })
+              onClose?.()
               toast.success('Successfully signed in with Google!')
             } catch (err) {
               const msg =
@@ -298,8 +299,10 @@ export function AuthScreen({
     try {
       if (mode === 'login') {
         await login({ email: email.trim(), password })
+        onClose?.()
       } else if (mode === 'register') {
         await register({ name: name.trim(), email: email.trim(), password })
+        onClose?.()
       } else if (mode === 'forgot-password') {
         const res = await forgotPassword(email.trim())
         if (res.resetToken) {
@@ -375,6 +378,7 @@ export function AuthScreen({
       setIsGoogleSubmitting(true)
       try {
         await loginWithGoogle()
+        onClose?.()
         toast.success('Signed in with Demo Google account!')
         if (!googleClientId) {
           toast.info(
@@ -1018,6 +1022,19 @@ export function AuthScreen({
             </span>
           )}
         </div>
+
+        {/* Continue as guest action for dialog modal */}
+        {isDialog && onClose && (
+          <div className="w-full text-center mt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-xs text-slate-500 hover:text-slate-900 transition-colors cursor-pointer font-medium"
+            >
+              Continue as guest
+            </button>
+          </div>
+        )}
 
         {/* Minimal Footer Note */}
         <p className="text-[11px] text-slate-400 text-center mt-8 leading-relaxed max-w-[320px]">
