@@ -162,9 +162,18 @@ export function Sidebar({
           <div className={`p-2.5 border-t border-slate-200/80 ${handleRefreshWorkspace ? '' : 'mt-auto'}`}>
             <div className="flex items-center justify-between gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="size-7.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                  {userInitials}
-                </div>
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    referrerPolicy="no-referrer"
+                    className="size-7.5 rounded-full object-cover border border-slate-200 shrink-0"
+                  />
+                ) : (
+                  <div className="size-7.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                    {userInitials}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p
                     className={cn(

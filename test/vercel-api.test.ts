@@ -105,6 +105,7 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
               email: 'verified.google@example.com',
               name: 'Verified User',
               email_verified: true,
+              picture: 'https://lh3.googleusercontent.com/a/mock-avatar-123',
             }),
             {
               status: 200,
@@ -127,6 +128,7 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
       assert.ok(data.user)
       assert.equal(data.user.email, 'verified.google@example.com')
       assert.equal(data.user.name, 'Verified User')
+      assert.equal(data.user.avatarUrl, 'https://lh3.googleusercontent.com/a/mock-avatar-123')
       const cookie = res.headers.get('set-cookie')
       assert.ok(cookie && cookie.includes('applyflow_session'))
     } finally {

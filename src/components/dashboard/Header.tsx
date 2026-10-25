@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -484,23 +484,43 @@ export function Header({
               className="rounded-full ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
               aria-label="User account menu"
             >
-              <Avatar className="size-9 border border-slate-200 shrink-0">
+              <Avatar className="size-9 border border-slate-200 shrink-0 overflow-hidden">
+                {user?.avatarUrl && (
+                  <AvatarImage
+                    src={user.avatarUrl}
+                    alt={user.name || 'User avatar'}
+                    referrerPolicy="no-referrer"
+                  />
+                )}
                 <AvatarFallback className="bg-slate-900 text-white font-semibold text-xs">
                   {initials}
                 </AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-md border-slate-200 bg-white">
-            <DropdownMenuLabel className="font-normal px-2 py-1.5">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none text-slate-900 flex items-center gap-1.5">
-                  <UserIcon className="size-3.5 text-slate-900" />
-                  <span>{user?.name || 'Account'}</span>
-                </p>
-                <p className="text-xs leading-none text-slate-500 truncate">
-                  {user?.email || ''}
-                </p>
+          <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-md border-slate-200 bg-white">
+            <DropdownMenuLabel className="font-normal px-2.5 py-2">
+              <div className="flex items-center gap-2.5">
+                <Avatar className="size-8 border border-slate-200 shrink-0 overflow-hidden">
+                  {user?.avatarUrl && (
+                    <AvatarImage
+                      src={user.avatarUrl}
+                      alt={user.name || 'User avatar'}
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <AvatarFallback className="bg-slate-900 text-white font-semibold text-[10px]">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col space-y-0.5 min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-none text-slate-900 truncate">
+                    {user?.name || 'Account'}
+                  </p>
+                  <p className="text-xs leading-none text-slate-500 truncate">
+                    {user?.email || ''}
+                  </p>
+                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-100" />

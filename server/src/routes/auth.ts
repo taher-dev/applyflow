@@ -86,6 +86,7 @@ authRouter.post(
           id: true,
           name: true,
           email: true,
+          avatarUrl: true,
         },
       })
 
@@ -100,6 +101,7 @@ authRouter.post(
           id: user.id,
           name: user.name,
           email: user.email,
+          avatarUrl: user.avatarUrl,
         },
       })
     } catch (error) {
@@ -164,6 +166,7 @@ authRouter.post(
           id: user.id,
           name: user.name,
           email: user.email,
+          avatarUrl: user.avatarUrl,
         },
       })
     } catch (error) {
@@ -390,6 +393,7 @@ authRouter.post(
 
       let email: string
       let name: string
+      let avatarUrl: string | null = null
 
       if (typeof credential === 'string' && credential.trim()) {
         // --- Real Google OAuth verification ---
@@ -408,6 +412,7 @@ authRouter.post(
         const tokenPayload = (await tokenResponse.json()) as {
           email?: string
           name?: string
+          picture?: string
           email_verified?: string | boolean
           aud?: string
         }
@@ -431,6 +436,7 @@ authRouter.post(
 
         email = tokenPayload.email.trim().toLowerCase()
         name = tokenPayload.name?.trim() || email.split('@')[0]
+        avatarUrl = tokenPayload.picture?.trim() || null
       } else {
         // --- Fallback / Demo Auth mode ---
         if (!isDemoAuthAllowed()) {
@@ -466,12 +472,13 @@ authRouter.post(
 
         email = clientEmail || DEMO_GOOGLE_EMAIL
         name = clientName || DEMO_GOOGLE_NAME
+        avatarUrl = 'https://lh3.googleusercontent.com/a/default-user'
       }
 
       // Upsert / find user
       let user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, avatarUrl: true },
       })
 
       if (!user) {
@@ -481,11 +488,25 @@ authRouter.post(
             name,
             email,
             passwordHash,
+            avatarUrl,
           },
           select: {
             id: true,
             name: true,
             email: true,
+            avatarUrl: true,
+          },
+        })
+      } else if (avatarUrl && user.avatarUrl !== avatarUrl) {
+        // Sync latest avatar from Google profile
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { avatarUrl },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
           },
         })
       }
@@ -499,6 +520,7 @@ authRouter.post(
           id: user.id,
           name: user.name,
           email: user.email,
+          avatarUrl: user.avatarUrl,
         },
       })
     } catch (error) {

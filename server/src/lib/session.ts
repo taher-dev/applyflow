@@ -84,6 +84,7 @@ export async function validateSessionToken(rawToken: string): Promise<{ user: Au
           id: true,
           name: true,
           email: true,
+          avatarUrl: true,
         },
       },
     },
