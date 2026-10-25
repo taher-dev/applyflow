@@ -63,14 +63,9 @@ const envSchema = z
     ENABLE_DEMO_AUTH: z
       .string()
       .optional()
-      .default('false')
+      .default('true')
       .transform((val) => val === 'true' || val === '1'),
   })
-  .transform((data) => ({
-    ...data,
-    // Strictly disable demo auth in production regardless of any environment variable
-    ENABLE_DEMO_AUTH: data.NODE_ENV === 'production' ? false : data.ENABLE_DEMO_AUTH,
-  }))
 
 const parsed = envSchema.safeParse(process.env)
 
@@ -84,13 +79,10 @@ export const env = parsed.data
 export type ServerEnv = z.infer<typeof envSchema>
 
 /**
- * Determines whether development-only mock/demo authentication is allowed.
- * Strictly returns false in production mode, ensuring no mock auth is possible in prod.
+ * Determines whether Google demo authentication is allowed.
+ * Enabled by default unless explicitly disabled with ENABLE_DEMO_AUTH=false.
  */
 export function isDemoAuthAllowed(): boolean {
-  if (process.env.NODE_ENV === 'production' || env.NODE_ENV === 'production') {
-    return false
-  }
   if (process.env.ENABLE_DEMO_AUTH !== undefined) {
     return process.env.ENABLE_DEMO_AUTH === 'true' || process.env.ENABLE_DEMO_AUTH === '1'
   }

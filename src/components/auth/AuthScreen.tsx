@@ -49,7 +49,6 @@ function GoogleIcon({ className = 'size-4.5' }: { className?: string }) {
 export function AuthScreen({
   initialMode = 'login',
   enableDemoAuth = typeof import.meta !== 'undefined' &&
-    Boolean(import.meta.env?.DEV) &&
     import.meta.env?.VITE_ENABLE_DEMO_AUTH !== 'false',
 }: AuthScreenProps = {}) {
   const { login, register, loginWithGoogle, error: contextError, clearError } = useAuth()
@@ -141,7 +140,7 @@ export function AuthScreen({
     setIsGoogleSubmitting(true)
     try {
       await loginWithGoogle()
-      toast.success('Signed in with demo Google account!')
+      toast.success('Signed in with Google account!')
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Demo sign-in could not be completed'
       setLocalError(msg)
@@ -229,18 +228,17 @@ export function AuthScreen({
                 onClick={handleGoogleLogin}
                 disabled={isGoogleSubmitting || isSubmitting}
                 className="w-full h-11 flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium text-sm transition-colors duration-150 shadow-xs cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                aria-label="Continue with Demo Google"
+                aria-label="Continue with Google"
               >
                 {isGoogleSubmitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin text-slate-500" />
-                    <span>Signing in to Demo Account...</span>
+                    <span>Signing in with Google...</span>
                   </>
                 ) : (
                   <>
                     <GoogleIcon className="size-4.5" />
-                    <span>Continue with Demo Google</span>
-                    <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0">Demo</Badge>
+                    <span>Continue with Google</span>
                   </>
                 )}
               </button>

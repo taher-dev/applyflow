@@ -2,6 +2,7 @@ import { describe, test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import handler, { app } from '../api/index.ts'
+import catchAllHandler from '../api/[...all].ts'
 
 describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
   let server: http.Server
@@ -24,6 +25,7 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
 
   test('handler exports app instance and default request handler function', () => {
     assert.equal(typeof handler, 'function')
+    assert.equal(typeof catchAllHandler, 'function')
     assert.equal(typeof app, 'function')
   })
 
@@ -50,6 +52,22 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.equal(res.status, 200)
     const data = await res.json()
     assert.deepEqual(data, { status: 'ok' })
+  })
+
+  test('POST /api/auth/google responds with 200 and sets session cookie', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    })
+    assert.equal(res.status, 200)
+    const data = await res.json()
+    assert.ok(data.user)
+    assert.equal(data.user.email, 'demo.google@applyflow.app')
+    const cookie = res.headers.get('set-cookie')
+    assert.ok(cookie && cookie.includes('applyflow_session'))
   })
 
   test('non-existent endpoint returns structured 404 JSON response', async () => {
