@@ -125,7 +125,7 @@ To enable live Google Sign-In with real user Google accounts:
    - **Name**: `ApplyFlow Web Client`
    - **Authorized JavaScript origins**:
      - `http://localhost:5173` (for local development)
-     - `https://applyflow-iota-sage.vercel.app` (your production Vercel domain)
+     - `https://<your-project>.vercel.app` (your production Vercel domain)
      - Any custom domains you use
    - Click **Create** and copy your **Client ID** (ends with `.apps.googleusercontent.com`).
 5. Set the Client ID:
@@ -149,7 +149,7 @@ ApplyFlow sends secure, responsive HTML password reset confirmation emails.
 3. In your **Vercel Project Settings > Environment Variables**:
    - `RESEND_API_KEY`: `re_xxxxxxxxx`
    - `EMAIL_FROM`: `ApplyFlow <onboarding@resend.dev>` (or your verified domain like `ApplyFlow <no-reply@applyflow.app>`)
-   - `APP_URL`: `https://applyflow-iota-sage.vercel.app` (or your custom domain)
+   - `APP_URL`: `https://<your-project>.vercel.app` (your actual Vercel domain; if omitted, ApplyFlow automatically infers it from incoming client request headers)
 
 #### Option B: Standard SMTP (Gmail, SendGrid, Mailgun)
 If you prefer standard SMTP, configure:

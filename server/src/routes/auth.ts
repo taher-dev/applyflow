@@ -211,13 +211,43 @@ authRouter.post(
 
       const resetToken = createPasswordResetToken(user)
 
-      // Derive application base URL
+      // Derive application base URL dynamically from client request headers
+      let clientOrigin: string | undefined
+
+      const headerOrigin = req.get('origin')
+      if (headerOrigin && headerOrigin.startsWith('http')) {
+        clientOrigin = headerOrigin
+      } else {
+        const referer = req.get('referer')
+        if (referer && referer.startsWith('http')) {
+          try {
+            clientOrigin = new URL(referer).origin
+          } catch {
+            // ignore malformed referer URL
+          }
+        }
+      }
+
+      const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim()
+      const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim() || 'https'
+      const forwardedOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : undefined
+
+      const vercelProdOrigin = process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : undefined
+
+      const hostOrigin = req.get('host') ? `${req.protocol}://${req.get('host')}` : undefined
+
       const origin =
+        clientOrigin ||
+        forwardedOrigin ||
         env.APP_URL ||
-        req.get('origin') ||
-        (req.get('host') ? `${req.protocol}://${req.get('host')}` : undefined) ||
+        vercelProdOrigin ||
+        hostOrigin ||
         env.CORS_ORIGIN ||
-        'https://applyflow-iota-sage.vercel.app'
+        'http://localhost:5173'
 
       const resetUrl = `${origin.replace(/\/$/, '')}/?reset_token=${encodeURIComponent(resetToken)}`
 

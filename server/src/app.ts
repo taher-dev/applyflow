@@ -16,6 +16,9 @@ import { errorHandler } from './middleware/errorHandler.js'
  */
 export const app = express()
 
+// Trust reverse proxies (Vercel, AWS, etc.) for correct protocol and client headers
+app.set('trust proxy', 1)
+
 // Security Headers Middleware
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff')
