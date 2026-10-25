@@ -19,19 +19,41 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
 
   const origin = req.headers.origin
   const referer = req.headers.referer
+  const host = req.headers.host || (req.headers['x-forwarded-host'] as string | undefined)
+
+  const isCandidateOriginAllowed = (candidateOrigin: string): boolean => {
+    const allowed = [
+      env.CORS_ORIGIN,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      `http://localhost:${env.PORT}`,
+      `http://127.0.0.1:${env.PORT}`,
+    ]
+    if (process.env.VERCEL_URL) {
+      allowed.push(`https://${process.env.VERCEL_URL}`)
+    }
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      allowed.push(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+    }
+
+    if (allowed.includes(candidateOrigin)) return true
+    if (host && (candidateOrigin === `https://${host}` || candidateOrigin === `http://${host}`)) {
+      return true
+    }
+    if (process.env.VERCEL && /^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(candidateOrigin)) {
+      return true
+    }
+    if (env.NODE_ENV !== 'production') {
+      if (candidateOrigin.startsWith('http://localhost:') || candidateOrigin.startsWith('http://127.0.0.1:')) {
+        return true
+      }
+    }
+    return false
+  }
 
   // If Origin header is provided, it MUST match the allowed frontend origin or local host
   if (origin) {
-    const isAllowedOrigin =
-      origin === env.CORS_ORIGIN ||
-      origin === 'http://localhost:5173' ||
-      origin === 'http://127.0.0.1:5173' ||
-      origin === `http://localhost:${env.PORT}` ||
-      origin === `http://127.0.0.1:${env.PORT}` ||
-      (env.NODE_ENV === 'development' &&
-        (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')))
-
-    if (!isAllowedOrigin) {
+    if (!isCandidateOriginAllowed(origin)) {
       res.status(403).json({
         error: 'Forbidden',
         message: 'CSRF validation failed: untrusted origin',
@@ -46,16 +68,8 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     try {
       const refererUrl = new URL(referer)
       const refererOrigin = refererUrl.origin
-      const isAllowedReferer =
-        refererOrigin === env.CORS_ORIGIN ||
-        refererOrigin === 'http://localhost:5173' ||
-        refererOrigin === 'http://127.0.0.1:5173' ||
-        refererOrigin === `http://localhost:${env.PORT}` ||
-        refererOrigin === `http://127.0.0.1:${env.PORT}` ||
-        (env.NODE_ENV === 'development' &&
-          (refererOrigin.startsWith('http://localhost:') || refererOrigin.startsWith('http://127.0.0.1:')))
 
-      if (!isAllowedReferer) {
+      if (!isCandidateOriginAllowed(refererOrigin)) {
         res.status(403).json({
           error: 'Forbidden',
           message: 'CSRF validation failed: untrusted referer origin',

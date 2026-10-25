@@ -16,6 +16,14 @@ import { errorHandler } from './middleware/errorHandler.js'
  */
 export const app = express()
 
+// Security Headers Middleware
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
 // Security & Parsing Middleware
 app.use(
   cors({
@@ -29,8 +37,15 @@ app.use(
         `http://localhost:${env.PORT}`,
         `http://127.0.0.1:${env.PORT}`,
       ]
+      if (process.env.VERCEL_URL) {
+        allowedOrigins.push(`https://${process.env.VERCEL_URL}`)
+      }
+      if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        allowedOrigins.push(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+      }
       if (
         allowedOrigins.includes(origin) ||
+        (process.env.VERCEL && /^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) ||
         origin.startsWith('http://localhost:') ||
         origin.startsWith('http://127.0.0.1:')
       ) {
