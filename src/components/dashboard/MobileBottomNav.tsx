@@ -17,7 +17,7 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { key: 'pipeline', label: 'Pipeline', icon: Kanban },
+  { key: 'pipeline', label: 'Kanban', icon: Kanban },
   { key: 'interviews', label: 'Interviews', icon: Calendar },
 ]
 
