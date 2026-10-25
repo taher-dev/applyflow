@@ -10,7 +10,16 @@ import {
   validateSessionToken,
   revokeSession,
 } from '../lib/session.js'
-import { registerSchema, loginSchema } from '../validations/auth.js'
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from '../validations/auth.js'
+import {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+} from '../lib/reset-token.js'
 import { env, isDemoAuthAllowed } from '../config/env.js'
 
 export const DEMO_GOOGLE_EMAIL = 'demo.google@applyflow.app'
@@ -153,6 +162,117 @@ authRouter.post(
           id: user.id,
           name: user.name,
           email: user.email,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * POST /api/auth/forgot-password
+ * Initiates password reset flow by verifying email and generating a single-use token.
+ * Prevents account enumeration by returning a generic success message if the email is not registered.
+ */
+authRouter.post(
+  '/forgot-password',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = forgotPasswordSchema.safeParse(req.body)
+
+      if (!parsed.success) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Please provide a valid email address',
+          details: parsed.error.flatten().fieldErrors,
+        })
+        return
+      }
+
+      const { email } = parsed.data
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, email: true, passwordHash: true },
+      })
+
+      if (!user) {
+        // Return 200 with generic message to avoid email enumeration
+        res.status(200).json({
+          message: 'If an account exists with this email, password reset instructions have been generated.',
+        })
+        return
+      }
+
+      const resetToken = createPasswordResetToken(user)
+
+      res.status(200).json({
+        message: 'Password reset instructions have been generated.',
+        resetToken,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * POST /api/auth/reset-password
+ * Verifies single-use reset token and updates the user's password with Argon2id.
+ * Immediately logs the user in with a new session cookie and revokes existing sessions.
+ */
+authRouter.post(
+  '/reset-password',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = resetPasswordSchema.safeParse(req.body)
+
+      if (!parsed.success) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Invalid password reset submission',
+          details: parsed.error.flatten().fieldErrors,
+        })
+        return
+      }
+
+      const { token, newPassword } = parsed.data
+
+      const validUser = await verifyPasswordResetToken(token)
+
+      if (!validUser) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'The password reset token is invalid, expired, or has already been used.',
+        })
+        return
+      }
+
+      // Hash new password using Argon2id
+      const newPasswordHash = await hashPassword(newPassword)
+
+      // Update password in database
+      await prisma.user.update({
+        where: { id: validUser.id },
+        data: { passwordHash: newPasswordHash },
+      })
+
+      // Revoke all existing sessions for this user for security
+      await prisma.session.deleteMany({
+        where: { userId: validUser.id },
+      })
+
+      // Create fresh session and set session cookie
+      const { rawToken } = await createSession(validUser.id)
+      res.cookie(SESSION_COOKIE_NAME, rawToken, getSessionCookieOptions())
+
+      res.status(200).json({
+        message: 'Password has been successfully reset.',
+        user: {
+          id: validUser.id,
+          name: validUser.name,
+          email: validUser.email,
         },
       })
     } catch (error) {

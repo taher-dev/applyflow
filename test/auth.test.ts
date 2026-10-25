@@ -471,52 +471,64 @@ describe('Frontend Authentication & API Client', () => {
   })
 
   describe('Password Reset Experience & Truthful Messaging', () => {
-    test('AuthScreen contains truthful message that password reset is unavailable', () => {
+    test('AuthScreen provides complete forgot-password and reset-password modes', () => {
       const authScreenSource = fs.readFileSync(
         path.resolve(import.meta.dirname, '../src/components/auth/AuthScreen.tsx'),
         'utf-8'
       )
 
-      // 1. Truthful message is present
+      // 1. Forgot password and reset password modes are supported
       assert.ok(
-        authScreenSource.includes('Password reset is not available yet. Please contact the application administrator for assistance.'),
-        'Expected AuthScreen to display truthful administrator contact guidance'
+        authScreenSource.includes("'forgot-password'"),
+        'Expected AuthScreen to support forgot-password mode'
+      )
+      assert.ok(
+        authScreenSource.includes("'reset-password'"),
+        'Expected AuthScreen to support reset-password mode'
       )
 
-      // 2. Clear return button is present
+      // 2. Clear navigation and return buttons are present
       assert.ok(
         authScreenSource.includes('Return to sign in'),
         'Expected AuthScreen to provide return to sign in button'
       )
 
-      // 3. Removed false toast notification claiming email was sent
-      assert.equal(
-        authScreenSource.includes('Password reset link sent to'),
-        false,
-        'Must NOT claim password reset link was sent'
+      // 3. Password reset token and new password input fields are present
+      assert.ok(
+        authScreenSource.includes('resetToken'),
+        'Expected AuthScreen to accept resetToken input'
       )
-      assert.equal(
-        authScreenSource.includes('Enter your email address above to receive a password reset link'),
-        false,
-        'Must NOT pretend email input can receive a reset link'
+      assert.ok(
+        authScreenSource.includes('confirmPassword'),
+        'Expected AuthScreen to provide confirmPassword input'
       )
     })
 
-    test('does not expose any fake password-reset API client methods or dispatch phantom requests', async () => {
-      // Confirm no fake password-reset API client method exists that claims to send emails
+    test('exposes typed forgotPassword and resetPassword API methods and dispatches to server', async () => {
       const authApi = api.auth as Record<string, unknown>
-      assert.equal(authApi['resetPassword'], undefined)
-      assert.equal(authApi['forgotPassword'], undefined)
-      assert.equal(authApi['requestPasswordReset'], undefined)
+      assert.equal(typeof authApi['resetPassword'], 'function')
+      assert.equal(typeof authApi['forgotPassword'], 'function')
 
-      let networkCalled = false
-      globalThis.fetch = async () => {
-        networkCalled = true
-        return new Response(null, { status: 404 })
+      let calledUrl = ''
+      let calledMethod = ''
+      const originalFetch = globalThis.fetch
+      try {
+        globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+          calledUrl = String(input)
+          calledMethod = init?.method || 'GET'
+          return new Response(JSON.stringify({ message: 'Success', resetToken: 'mock-token' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+
+        const res = await api.auth.forgotPassword('user@example.com')
+        assert.equal(calledUrl, '/api/auth/forgot-password')
+        assert.equal(calledMethod, 'POST')
+        assert.equal(res.resetToken, 'mock-token')
+      } finally {
+        globalThis.fetch = originalFetch
       }
-
-      // Verify no network activity occurs for password reset
-      assert.equal(networkCalled, false)
     })
   })
 })

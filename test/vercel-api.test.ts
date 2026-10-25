@@ -134,6 +134,133 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     }
   })
 
+  test('POST /api/auth/register and /login handles email & password flow correctly', async () => {
+    const email = `test_flow_${Date.now()}@example.com`
+    const password = 'StrongPassword123!'
+    const name = 'Flow Test User'
+
+    // 1. Register
+    const regRes = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    })
+    assert.equal(regRes.status, 201)
+    const regData = await regRes.json()
+    assert.ok(regData.user)
+    assert.equal(regData.user.email, email)
+    assert.equal(regData.user.name, name)
+    const regCookie = regRes.headers.get('set-cookie')
+    assert.ok(regCookie && regCookie.includes('applyflow_session'))
+
+    // 2. Login with correct password
+    const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    assert.equal(loginRes.status, 200)
+    const loginData = await loginRes.json()
+    assert.equal(loginData.user.email, email)
+
+    // 3. Login with wrong password returns 401
+    const badLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'IncorrectPassword999!' }),
+    })
+    assert.equal(badLoginRes.status, 401)
+    const badData = await badLoginRes.json()
+    assert.equal(badData.error, 'Unauthorized')
+
+    // 4. Login with non-existent email returns 401
+    const noUserRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'nonexistent_user_9999@example.com', password: 'SomePassword123!' }),
+    })
+    assert.equal(noUserRes.status, 401)
+  })
+
+  test('POST /api/auth/forgot-password and /reset-password completes full reset lifecycle', async () => {
+    const email = `reset_flow_${Date.now()}@example.com`
+    const originalPassword = 'OriginalPassword123!'
+    const newPassword = 'NewSecretPassword456!'
+
+    // Register test user
+    const regRes = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Reset User', email, password: originalPassword }),
+    })
+    assert.equal(regRes.status, 201)
+
+    // Request reset for non-existent email returns 200 without leaking token
+    const nonExistentRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'ghost_account_xyz@example.com' }),
+    })
+    assert.equal(nonExistentRes.status, 200)
+    const nonExistentData = await nonExistentRes.json()
+    assert.equal(nonExistentData.resetToken, undefined)
+
+    // Request reset for real user returns valid resetToken
+    const forgotRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    assert.equal(forgotRes.status, 200)
+    const forgotData = await forgotRes.json()
+    assert.ok(forgotData.resetToken)
+    const token = forgotData.resetToken
+
+    // Submitting invalid reset token returns 400
+    const invalidResetRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'invalid_malformed_token_12345', newPassword }),
+    })
+    assert.equal(invalidResetRes.status, 400)
+
+    // Reset password with valid token succeeds and establishes session
+    const resetRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    })
+    assert.equal(resetRes.status, 200)
+    const resetData = await resetRes.json()
+    assert.equal(resetData.user.email, email)
+    const resetCookie = resetRes.headers.get('set-cookie')
+    assert.ok(resetCookie && resetCookie.includes('applyflow_session'))
+
+    // Old password no longer works
+    const oldLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: originalPassword }),
+    })
+    assert.equal(oldLoginRes.status, 401)
+
+    // New password works
+    const newLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: newPassword }),
+    })
+    assert.equal(newLoginRes.status, 200)
+
+    // Reusing the same reset token is rejected (single-use guarantee)
+    const reuseTokenRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword: 'AnotherPassword789!' }),
+    })
+    assert.equal(reuseTokenRes.status, 400)
+  })
+
   test('non-existent endpoint returns structured 404 JSON response', async () => {
     const res = await fetch(`${baseUrl}/api/non-existent-route-999`)
     assert.equal(res.status, 404)

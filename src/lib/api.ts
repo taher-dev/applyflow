@@ -217,6 +217,27 @@ export const api = {
     },
 
     /**
+     * Requests password reset instructions for an email address.
+     */
+    async forgotPassword(email: string): Promise<{ message: string; resetToken?: string }> {
+      return await apiClient<{ message: string; resetToken?: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: { email },
+      })
+    },
+
+    /**
+     * Resets user password using a verified single-use reset token and signs in.
+     */
+    async resetPassword(payload: { token: string; newPassword: string }): Promise<User> {
+      const data = await apiClient<AuthResponse>('/auth/reset-password', {
+        method: 'POST',
+        body: payload,
+      })
+      return data.user
+    },
+
+    /**
      * Revokes session on backend and clears browser cookie.
      */
     async logout(): Promise<void> {

@@ -6,7 +6,8 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  Info,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,7 +18,7 @@ import { ApiError } from '@/lib/api'
 import { toast } from 'sonner'
 import type { GoogleCredentialResponse } from '@/types/google'
 
-type AuthMode = 'login' | 'register' | 'forgot-password'
+type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password'
 
 interface AuthScreenProps {
   initialMode?: AuthMode
@@ -52,7 +53,15 @@ export function AuthScreen({
   enableDemoAuth = typeof import.meta !== 'undefined' &&
     import.meta.env?.VITE_ENABLE_DEMO_AUTH !== 'false',
 }: AuthScreenProps = {}) {
-  const { login, register, loginWithGoogle, error: contextError, clearError } = useAuth()
+  const {
+    login,
+    register,
+    loginWithGoogle,
+    forgotPassword,
+    resetPassword,
+    error: contextError,
+    clearError,
+  } = useAuth()
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
   const googleClientId =
@@ -67,7 +76,10 @@ export function AuthScreen({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [resetToken, setResetToken] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null)
 
   // Status states
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -77,7 +89,7 @@ export function AuthScreen({
 
   // Initialize and mount Google Identity Services button if client ID is configured
   useEffect(() => {
-    if (!googleClientId || mode === 'forgot-password') {
+    if (!googleClientId || mode === 'forgot-password' || mode === 'reset-password') {
       return
     }
 
@@ -168,6 +180,7 @@ export function AuthScreen({
     setLocalError(null)
     setFieldErrors({})
     setShowPassword(false)
+    setResetSuccessMessage(null)
     clearError()
   }
 
@@ -178,16 +191,40 @@ export function AuthScreen({
       errors.name = 'Please enter your full name'
     }
 
-    if (!email.trim()) {
-      errors.email = 'Please enter your email address'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Please enter a valid email address'
+    if (mode === 'login' || mode === 'register' || mode === 'forgot-password') {
+      if (!email.trim()) {
+        errors.email = 'Please enter your email address'
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        errors.email = 'Please enter a valid email address'
+      }
     }
 
-    if (!password) {
-      errors.password = 'Please enter your password'
-    } else if (mode === 'register' && password.length < 8) {
-      errors.password = 'Password must be at least 8 characters'
+    if (mode === 'login') {
+      if (!password) {
+        errors.password = 'Please enter your password'
+      }
+    }
+
+    if (mode === 'register') {
+      if (!password) {
+        errors.password = 'Please enter your password'
+      } else if (password.length < 8) {
+        errors.password = 'Password must be at least 8 characters'
+      }
+    }
+
+    if (mode === 'reset-password') {
+      if (!resetToken.trim()) {
+        errors.resetToken = 'Please enter or paste your reset code'
+      }
+      if (!password) {
+        errors.password = 'Please enter a new password'
+      } else if (password.length < 8) {
+        errors.password = 'Password must be at least 8 characters'
+      }
+      if (confirmPassword !== password) {
+        errors.confirmPassword = 'Passwords do not match'
+      }
     }
 
     setFieldErrors(errors)
@@ -207,8 +244,26 @@ export function AuthScreen({
     try {
       if (mode === 'login') {
         await login({ email: email.trim(), password })
-      } else {
+      } else if (mode === 'register') {
         await register({ name: name.trim(), email: email.trim(), password })
+      } else if (mode === 'forgot-password') {
+        const res = await forgotPassword(email.trim())
+        if (res.resetToken) {
+          setResetToken(res.resetToken)
+          setMode('reset-password')
+          toast.success('Reset code generated! Please set your new password.')
+        } else {
+          setResetSuccessMessage(
+            res.message || 'If an account exists with this email, password reset instructions have been generated.'
+          )
+          toast.success('Reset request sent!')
+        }
+      } else if (mode === 'reset-password') {
+        await resetPassword({
+          token: resetToken.trim(),
+          newPassword: password,
+        })
+        toast.success('Password successfully reset! You are now signed in.')
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -266,11 +321,6 @@ export function AuthScreen({
     }
   }
 
-  const handleForgotPassword = () => {
-    switchMode('forgot-password')
-    toast.info('Password reset is not available yet. Please contact the application administrator for assistance.')
-  }
-
   const activeError = localError || contextError
 
   return (
@@ -279,7 +329,7 @@ export function AuthScreen({
         {/* Minimal Brand Mark */}
         <div className="flex flex-col items-center text-center mb-7">
           <div className="size-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm mb-4">
-            {mode === 'forgot-password' ? (
+            {mode === 'forgot-password' || mode === 'reset-password' ? (
               <KeyRound className="size-5" />
             ) : (
               <Briefcase className="size-5" />
@@ -290,14 +340,18 @@ export function AuthScreen({
               ? 'Welcome back'
               : mode === 'register'
               ? 'Create an account'
-              : 'Reset Password'}
+              : mode === 'forgot-password'
+              ? 'Reset your password'
+              : 'Set new password'}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             {mode === 'login'
               ? 'Sign in to access your application workspace'
               : mode === 'register'
               ? 'Start tracking job applications and interviews'
-              : 'Password reset is currently unavailable'}
+              : mode === 'forgot-password'
+              ? 'Enter your email to receive a password reset code'
+              : 'Enter your reset code and choose a new password'}
           </p>
         </div>
 
@@ -312,30 +366,242 @@ export function AuthScreen({
           </div>
         )}
 
-        {mode === 'forgot-password' ? (
-          <div className="w-full space-y-4">
-            <div
-              role="status"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 space-y-2"
-            >
-              <div className="flex items-start gap-2.5 text-slate-800 font-medium">
-                <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
-                <span>Password reset is not available yet</span>
+        {/* --- FORGOT PASSWORD MODE --- */}
+        {mode === 'forgot-password' && (
+          <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
+            {resetSuccessMessage ? (
+              <div className="w-full space-y-4 animate-in fade-in duration-200">
+                <div
+                  role="status"
+                  className="w-full rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-800 space-y-2"
+                >
+                  <div className="flex items-start gap-2 font-medium text-emerald-900">
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Instructions Generated</span>
+                  </div>
+                  <p className="leading-relaxed pl-6 text-emerald-700">
+                    {resetSuccessMessage}
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => switchMode('reset-password')}
+                  className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99]"
+                >
+                  Enter reset code & new password
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => switchMode('login')}
+                  className="w-full h-10 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Return to sign in
+                </Button>
               </div>
-              <p className="leading-relaxed pl-6.5 text-slate-500">
-                Password reset is not available yet. Please contact the application administrator for assistance.
-              </p>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs font-medium text-slate-700">
+                    Email address
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }))
+                    }}
+                    disabled={isSubmitting}
+                    className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    aria-invalid={!!fieldErrors.email}
+                    aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                    autoComplete="email"
+                    autoFocus
+                  />
+                  {fieldErrors.email && (
+                    <p id="email-error" className="text-[11px] font-medium text-red-600">
+                      {fieldErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-4 animate-spin text-white" />
+                      <span>Generating instructions...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span>Send reset instructions</span>
+                      <ArrowRight className="size-4" />
+                    </div>
+                  )}
+                </Button>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('login')}
+                    className="hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Return to sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('reset-password')}
+                    className="text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer font-medium"
+                  >
+                    Have a reset code?
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        )}
+
+        {/* --- RESET PASSWORD MODE --- */}
+        {mode === 'reset-password' && (
+          <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
+            {/* Reset Code */}
+            <div className="space-y-1.5">
+              <Label htmlFor="resetToken" className="text-xs font-medium text-slate-700">
+                Reset code / token
+              </Label>
+              <Input
+                id="resetToken"
+                name="resetToken"
+                type="text"
+                placeholder="Paste your reset code"
+                value={resetToken}
+                onChange={(e) => {
+                  setResetToken(e.target.value)
+                  if (fieldErrors.resetToken) setFieldErrors((prev) => ({ ...prev, resetToken: '' }))
+                }}
+                disabled={isSubmitting}
+                className="h-10.5 font-mono text-xs rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                aria-invalid={!!fieldErrors.resetToken}
+                aria-describedby={fieldErrors.resetToken ? 'resetToken-error' : undefined}
+                autoFocus={!resetToken}
+              />
+              {fieldErrors.resetToken && (
+                <p id="resetToken-error" className="text-[11px] font-medium text-red-600">
+                  {fieldErrors.resetToken}
+                </p>
+              )}
             </div>
 
+            {/* New Password */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs font-medium text-slate-700">
+                  New password
+                </Label>
+                <span className="text-[11px] text-slate-400">Min. 8 characters</span>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
+                  }}
+                  disabled={isSubmitting}
+                  className="h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <p id="password-error" className="text-[11px] font-medium text-red-600">
+                  {fieldErrors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Confirm New Password */}
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword" className="text-xs font-medium text-slate-700">
+                Confirm new password
+              </Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Re-enter your new password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value)
+                  if (fieldErrors.confirmPassword)
+                    setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }))
+                }}
+                disabled={isSubmitting}
+                className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                aria-invalid={!!fieldErrors.confirmPassword}
+                aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
+                autoComplete="new-password"
+              />
+              {fieldErrors.confirmPassword && (
+                <p id="confirmPassword-error" className="text-[11px] font-medium text-red-600">
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Button */}
             <Button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99]"
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Return to sign in
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="size-4 animate-spin text-white" />
+                  <span>Updating password...</span>
+                </div>
+              ) : (
+                <span>Update Password & Sign In</span>
+              )}
             </Button>
-          </div>
-        ) : (
+
+            <div className="flex items-center justify-center text-xs text-slate-500 pt-2">
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Return to sign in
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* --- LOGIN AND REGISTER MODES --- */}
+        {(mode === 'login' || mode === 'register') && (
           <>
             {/* Google SSO / OAuth / Demo Auth */}
             {googleClientId ? (
@@ -431,141 +697,141 @@ export function AuthScreen({
               </div>
             </div>
 
-        {/* Form Container */}
-        <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
-          {/* Full Name (Register mode only) */}
-          {mode === 'register' && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs font-medium text-slate-700">
-                Full name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Jane Doe"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }))
-                }}
-                disabled={isSubmitting || isGoogleSubmitting}
-                className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-                aria-invalid={!!fieldErrors.name}
-                aria-describedby={fieldErrors.name ? 'name-error' : undefined}
-                autoComplete="name"
-              />
-              {fieldErrors.name && (
-                <p id="name-error" className="text-[11px] font-medium text-red-600">
-                  {fieldErrors.name}
-                </p>
+            {/* Form Container */}
+            <form onSubmit={handleSubmit} noValidate className="w-full space-y-4">
+              {/* Full Name (Register mode only) */}
+              {mode === 'register' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-medium text-slate-700">
+                    Full name
+                  </Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value)
+                      if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: '' }))
+                    }}
+                    disabled={isSubmitting || isGoogleSubmitting}
+                    className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={fieldErrors.name ? 'name-error' : undefined}
+                    autoComplete="name"
+                  />
+                  {fieldErrors.name && (
+                    <p id="name-error" className="text-[11px] font-medium text-red-600">
+                      {fieldErrors.name}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
-          )}
 
-          {/* Email Address */}
-          <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-medium text-slate-700">
-              Email address
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }))
-              }}
-              disabled={isSubmitting || isGoogleSubmitting}
-              className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-              aria-invalid={!!fieldErrors.email}
-              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-              autoComplete="email"
-            />
-            {fieldErrors.email && (
-              <p id="email-error" className="text-[11px] font-medium text-red-600">
-                {fieldErrors.email}
-              </p>
-            )}
-          </div>
-
-          {/* Password */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-xs font-medium text-slate-700">
-                Password
-              </Label>
-              {mode === 'login' ? (
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-xs font-normal text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
-                  tabIndex={-1}
-                >
-                  Forgot password?
-                </button>
-              ) : (
-                <span className="text-[11px] text-slate-400">Min. 8 characters</span>
-              )}
-            </div>
-            <div className="relative">
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
-                }}
-                disabled={isSubmitting || isGoogleSubmitting}
-                className="h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
-                aria-invalid={!!fieldErrors.password}
-                aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                tabIndex={-1}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-            {fieldErrors.password && (
-              <p id="password-error" className="text-[11px] font-medium text-red-600">
-                {fieldErrors.password}
-              </p>
-            )}
-          </div>
-
-          {/* Primary Submit Button */}
-          <Button
-            type="submit"
-            disabled={isSubmitting || isGoogleSubmitting}
-            className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="size-4 animate-spin text-white" />
-                <span>{mode === 'login' ? 'Signing in...' : 'Creating account...'}</span>
+              {/* Email Address */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-medium text-slate-700">
+                  Email address
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }))
+                  }}
+                  disabled={isSubmitting || isGoogleSubmitting}
+                  className="h-10.5 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                  autoComplete="email"
+                />
+                {fieldErrors.email && (
+                  <p id="email-error" className="text-[11px] font-medium text-red-600">
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
-            ) : (
-              <span>{mode === 'login' ? 'Sign in with email' : 'Create account'}</span>
-            )}
-          </Button>
-        </form>
-      </>
-    )}
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-medium text-slate-700">
+                    Password
+                  </Label>
+                  {mode === 'login' ? (
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot-password')}
+                      className="text-xs font-normal text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      Forgot password?
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-slate-400">Min. 8 characters</span>
+                  )}
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }))
+                    }}
+                    disabled={isSubmitting || isGoogleSubmitting}
+                    className="h-10.5 pr-10 rounded-lg border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus-visible:border-slate-900 focus-visible:ring-1 focus-visible:ring-slate-900 transition-colors"
+                    aria-invalid={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    tabIndex={-1}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+                {fieldErrors.password && (
+                  <p id="password-error" className="text-[11px] font-medium text-red-600">
+                    {fieldErrors.password}
+                  </p>
+                )}
+              </div>
+
+              {/* Primary Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting || isGoogleSubmitting}
+                className="w-full h-10.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm shadow-xs transition-colors duration-150 cursor-pointer active:scale-[0.99] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="size-4 animate-spin text-white" />
+                    <span>{mode === 'login' ? 'Signing in...' : 'Creating account...'}</span>
+                  </div>
+                ) : (
+                  <span>{mode === 'login' ? 'Sign in with email' : 'Create account'}</span>
+                )}
+              </Button>
+            </form>
+          </>
+        )}
 
         {/* Minimal Mode Toggle */}
         <div className="text-center text-xs text-slate-500 mt-6">
-          {mode === 'forgot-password' ? (
+          {mode === 'forgot-password' || mode === 'reset-password' ? (
             <span>
               Remember your password?{' '}
               <button
