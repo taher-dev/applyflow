@@ -26,6 +26,7 @@ import { toast } from 'sonner'
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav'
 import { ScrollToTopButton } from '@/components/dashboard/ScrollToTopButton'
 import { useScrollDirection } from '@/lib/useScrollDirection'
+import { useInterviewNotifications } from '@/lib/useInterviewNotifications'
 import { calculateDashboardMetrics } from '@/lib/metrics'
 import type {
   JobApplication,
@@ -112,6 +113,13 @@ function DashboardContent() {
       return !isNaN(time) && time >= currentTime
     }).length
   }, [interviews, currentTime])
+
+  // Dynamic unseen interview notifications count and milestone reminder system
+  const { unseenCount, markAllAsSeen } = useInterviewNotifications(
+    interviews,
+    applications,
+    activeTab
+  )
 
   // Handlers for Add & Edit Application Dialog
   const handleOpenAdd = () => {
@@ -388,6 +396,7 @@ function DashboardContent() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         upcomingInterviewsCount={upcomingInterviewsCount}
+        unseenInterviewsCount={unseenCount}
         onResetDemoData={() => setIsResetDialogOpen(true)}
       />
 
@@ -409,6 +418,8 @@ function DashboardContent() {
           }
           interviews={interviews}
           applications={applications}
+          unseenCount={unseenCount}
+          onMarkNotificationsSeen={markAllAsSeen}
           onSelectInterview={(interview) => {
             setSelectedInterviewForDetails(interview)
           }}
@@ -674,6 +685,7 @@ function DashboardContent() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         upcomingInterviewsCount={upcomingInterviewsCount}
+        unseenInterviewsCount={unseenCount}
         isVisible={isNavVisible}
       />
 

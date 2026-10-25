@@ -18,6 +18,7 @@ interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
   upcomingInterviewsCount?: number
+  unseenInterviewsCount?: number
   onResetDemoData?: () => void
   onRefreshWorkspace?: () => void
 }
@@ -32,6 +33,7 @@ export function Sidebar({
   activeTab,
   onSelectTab,
   upcomingInterviewsCount,
+  unseenInterviewsCount,
   onResetDemoData,
   onRefreshWorkspace,
 }: SidebarProps) {
@@ -71,11 +73,14 @@ export function Sidebar({
               const Icon = iconMap[item.icon as keyof typeof iconMap] || LayoutDashboard
               const isActive = activeTab === item.key
 
-              // Dynamic badge count for interviews or fallback to configured badge
+              // Dynamic badge count for interviews (shows unseen notification count or fallback)
+              const effectiveBadgeCount =
+                unseenInterviewsCount !== undefined ? unseenInterviewsCount : upcomingInterviewsCount
+
               const badgeText =
-                item.key === 'interviews' && upcomingInterviewsCount !== undefined
-                  ? upcomingInterviewsCount > 0
-                    ? String(upcomingInterviewsCount)
+                item.key === 'interviews' && effectiveBadgeCount !== undefined
+                  ? effectiveBadgeCount > 0
+                    ? String(effectiveBadgeCount)
                     : undefined
                   : item.badge
 

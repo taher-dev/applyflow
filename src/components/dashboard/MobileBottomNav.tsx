@@ -6,6 +6,7 @@ interface MobileBottomNavProps {
   activeTab: NavigationKey
   onSelectTab: (tab: NavigationKey) => void
   upcomingInterviewsCount?: number
+  unseenInterviewsCount?: number
   isVisible?: boolean
 }
 
@@ -25,6 +26,7 @@ export function MobileBottomNav({
   activeTab,
   onSelectTab,
   upcomingInterviewsCount = 0,
+  unseenInterviewsCount,
   isVisible = true,
 }: MobileBottomNavProps) {
   const handleTabClick = (key: NavigationKey) => {
@@ -49,7 +51,9 @@ export function MobileBottomNav({
           const Icon = tab.icon
           const isActive = activeTab === tab.key
           const isInterviews = tab.key === 'interviews'
-          const showBadge = isInterviews && upcomingInterviewsCount > 0
+          const effectiveBadgeCount =
+            unseenInterviewsCount !== undefined ? unseenInterviewsCount : upcomingInterviewsCount
+          const showBadge = isInterviews && effectiveBadgeCount > 0
 
           return (
             <button
@@ -74,7 +78,7 @@ export function MobileBottomNav({
                 />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white shadow-2xs ring-2 ring-white">
-                    {upcomingInterviewsCount > 9 ? '9+' : upcomingInterviewsCount}
+                    {effectiveBadgeCount > 9 ? '9+' : effectiveBadgeCount}
                   </span>
                 )}
               </div>
