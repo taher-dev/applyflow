@@ -11,6 +11,13 @@ export const healthRouter = Router()
  * It is intentionally distinct from database connectivity checks,
  * so external orchestrators can test server health independently of DB state.
  */
+healthRouter.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'ApplyFlow API is running',
+  })
+})
+
 healthRouter.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',

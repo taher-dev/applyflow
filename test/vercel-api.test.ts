@@ -43,15 +43,26 @@ describe('Vercel Serverless Function & Deployment API Entrypoint', () => {
     assert.deepEqual(data, { status: 'ok' })
   })
 
-  test('GET /api with x-matched-path: /api/health (simulating Vercel destination rewrite) restores target path', async () => {
-    const res = await fetch(`${baseUrl}/api`, {
-      headers: {
-        'x-matched-path': '/api/health',
-      },
-    })
+  test('GET /api responds with 200 and API status message', async () => {
+    const res = await fetch(`${baseUrl}/api`)
+    assert.equal(res.status, 200)
+    const data = await res.json()
+    assert.equal(data.status, 'ok')
+    assert.equal(data.message, 'ApplyFlow API is running')
+  })
+
+  test('GET /api/index?__vercel_path=health resolves to /api/health and responds 200', async () => {
+    const res = await fetch(`${baseUrl}/api/index?__vercel_path=health`)
     assert.equal(res.status, 200)
     const data = await res.json()
     assert.deepEqual(data, { status: 'ok' })
+  })
+
+  test('GET /api/index?__vercel_path=auth/me resolves to /api/auth/me and responds 401 without session', async () => {
+    const res = await fetch(`${baseUrl}/api/index?__vercel_path=auth/me`)
+    assert.equal(res.status, 401)
+    const data = await res.json()
+    assert.equal(data.error, 'Unauthorized')
   })
 
   test('POST /api/auth/google responds with 200 and sets session cookie', async () => {
