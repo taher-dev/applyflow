@@ -35,3 +35,6 @@ server/dist
 /data/
 server/data/
 .neon
+
+# Scratch scripts and temporary test profiles
+scratch/
