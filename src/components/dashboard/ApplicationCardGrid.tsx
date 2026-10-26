@@ -1,6 +1,13 @@
 import type { JobApplication, ApplicationStatus } from '@/types/dashboard'
 import { X, CalendarPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 interface ApplicationCardGridProps {
   applications: JobApplication[]
@@ -110,10 +117,19 @@ export function ApplicationCardGrid({
   applications,
   onEditApplication,
   onDeleteApplication,
+  onUpdateStatus,
   onSelectApplication,
   onScheduleInterview,
 }: ApplicationCardGridProps) {
-  const handleCardClick = (app: JobApplication) => {
+  const handleCardClick = (e: React.MouseEvent, app: JobApplication) => {
+    // If clicking directly on or inside interactive controls, don't trigger details selection
+    if (
+      (e.target as HTMLElement).closest(
+        'button, [role="combobox"], [role="menuitem"], [role="menu"], [data-radix-collection-item], select, input, a'
+      )
+    ) {
+      return
+    }
     if (onSelectApplication) {
       onSelectApplication(app)
     } else {
@@ -129,7 +145,7 @@ export function ApplicationCardGrid({
         return (
           <div
             key={app.id}
-            onClick={() => handleCardClick(app)}
+            onClick={(e) => handleCardClick(e, app)}
             className={cn(
               'group relative rounded-2xl sm:rounded-3xl border p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5',
               theme.bg,
@@ -178,16 +194,57 @@ export function ApplicationCardGrid({
                     {app.workplaceType}
                   </span>
                 )}
-                <span
-                  className={cn(
-                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium shadow-2xs border',
-                    app.status === 'Saved'
-                      ? 'bg-amber-100 text-amber-800 border-amber-200'
-                      : 'bg-white/95 text-slate-700 border-black/5'
-                  )}
-                >
-                  {app.status}
-                </span>
+                {onUpdateStatus ? (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="inline-flex items-center"
+                  >
+                    <Select
+                      value={app.status}
+                      onValueChange={(val) =>
+                        onUpdateStatus(app.id, val as ApplicationStatus)
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={`Change status for ${app.company}`}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className={cn(
+                          'h-6 rounded-full px-2.5 py-0 text-[11px] font-medium border shadow-2xs cursor-pointer',
+                          app.status === 'Saved'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200/80'
+                            : 'bg-white/95 text-slate-700 border-black/5 hover:bg-white'
+                        )}
+                      >
+                        <SelectValue>{app.status}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        {(['Saved', 'Applied', 'Rejected', 'Offer'] as ApplicationStatus[]).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <span
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium shadow-2xs border',
+                      app.status === 'Saved'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-white/95 text-slate-700 border-black/5'
+                    )}
+                  >
+                    {app.status}
+                  </span>
+                )}
               </div>
             </div>
 

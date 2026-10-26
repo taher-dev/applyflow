@@ -347,6 +347,21 @@ export function RecentApplications({
     setCurrentPage(1)
   }
 
+  const handleRowOrCardClick = (
+    e: React.MouseEvent,
+    app: JobApplication
+  ) => {
+    // If clicking directly on or inside interactive controls (buttons, select triggers, menus, dropdown items), don't trigger details selection
+    if (
+      (e.target as HTMLElement).closest(
+        'button, [role="combobox"], [role="menuitem"], [role="menu"], [data-radix-collection-item], select, input, a'
+      )
+    ) {
+      return
+    }
+    onSelectApplication?.(app)
+  }
+
   // Active filters detection
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
@@ -605,7 +620,7 @@ export function RecentApplications({
               {paginatedApplications.map((app) => (
                 <div
                   key={app.id}
-                  onClick={() => onSelectApplication?.(app)}
+                  onClick={(e) => handleRowOrCardClick(e, app)}
                   className={cn(
                     'p-4 space-y-3 hover:bg-slate-50/60 transition-colors',
                     onSelectApplication && 'cursor-pointer'
@@ -631,81 +646,113 @@ export function RecentApplications({
                     </div>
 
                     {/* Top-right Actions Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 -mr-1 -mt-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                          aria-label={`Actions for ${app.company}`}
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        {onSelectApplication && (
-                          <DropdownMenuItem
-                            onClick={() => onSelectApplication(app)}
-                            className="cursor-pointer"
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 -mr-1 -mt-1 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                            aria-label={`Actions for ${app.company}`}
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                           >
-                            <Eye className="size-3.5 mr-2" />
-                            <span>View Details</span>
-                          </DropdownMenuItem>
-                        )}
-                        {onScheduleInterview && (
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-44"
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          {onSelectApplication && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onSelectApplication(app)
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="size-3.5 mr-2" />
+                              <span>View Details</span>
+                            </DropdownMenuItem>
+                          )}
+                          {onScheduleInterview && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onScheduleInterview(app.id)
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <CalendarPlus className="size-3.5 mr-2" />
+                              <span>Schedule Interview</span>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
-                              onScheduleInterview(app.id)
+                              onEditApplication(app)
                             }}
                             className="cursor-pointer"
                           >
-                            <CalendarPlus className="size-3.5 mr-2" />
-                            <span>Schedule Interview</span>
+                            <Pencil className="size-3.5 mr-2" />
+                            <span>Edit Application</span>
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => onEditApplication(app)}
-                          className="cursor-pointer"
-                        >
-                          <Pencil className="size-3.5 mr-2" />
-                          <span>Edit Application</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="cursor-pointer">
-                            <ArrowRightLeft className="size-3.5 mr-2" />
-                            <span>Change Status</span>
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-36">
-                            {ALL_STATUSES.map((status) => (
-                              <DropdownMenuItem
-                                key={status}
-                                onClick={() => onUpdateStatus(app.id, status)}
-                                className="cursor-pointer flex items-center justify-between"
-                              >
-                                <span>{status}</span>
-                                {app.status === status && (
-                                  <Check className="size-3 text-blue-600" />
-                                )}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => onDeleteApplication(app)}
-                          className="text-destructive focus:text-destructive cursor-pointer"
-                        >
-                          <Trash2 className="size-3.5 mr-2" />
-                          <span>Delete Application</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer">
+                              <ArrowRightLeft className="size-3.5 mr-2" />
+                              <span>Change Status</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent
+                              className="w-36"
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                            >
+                              {ALL_STATUSES.map((status) => (
+                                <DropdownMenuItem
+                                  key={status}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onUpdateStatus(app.id, status)
+                                  }}
+                                  className="cursor-pointer flex items-center justify-between"
+                                >
+                                  <span>{status}</span>
+                                  {app.status === status && (
+                                    <Check className="size-3 text-blue-600" />
+                                  )}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteApplication(app)
+                            }}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5 mr-2" />
+                            <span>Delete Application</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Middle row: Interactive Status Selector & Target Compensation */}
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
-                    <div className="flex items-center gap-1.5">
+                    <div
+                      className="flex items-center gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
                       <span className="text-[11px] text-muted-foreground font-medium">
                         Status:
                       </span>
@@ -717,13 +764,19 @@ export function RecentApplications({
                       >
                         <SelectTrigger
                           aria-label={`Change status for ${app.company}`}
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
                           className={`h-6.5 rounded-full px-2.5 py-0 text-xs font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
                             app.status
                           )}`}
                         >
                           <SelectValue>{app.status}</SelectValue>
                         </SelectTrigger>
-                        <SelectContent position="popper">
+                        <SelectContent
+                          position="popper"
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
                           {ALL_STATUSES.map((status) => (
                             <SelectItem key={status} value={status}>
                               {status}
@@ -818,7 +871,7 @@ export function RecentApplications({
                   {paginatedApplications.map((app) => (
                     <TableRow
                       key={app.id}
-                      onClick={() => onSelectApplication?.(app)}
+                      onClick={(e) => handleRowOrCardClick(e, app)}
                       className={cn(
                         'border-b border-slate-100 hover:bg-slate-50/60 transition-colors',
                         onSelectApplication && 'cursor-pointer'
@@ -883,7 +936,11 @@ export function RecentApplications({
                       </TableCell>
 
                       {/* Status Selector */}
-                      <TableCell className="py-3.5 whitespace-nowrap">
+                      <TableCell
+                        className="py-3.5 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
                         <Select
                           value={app.status}
                           onValueChange={(val) =>
@@ -892,13 +949,19 @@ export function RecentApplications({
                         >
                           <SelectTrigger
                             aria-label={`Change status for ${app.company}`}
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             className={`h-6.5 rounded-full px-2.5 py-0 text-xs font-medium border shadow-none cursor-pointer ${getStatusBadgeClass(
                               app.status
                             )}`}
                           >
                             <SelectValue>{app.status}</SelectValue>
                           </SelectTrigger>
-                          <SelectContent position="popper">
+                          <SelectContent
+                            position="popper"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          >
                             {ALL_STATUSES.map((status) => (
                               <SelectItem key={status} value={status}>
                                 {status}
@@ -916,7 +979,11 @@ export function RecentApplications({
                       </TableCell>
 
                       {/* Actions Menu (Guaranteed width to avoid overlapping) */}
-                      <TableCell className="w-[8%] min-w-[50px] pr-4 py-3.5 text-right whitespace-nowrap">
+                      <TableCell
+                        className="w-[8%] min-w-[50px] pr-4 py-3.5 text-right whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -924,11 +991,18 @@ export function RecentApplications({
                               size="icon"
                               className="size-8 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer inline-flex items-center justify-center"
                               aria-label={`Actions for ${app.company}`}
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
                             >
                               <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-44"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          >
                             {onSelectApplication && (
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -968,11 +1042,18 @@ export function RecentApplications({
                                 <ArrowRightLeft className="size-3.5 mr-2" />
                                 <span>Change Status</span>
                               </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="w-36">
+                              <DropdownMenuSubContent
+                                className="w-36"
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                              >
                                 {ALL_STATUSES.map((status) => (
                                   <DropdownMenuItem
                                     key={status}
-                                    onClick={() => onUpdateStatus(app.id, status)}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onUpdateStatus(app.id, status)
+                                    }}
                                     className="cursor-pointer flex items-center justify-between"
                                   >
                                     <span>{status}</span>
@@ -985,7 +1066,10 @@ export function RecentApplications({
                             </DropdownMenuSub>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => onDeleteApplication(app)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteApplication(app)
+                              }}
                               className="text-destructive focus:text-destructive cursor-pointer"
                             >
                               <Trash2 className="size-3.5 mr-2" />
