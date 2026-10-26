@@ -36,9 +36,15 @@ class JobService {
     const q = (params.query || '').trim().toLowerCase()
     const loc = (params.location || '').trim().toLowerCase()
     const emp = (params.employmentType || '').trim().toLowerCase()
+    const cat = (params.category || '').trim().toLowerCase()
+    const exp = (params.experience || '').trim().toLowerCase()
+    const wp = (params.workplaceType || '').trim().toLowerCase()
+    const pw = (params.postedWithin || '').trim().toLowerCase()
+    const sal = (params.hasSalary || '').toString().trim().toLowerCase()
+    const sort = (params.sortBy || '').trim().toLowerCase()
     const pg = params.page || 1
     const ps = params.pageSize || 15
-    return `${providerId}:${q}:${loc}:${emp}:${pg}:${ps}`
+    return `${providerId}:${q}:${loc}:${emp}:${cat}:${exp}:${wp}:${pw}:${sal}:${sort}:${pg}:${ps}`
   }
 
   private getFromCache(key: string): JobSearchResponse | null {

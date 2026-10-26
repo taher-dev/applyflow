@@ -24,6 +24,42 @@ const jobSearchQuerySchema = z.object({
     .max(50, 'Employment type cannot exceed 50 characters')
     .optional()
     .transform((val) => (val && val.length > 0 ? val : undefined)),
+  category: z
+    .string()
+    .trim()
+    .max(100, 'Category cannot exceed 100 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  experience: z
+    .string()
+    .trim()
+    .max(50, 'Experience filter cannot exceed 50 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  workplaceType: z
+    .string()
+    .trim()
+    .max(50, 'Workplace type cannot exceed 50 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  postedWithin: z
+    .string()
+    .trim()
+    .max(20, 'Posted within filter cannot exceed 20 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  hasSalary: z
+    .string()
+    .trim()
+    .max(20)
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  sortBy: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
   page: z
     .coerce
     .number()
@@ -68,13 +104,33 @@ jobsRouter.get(
         return
       }
 
-      const { q, keyword, location, employmentType, page, pageSize, provider } = parsed.data
+      const {
+        q,
+        keyword,
+        location,
+        employmentType,
+        category,
+        experience,
+        workplaceType,
+        postedWithin,
+        hasSalary,
+        sortBy,
+        page,
+        pageSize,
+        provider,
+      } = parsed.data
       const effectiveQuery = (q || keyword || '').trim()
 
       const result = await jobService.searchJobs(provider, {
         query: effectiveQuery,
         location,
         employmentType,
+        category,
+        experience,
+        workplaceType,
+        postedWithin,
+        hasSalary,
+        sortBy,
         page,
         pageSize,
       })

@@ -170,6 +170,120 @@ export class BDJobsProvider implements JobProvider {
         })
       }
 
+      // Apply category filter (matches rawJob.jobCategory in summary or title)
+      if (params.category && params.category.trim().length > 0) {
+        const catLower = params.category.trim().toLowerCase()
+        normalizedJobs = normalizedJobs.filter(
+          (job) =>
+            (job.summary && job.summary.toLowerCase().includes(catLower)) ||
+            job.title.toLowerCase().includes(catLower)
+        )
+      }
+
+      // Apply experience filter
+      if (params.experience && params.experience.trim().length > 0) {
+        const expKey = params.experience.trim().toLowerCase()
+        normalizedJobs = normalizedJobs.filter((job) => {
+          if (!job.experience) return false
+          const expText = job.experience.toLowerCase()
+          if (expKey === 'freshers' || expKey === 'entry') {
+            return (
+              expText.includes('fresh') ||
+              expText.includes('not required') ||
+              expText.includes('no experience') ||
+              expText.includes('0') ||
+              expText.includes('at most 1')
+            )
+          }
+          if (expKey === '1-3' || expKey === '1_3') {
+            return expText.includes('1') || expText.includes('2') || expText.includes('3')
+          }
+          if (expKey === '3-5' || expKey === '3_5') {
+            return expText.includes('3') || expText.includes('4') || expText.includes('5')
+          }
+          if (expKey === '5plus' || expKey === '5+') {
+            return (
+              expText.includes('5') ||
+              expText.includes('6') ||
+              expText.includes('7') ||
+              expText.includes('8') ||
+              expText.includes('10') ||
+              expText.includes('senior')
+            )
+          }
+          return expText.includes(expKey)
+        })
+      }
+
+      // Apply workplace type filter
+      if (params.workplaceType && params.workplaceType.trim().length > 0) {
+        const wp = params.workplaceType.trim().toLowerCase()
+        normalizedJobs = normalizedJobs.filter((job) => {
+          const loc = (job.location || '').toLowerCase()
+          const title = job.title.toLowerCase()
+          if (wp === 'remote') {
+            return loc.includes('remote') || loc.includes('home') || title.includes('remote')
+          }
+          if (wp === 'hybrid') {
+            return loc.includes('hybrid') || title.includes('hybrid')
+          }
+          if (wp === 'onsite' || wp === 'on-site') {
+            return !loc.includes('remote') && !loc.includes('home')
+          }
+          return true
+        })
+      }
+
+      // Apply salary disclosure filter
+      if (params.hasSalary != null && String(params.hasSalary).trim().length > 0) {
+        const salParam = String(params.hasSalary).trim().toLowerCase()
+        normalizedJobs = normalizedJobs.filter((job) => {
+          if (!job.salary) return false
+          const salText = job.salary.toLowerCase()
+          if (salParam === 'disclosed' || salParam === 'true') {
+            return !salText.includes('negotiable') && /\d/.test(salText)
+          }
+          if (salParam === 'negotiable') {
+            return salText.includes('negotiable')
+          }
+          return true
+        })
+      }
+
+      // Apply date posted within filter
+      if (params.postedWithin && params.postedWithin.trim().length > 0) {
+        const pw = params.postedWithin.trim().toLowerCase()
+        const nowMs = Date.now()
+        normalizedJobs = normalizedJobs.filter((job) => {
+          if (!job.publishedAt) return true
+          const pubMs = new Date(job.publishedAt).getTime()
+          if (isNaN(pubMs)) return true
+          const diffHours = (nowMs - pubMs) / (1000 * 60 * 60)
+          if (pw === '24h' || pw === '1d') return diffHours <= 24
+          if (pw === '3d') return diffHours <= 72
+          if (pw === '7d' || pw === '1w') return diffHours <= 168
+          if (pw === '30d' || pw === '1m') return diffHours <= 720
+          return true
+        })
+      }
+
+      // Apply sorting
+      if (params.sortBy) {
+        if (params.sortBy === 'newest') {
+          normalizedJobs.sort((a, b) => {
+            const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+            const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+            return timeB - timeA
+          })
+        } else if (params.sortBy === 'deadline') {
+          normalizedJobs.sort((a, b) => {
+            const timeA = a.deadline ? new Date(a.deadline).getTime() : Infinity
+            const timeB = b.deadline ? new Date(b.deadline).getTime() : Infinity
+            return timeA - timeB
+          })
+        }
+      }
+
       return {
         success: true,
         provider: this.id,

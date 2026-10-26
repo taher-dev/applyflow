@@ -373,6 +373,14 @@ export const api = {
       if (query) searchParams.set('q', query)
       if (params.location) searchParams.set('location', params.location)
       if (params.employmentType) searchParams.set('employmentType', params.employmentType)
+      if (params.category) searchParams.set('category', params.category)
+      if (params.experience) searchParams.set('experience', params.experience)
+      if (params.workplaceType) searchParams.set('workplaceType', params.workplaceType)
+      if (params.postedWithin) searchParams.set('postedWithin', params.postedWithin)
+      if (params.hasSalary !== undefined && params.hasSalary !== null && params.hasSalary !== '') {
+        searchParams.set('hasSalary', String(params.hasSalary))
+      }
+      if (params.sortBy) searchParams.set('sortBy', params.sortBy)
       if (params.page) searchParams.set('page', String(params.page))
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize))
       if (params.provider) searchParams.set('provider', params.provider)

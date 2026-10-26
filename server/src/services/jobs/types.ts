@@ -25,6 +25,12 @@ export interface JobSearchParams {
   query: string
   location?: string | null
   employmentType?: string | null
+  category?: string | null
+  experience?: string | null
+  workplaceType?: string | null
+  postedWithin?: string | null
+  hasSalary?: string | boolean | null
+  sortBy?: 'relevant' | 'newest' | 'deadline' | string | null
   page?: number
   pageSize?: number
 }
