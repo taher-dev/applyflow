@@ -8,8 +8,8 @@ import type {
 export const navigationItems: NavigationItem[] = [
   { key: 'overview', label: 'Overview', icon: 'LayoutDashboard', isImplemented: true },
   { key: 'pipeline', label: 'Kanban Board', icon: 'Kanban', isImplemented: true },
-  { key: 'interviews', label: 'Interviews', icon: 'Calendar', badge: '3', isImplemented: true },
   { key: 'jobs', label: 'Job Discovery', icon: 'Compass', isImplemented: true },
+  { key: 'interviews', label: 'Interviews', icon: 'Calendar', badge: '3', isImplemented: true },
 ]
 
 export const initialMetrics: MetricCardData[] = [

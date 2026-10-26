@@ -19,8 +19,8 @@ interface TabItem {
 const tabs: TabItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
   { key: 'pipeline', label: 'Kanban', icon: Kanban },
-  { key: 'interviews', label: 'Interviews', icon: Calendar },
   { key: 'jobs', label: 'Discover', icon: Compass },
+  { key: 'interviews', label: 'Interviews', icon: Calendar },
 ]
 
 export function MobileBottomNav({
