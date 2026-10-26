@@ -439,11 +439,19 @@ function DashboardContent() {
           {/* Welcome Heading, View Switcher & Action Button */}
           <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 min-w-0">
             <div className="space-y-1 min-w-0">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
                 {activeTab === 'overview' && 'My Applications'}
                 {activeTab === 'pipeline' && 'Kanban Board'}
                 {activeTab === 'interviews' && 'Interview Management'}
-                {activeTab === 'jobs' && 'Job Discovery'}
+                {activeTab === 'jobs' && (
+                  <>
+                    <span>Job Discovery</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-normal">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      BDJobs
+                    </span>
+                  </>
+                )}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                 {activeTab === 'overview' && 'Track and manage your job applications'}
@@ -459,7 +467,7 @@ function DashboardContent() {
                 )}
                 {activeTab === 'jobs' && (
                   <>
-                    Discover and track live job opportunities across Bangladesh with direct BDJobs integration.
+                    Search live job openings across Bangladesh and save listings directly to your tracker.
                   </>
                 )}
               </p>

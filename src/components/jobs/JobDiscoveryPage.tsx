@@ -259,26 +259,8 @@ export function JobDiscoveryPage({
   )
 
   return (
-    <div className="w-full space-y-5">
-      {/* 1. Minimal Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Job Discovery
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              BDJobs
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Search live job openings across Bangladesh and save listings directly to your tracker.
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Modern Minimal Search Bar & Filters */}
+    <div className="w-full space-y-4">
+      {/* Modern Minimal Search Bar & Filters */}
       <div className="space-y-3">
         <form
           onSubmit={handleSearchSubmit}
