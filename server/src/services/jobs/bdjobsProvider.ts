@@ -104,6 +104,61 @@ function normalizeJobSalary(rawSalary?: unknown): string {
   return cleaned
 }
 
+/**
+ * Format deadline into a clean date string (e.g. Oct 31, 2026).
+ */
+export function normalizeJobDeadline(rawDeadline?: unknown): string | null {
+  const cleaned = cleanText(rawDeadline)
+  if (!cleaned) return null
+
+  const stripped = cleaned.replace(/^(due|deadline|application deadline|closing)[:\s]*/i, '').trim()
+  if (!stripped) return null
+
+  // 1. ISO or YYYY-MM-DD / YYYY/MM/DD
+  const isoMatch = stripped.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10)
+    const m = parseInt(isoMatch[2], 10) - 1
+    const d = parseInt(isoMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 2. DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = stripped.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10)
+    const m = parseInt(dmyMatch[2], 10) - 1
+    const y = parseInt(dmyMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 3. Fallback Date parsing
+  const parsed = new Date(stripped)
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
+  return cleaned
+}
+
 export class BDJobsProvider implements JobProvider {
   readonly id = 'bdjobs'
   readonly name = 'BDJobs'
@@ -196,7 +251,7 @@ export class BDJobsProvider implements JobProvider {
             salary: normalizeJobSalary(rawJob.Salary),
             experience: normalizeJobExperience(title, rawJob.experience),
             publishedAt: cleanText(rawJob.publishDate),
-            deadline: cleanText(rawJob.deadlineDB),
+            deadline: normalizeJobDeadline(rawJob.deadlineDB),
             summary: cleanText(rawJob.jobCategory),
             listingUrl: safeListingUrl,
             retrievedAt,
@@ -477,7 +532,7 @@ export class BDJobsProvider implements JobProvider {
         gender: cleanText(rawDetail.Gender),
         jobContext: cleanText(rawDetail.Context),
         publishedAt: cleanText(rawDetail.PostedOn),
-        deadline: cleanText(rawDetail.Deadline || rawDetail.DeadlineDB),
+        deadline: normalizeJobDeadline(rawDetail.Deadline || rawDetail.DeadlineDB),
         summary: cleanText(rawDetail.jobCategory || rawDetail.CategoryName),
         listingUrl: safeListingUrl,
         retrievedAt: new Date().toISOString(),

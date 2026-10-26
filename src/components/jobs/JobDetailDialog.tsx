@@ -60,6 +60,58 @@ function shouldShowDollarSign(salary?: string | null): boolean {
   return /usd/i.test(trimmed)
 }
 
+function formatDeadline(val?: string | null): string {
+  if (!val || typeof val !== 'string') return ''
+  const cleaned = val
+    .replace(/^(due|deadline|application deadline|closing)[:\s]*/i, '')
+    .trim()
+  if (!cleaned) return ''
+
+  // 1. ISO or YYYY-MM-DD / YYYY/MM/DD
+  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10)
+    const m = parseInt(isoMatch[2], 10) - 1
+    const d = parseInt(isoMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 2. DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10)
+    const m = parseInt(dmyMatch[2], 10) - 1
+    const y = parseInt(dmyMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 3. Native Date parser fallback
+  const parsed = new Date(cleaned)
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
+  return cleaned
+}
+
 export function JobDetailDialog({
   job,
   open,
@@ -215,7 +267,7 @@ export function JobDetailDialog({
               <span className="text-[10px] text-slate-400 block font-medium">Deadline</span>
               <div className="flex items-center gap-1 font-semibold text-rose-600 mt-0.5 truncate">
                 <Calendar className="size-3 text-rose-400 shrink-0" />
-                <span className="truncate">{activeJob.deadline || 'Closing soon'}</span>
+                <span className="truncate">{formatDeadline(activeJob.deadline) || 'Closing soon'}</span>
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   RotateCcw,
   AlertCircle,
   Clock,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -199,6 +200,61 @@ function shouldShowDollarSign(salary?: string | null): boolean {
   if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed' || trimmed === '--') return false
   if (trimmed.includes('$')) return false
   return /usd/i.test(trimmed)
+}
+
+/**
+ * Format raw deadline dates (e.g. ISO 2026-10-31T00:00:00Z or 2026-10-31) into clean, human-friendly dates (e.g. Oct 31, 2026).
+ */
+function formatDeadline(val?: string | null): string {
+  if (!val || typeof val !== 'string') return ''
+  const cleaned = val
+    .replace(/^(due|deadline|application deadline|closing)[:\s]*/i, '')
+    .trim()
+  if (!cleaned) return ''
+
+  // 1. ISO or YYYY-MM-DD / YYYY/MM/DD
+  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10)
+    const m = parseInt(isoMatch[2], 10) - 1
+    const d = parseInt(isoMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 2. DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10)
+    const m = parseInt(dmyMatch[2], 10) - 1
+    const y = parseInt(dmyMatch[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    }
+  }
+
+  // 3. Fallback to native Date parser (e.g. "31 Oct 2026", "October 31, 2026")
+  const parsed = new Date(cleaned)
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
+
+  return cleaned
 }
 
 function getCompanyAvatarTheme(name: string): string {
@@ -408,7 +464,12 @@ export function JobDiscoveryPage({
       salary: formatSalary(job.salary),
       appliedDate: new Date().toISOString().slice(0, 10),
       status: 'Saved',
-      notes: job.experience ? `Required Experience: ${job.experience}` : undefined,
+      notes: [
+        job.deadline ? `Deadline: ${formatDeadline(job.deadline)}` : null,
+        job.experience ? `Required Experience: ${job.experience}` : null,
+      ]
+        .filter(Boolean)
+        .join(' • ') || undefined,
     }
 
     try {
@@ -887,12 +948,13 @@ export function JobDiscoveryPage({
                       </span>
                     </div>
 
-                    {job.deadline && (
+                    {formatDeadline(job.deadline) && (
                       <span
-                        className="shrink-0 text-[11px] font-medium text-rose-600 bg-rose-50/80 border border-rose-100 px-2 py-0.5 rounded-full"
-                        title={`Application deadline: ${job.deadline}`}
+                        className="shrink-0 text-[11px] font-medium text-rose-600 bg-rose-50/80 border border-rose-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                        title={`Application deadline: ${formatDeadline(job.deadline)}`}
                       >
-                        Due {job.deadline}
+                        <Calendar className="size-3 text-rose-500 shrink-0" />
+                        <span>Due {formatDeadline(job.deadline)}</span>
                       </span>
                     )}
                   </div>
