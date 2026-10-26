@@ -78,7 +78,7 @@ const BDJOBS_EMPLOYMENT_TYPES = [
 
 const BDJOBS_EXPERIENCES = [
   { label: 'Experience: All', value: '' },
-  { label: 'Entry Level / Interns', value: 'freshers' },
+  { label: 'Entry Level', value: 'freshers' },
   { label: '1 - 3 Years', value: '1-3' },
   { label: '3 - 5 Years', value: '3-5' },
   { label: '5+ Years (Senior)', value: '5plus' },
@@ -896,12 +896,14 @@ export function JobDiscoveryPage({
             const avatarTheme = getCompanyAvatarTheme(job.company)
             const initials = getCompanyInitials(job.company)
             const isInternRole = job.title.toLowerCase().includes('intern')
-            const displayExperience =
-              job.experience && job.experience !== '--'
-                ? job.experience
-                : isInternRole
-                ? 'Entry Level'
-                : null
+            const isEntryLevel =
+              isInternRole ||
+              !job.experience ||
+              job.experience === '--' ||
+              job.experience.toLowerCase().includes('entry') ||
+              job.experience.toLowerCase().includes('fresh') ||
+              job.experience.toLowerCase().includes('intern')
+            const displayExperience = !isEntryLevel ? job.experience : null
 
             return (
               <div
@@ -975,20 +977,10 @@ export function JobDiscoveryPage({
 
                     {displayExperience && (
                       <span
-                        className={cn(
-                          'inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full truncate max-w-[160px]',
-                          isInternRole
-                            ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/70'
-                            : 'text-slate-600 bg-slate-100/80'
-                        )}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-full truncate max-w-[160px]"
                         title={displayExperience}
                       >
-                        <Clock
-                          className={cn(
-                            'size-3 shrink-0',
-                            isInternRole ? 'text-emerald-500' : 'text-slate-400'
-                          )}
-                        />
+                        <Clock className="size-3 shrink-0 text-slate-400" />
                         <span className="truncate">{displayExperience}</span>
                       </span>
                     )}

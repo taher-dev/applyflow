@@ -65,24 +65,17 @@ function cleanText(text?: unknown): string | null {
 }
 
 /**
- * Format experience text, ensuring intern roles are explicitly classified as Entry Level.
+ * Clean experience text from provider.
  */
-function normalizeJobExperience(title: string, rawExp?: unknown): string | null {
+function normalizeJobExperience(rawExp?: unknown): string | null {
   const cleaned = cleanText(rawExp)
-  const isIntern = title.toLowerCase().includes('intern')
-  if (isIntern) {
-    if (
-      !cleaned ||
-      cleaned === '--' ||
-      cleaned.toLowerCase().includes('not mentioned') ||
-      cleaned.toLowerCase().includes('n/a')
-    ) {
-      return 'Entry Level (Internship)'
-    }
-    if (!cleaned.toLowerCase().includes('entry') && !cleaned.toLowerCase().includes('intern')) {
-      return `Entry Level (${cleaned})`
-    }
-    return cleaned
+  if (
+    !cleaned ||
+    cleaned === '--' ||
+    cleaned.toLowerCase().includes('not mentioned') ||
+    cleaned.toLowerCase().includes('n/a')
+  ) {
+    return null
   }
   return cleaned
 }
@@ -175,11 +168,22 @@ export class BDJobsProvider implements JobProvider {
     const pageSize = Math.min(30, Math.max(1, params.pageSize || 15))
     const fallbackSearchUrl = this.getFallbackSearchUrl(query)
 
+    const hasFilters = Boolean(
+      (params.location && params.location.trim().length > 0) ||
+      (params.employmentType && params.employmentType.trim().length > 0) ||
+      (params.category && params.category.trim().length > 0) ||
+      (params.experience && params.experience.trim().length > 0) ||
+      (params.workplaceType && params.workplaceType.trim().length > 0) ||
+      (params.hasSalary && String(params.hasSalary).trim().length > 0) ||
+      (params.postedWithin && params.postedWithin.trim().length > 0)
+    )
+    const fetchRpp = hasFilters ? 50 : pageSize
+
     const searchUrl = new URL(BDJOBS_API_ENDPOINT)
     searchUrl.searchParams.set('keyword', query)
     searchUrl.searchParams.set('isPro', '1')
     searchUrl.searchParams.set('pg', String(page))
-    searchUrl.searchParams.set('rpp', String(pageSize))
+    searchUrl.searchParams.set('rpp', String(fetchRpp))
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
@@ -249,7 +253,7 @@ export class BDJobsProvider implements JobProvider {
             location: cleanText(rawJob.location),
             employmentType: cleanText(rawJob.JobType),
             salary: normalizeJobSalary(rawJob.Salary),
-            experience: normalizeJobExperience(title, rawJob.experience),
+            experience: normalizeJobExperience(rawJob.experience),
             publishedAt: cleanText(rawJob.publishDate),
             deadline: normalizeJobDeadline(rawJob.deadlineDB),
             summary: cleanText(rawJob.jobCategory),
@@ -291,9 +295,17 @@ export class BDJobsProvider implements JobProvider {
       if (params.experience && params.experience.trim().length > 0) {
         const expKey = params.experience.trim().toLowerCase()
         normalizedJobs = normalizedJobs.filter((job) => {
-          const isIntern = job.title.toLowerCase().includes('intern')
+          const isIntern =
+            job.title.toLowerCase().includes('intern') ||
+            Boolean(job.employmentType?.toLowerCase().includes('intern')) ||
+            Boolean(job.summary?.toLowerCase().includes('intern'))
 
-          if (expKey === 'freshers' || expKey === 'entry') {
+          if (
+            expKey === 'freshers' ||
+            expKey === 'entry' ||
+            expKey.includes('entry') ||
+            expKey.includes('fresher')
+          ) {
             if (isIntern) return true
             if (!job.experience) return false
             const expText = job.experience.toLowerCase()
@@ -402,6 +414,12 @@ export class BDJobsProvider implements JobProvider {
         }
       }
 
+      const pagedJobs = hasFilters ? normalizedJobs.slice(0, pageSize) : normalizedJobs
+      const finalTotalResults = hasFilters ? normalizedJobs.length : totalResults
+      const finalTotalPages = hasFilters
+        ? Math.max(1, Math.ceil(normalizedJobs.length / pageSize))
+        : totalPages
+
       return {
         success: true,
         provider: this.id,
@@ -410,9 +428,9 @@ export class BDJobsProvider implements JobProvider {
         query,
         page,
         pageSize,
-        totalResults,
-        totalPages,
-        jobs: normalizedJobs,
+        totalResults: finalTotalResults,
+        totalPages: finalTotalPages,
+        jobs: pagedJobs,
         fallbackSearchUrl,
       }
     } catch (err: unknown) {
@@ -509,7 +527,7 @@ export class BDJobsProvider implements JobProvider {
         workplace: cleanText(rawDetail.JobWorkPlace),
         vacancies: validVacancies,
         salary: normalizeJobSalary(rawDetail.JobSalaryRangeText || rawDetail.JobSalaryRange),
-        experience: normalizeJobExperience(title, rawDetail.experience),
+        experience: normalizeJobExperience(rawDetail.experience),
         educationRequirements: rawDetail.EducationRequirements
           ? String(rawDetail.EducationRequirements).trim()
           : null,

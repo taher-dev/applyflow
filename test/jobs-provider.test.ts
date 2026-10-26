@@ -136,3 +136,37 @@ test('6. JobService supports extensible provider registration without UI refacto
   assert.equal(result.jobs[0].title, 'Mock Software Engineer')
   assert.equal(result.jobs[0].listingUrl, 'https://mockboard.com/jobs/1001')
 })
+
+test('7. BDJobsProvider filters intern roles when Entry Level (freshers) filter is selected', async () => {
+  const provider = new BDJobsProvider()
+  const result = await provider.search({
+    query: 'intern',
+    experience: 'freshers',
+    page: 1,
+    pageSize: 10,
+  })
+
+  assert.equal(result.provider, 'bdjobs')
+  assert.ok(typeof result.totalResults === 'number')
+  assert.ok(Array.isArray(result.jobs))
+
+  // If live search returned results for intern query, all results should be intern/entry level
+  for (const job of result.jobs) {
+    const isIntern =
+      job.title.toLowerCase().includes('intern') ||
+      Boolean(job.employmentType?.toLowerCase().includes('intern')) ||
+      Boolean(job.summary?.toLowerCase().includes('intern'))
+    const exp = (job.experience || '').toLowerCase()
+    const isEntryOrFresh =
+      exp.includes('fresh') ||
+      exp.includes('entry') ||
+      exp.includes('not required') ||
+      exp.includes('0') ||
+      exp.includes('at most 1')
+
+    assert.ok(
+      isIntern || isEntryOrFresh,
+      `Job "${job.title}" (${job.experience}) should qualify as Entry Level`
+    )
+  }
+})
