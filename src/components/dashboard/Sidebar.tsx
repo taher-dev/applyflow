@@ -3,6 +3,7 @@ import {
   Briefcase,
   Kanban,
   Calendar,
+  Compass,
   LogOut,
   LogIn,
 } from 'lucide-react'
@@ -27,6 +28,7 @@ const iconMap = {
   LayoutDashboard,
   Kanban,
   Calendar,
+  Compass,
 }
 
 export function Sidebar({

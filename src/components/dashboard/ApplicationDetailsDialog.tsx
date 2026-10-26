@@ -241,31 +241,31 @@ export function ApplicationDetailsDialog({
                 <div className="flex items-start gap-2 text-slate-700">
                   <ExternalLink className="size-3.5 text-blue-500 shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <span className="text-[10px] text-slate-400 block font-normal">Job Posting</span>
+                    <span className="text-[10px] text-slate-400 block font-normal">Original Listing</span>
                     <a
                       href={application.jobUrl}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="text-blue-600 hover:underline font-semibold text-xs truncate block"
                     >
-                      View link
+                      {application.source === 'bdjobs' ? 'Open on BDJobs' : 'Open original listing'}
                     </a>
                   </div>
                 </div>
               ) : null}
             </div>
 
-            {/* External Job Posting URL (if not already rendered in grid) */}
+            {/* External Job Posting URL (if followUpDate is also present) */}
             {application.jobUrl && application.followUpDate && (
               <div className="pt-1.5 border-t border-slate-200/60 text-xs">
                 <a
                   href={application.jobUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-blue-600 hover:underline font-semibold text-xs"
                 >
                   <ExternalLink className="size-3" />
-                  <span>View original job posting</span>
+                  <span>{application.source === 'bdjobs' ? 'Open listing on BDJobs' : 'Open original listing'}</span>
                 </a>
               </div>
             )}

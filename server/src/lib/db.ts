@@ -108,6 +108,7 @@ export async function ensureDatabase(): Promise<void> {
       env: {
         ...process.env,
         DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/applyflow_dev?schema=public',
+        DATABASE_URL_UNPOOLED: 'postgresql://postgres:postgres@localhost:5432/applyflow_dev?schema=public',
       },
     })
     console.log('✅ Database migrations up-to-date.')

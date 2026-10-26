@@ -99,6 +99,25 @@ applicationsRouter.post(
       const userId = req.user!.id
       const resolvedJobTitle = (data.jobTitle || data.role)!.trim()
 
+      // Prevent duplicate saves using sourceJobId when available
+      if (data.sourceJobId) {
+        const existing = await prisma.application.findFirst({
+          where: {
+            userId,
+            sourceJobId: data.sourceJobId,
+            ...(data.source ? { source: data.source } : {}),
+          },
+        })
+        if (existing) {
+          res.status(409).json({
+            error: 'Conflict',
+            message: 'This job listing is already saved in your tracker',
+            application: existing,
+          })
+          return
+        }
+      }
+
       const application = await prisma.application.create({
         data: {
           userId,
@@ -112,6 +131,8 @@ applicationsRouter.post(
           minSalary: data.minSalary ?? null,
           maxSalary: data.maxSalary ?? null,
           salary: data.salary?.trim() || null,
+          source: data.source?.trim() || null,
+          sourceJobId: data.sourceJobId?.trim() || null,
           appliedAt: data.appliedAt ? new Date(data.appliedAt) : null,
           followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
           notes: data.notes?.trim() || null,
@@ -228,6 +249,12 @@ applicationsRouter.patch(
       }
       if (data.salary !== undefined) {
         updateData.salary = data.salary?.trim() || null
+      }
+      if (data.source !== undefined) {
+        updateData.source = data.source?.trim() || null
+      }
+      if (data.sourceJobId !== undefined) {
+        updateData.sourceJobId = data.sourceJobId?.trim() || null
       }
       if (data.appliedAt !== undefined) {
         updateData.appliedAt = data.appliedAt ? new Date(data.appliedAt) : null

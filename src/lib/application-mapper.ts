@@ -164,6 +164,8 @@ export function toFrontendApplication(backendApp: BackendApplication): JobApplic
     workplaceType,
     employmentType,
     jobUrl: backendApp.jobUrl ?? undefined,
+    source: backendApp.source ?? undefined,
+    sourceJobId: backendApp.sourceJobId ?? undefined,
     minSalary: backendApp.minSalary ?? undefined,
     maxSalary: backendApp.maxSalary ?? undefined,
     salary: backendApp.salary ?? undefined,
@@ -197,6 +199,8 @@ export function toBackendCreatePayload(
     workplaceType,
     employmentType,
     jobUrl: app.jobUrl?.trim() || null,
+    source: app.source?.trim() || null,
+    sourceJobId: app.sourceJobId?.trim() || null,
     minSalary: app.minSalary ?? null,
     maxSalary: app.maxSalary ?? null,
     salary: app.salary?.trim() || null,
@@ -236,6 +240,12 @@ export function toBackendUpdatePayload(
   }
   if (app.jobUrl !== undefined) {
     payload.jobUrl = app.jobUrl?.trim() || null
+  }
+  if (app.source !== undefined) {
+    payload.source = app.source?.trim() || null
+  }
+  if (app.sourceJobId !== undefined) {
+    payload.sourceJobId = app.sourceJobId?.trim() || null
   }
   if (app.minSalary !== undefined) {
     payload.minSalary = app.minSalary

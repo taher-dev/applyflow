@@ -36,7 +36,10 @@ const isTestEnvironment =
 
 if (isTestEnvironment) {
   process.env.NODE_ENV = 'test'
-  if (!process.env.TEST_DATABASE_URL && (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('applyflow_dev'))) {
+  if (process.env.TEST_DATABASE_URL) {
+    process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
+    process.env.DATABASE_URL_UNPOOLED = process.env.TEST_DATABASE_URL
+  } else {
     process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/applyflow_test?schema=public'
     process.env.DATABASE_URL_UNPOOLED = process.env.DATABASE_URL
   }
@@ -98,6 +101,9 @@ export type ServerEnv = z.infer<typeof envSchema>
  * Enabled by default unless explicitly disabled with ENABLE_DEMO_AUTH=false.
  */
 export function isDemoAuthAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false
+  }
   if (process.env.ENABLE_DEMO_AUTH !== undefined) {
     return process.env.ENABLE_DEMO_AUTH === 'true' || process.env.ENABLE_DEMO_AUTH === '1'
   }

@@ -106,15 +106,19 @@ export function useApplyFlowStorage() {
     if (user !== prevUser) {
       if (!user) {
         // Logged out -> revert to guest mode with local data
-        loadGuestData()
+        queueMicrotask(() => {
+          loadGuestData()
+        })
       } else {
         // Logged in -> auto-sync local guest applications to cloud, then fetch cloud data
-        setIsLoadingApplications(true)
-        setIsLoadingInterviews(true)
-        setApplications([])
-        setInterviews([])
-        setApplicationsError(null)
-        setInterviewsError(null)
+        queueMicrotask(() => {
+          setIsLoadingApplications(true)
+          setIsLoadingInterviews(true)
+          setApplications([])
+          setInterviews([])
+          setApplicationsError(null)
+          setInterviewsError(null)
+        })
 
         let ignore = false
 
@@ -192,10 +196,15 @@ export function useApplyFlowStorage() {
     let ignore = false
 
     if (!user) {
-      loadGuestData()
+      queueMicrotask(() => {
+        if (!ignore) loadGuestData()
+      })
     } else {
-      setIsLoadingApplications(true)
-      setIsLoadingInterviews(true)
+      queueMicrotask(() => {
+        if (ignore) return
+        setIsLoadingApplications(true)
+        setIsLoadingInterviews(true)
+      })
 
       Promise.allSettled([api.applications.getAll(), api.interviews.getAll()]).then(
         ([appsResult, interviewsResult]) => {
@@ -231,6 +240,7 @@ export function useApplyFlowStorage() {
     return () => {
       ignore = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Mount-only effect
 
   // Fetch applications
@@ -287,6 +297,21 @@ export function useApplyFlowStorage() {
   const createApplication = useCallback(
     async (appData: Omit<JobApplication, 'id'>): Promise<JobApplication> => {
       if (!user) {
+        // Prevent duplicate saves in guest mode
+        if (appData.sourceJobId) {
+          const existing = applications.find(
+            (a) => a.sourceJobId === appData.sourceJobId && (!appData.source || a.source === appData.source)
+          )
+          if (existing) {
+            throw new ApiError('This job listing is already saved in your tracker', 409, 'Conflict', existing)
+          }
+        } else if (appData.jobUrl) {
+          const existing = applications.find((a) => a.jobUrl === appData.jobUrl)
+          if (existing) {
+            throw new ApiError('This job listing is already saved in your tracker', 409, 'Conflict', existing)
+          }
+        }
+
         const id = generateLocalId('app')
         const frontendApp: JobApplication = {
           ...appData,
@@ -307,7 +332,7 @@ export function useApplyFlowStorage() {
       setApplications((prev) => [frontendApp, ...prev])
       return frontendApp
     },
-    [user]
+    [user, applications]
   )
 
   // Update an application (Dual-mode: local storage vs cloud API)

@@ -6,6 +6,7 @@ import { healthRouter } from './routes/health.js'
 import { authRouter } from './routes/auth.js'
 import { applicationsRouter } from './routes/applications.js'
 import { interviewsRouter } from './routes/interviews.js'
+import { jobsRouter } from './routes/jobs.js'
 import { csrfProtection } from './middleware/csrf.js'
 import { notFoundHandler } from './middleware/notFound.js'
 import { errorHandler } from './middleware/errorHandler.js'
@@ -76,6 +77,7 @@ app.use('/api', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/applications', applicationsRouter)
 app.use('/api/interviews', interviewsRouter)
+app.use('/api/jobs', jobsRouter)
 
 // Fallback 404 handler for any unmapped route
 app.use(notFoundHandler)

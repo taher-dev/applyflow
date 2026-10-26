@@ -10,6 +10,7 @@ import { MetricsGrid } from '@/components/dashboard/MetricsGrid'
 import { RecentApplications } from '@/components/dashboard/RecentApplications'
 import { KanbanBoard } from '@/components/pipeline/KanbanBoard'
 import { InterviewsPage } from '@/components/interviews/InterviewsPage'
+import { JobDiscoveryPage } from '@/components/jobs/JobDiscoveryPage'
 import { ApplicationFormDialog } from '@/components/dashboard/AddApplicationDialog'
 import { DeleteApplicationDialog } from '@/components/dashboard/DeleteApplicationDialog'
 import { ApplicationDetailsDialog } from '@/components/dashboard/ApplicationDetailsDialog'
@@ -385,7 +386,9 @@ function DashboardContent() {
               ? 'Search applications...'
               : activeTab === 'pipeline'
               ? 'Search applications...'
-              : 'Search interviews...'
+              : activeTab === 'interviews'
+              ? 'Search interviews...'
+              : 'Search jobs...'
           }
           interviews={interviews}
           applications={applications}
@@ -440,6 +443,7 @@ function DashboardContent() {
                 {activeTab === 'overview' && 'My Applications'}
                 {activeTab === 'pipeline' && 'Kanban Board'}
                 {activeTab === 'interviews' && 'Interview Management'}
+                {activeTab === 'jobs' && 'Job Discovery'}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                 {activeTab === 'overview' && 'Track and manage your job applications'}
@@ -451,6 +455,11 @@ function DashboardContent() {
                 {activeTab === 'interviews' && (
                   <>
                     Track upcoming conversations, manage interview rounds, and prepare effectively for each milestone.
+                  </>
+                )}
+                {activeTab === 'jobs' && (
+                  <>
+                    Discover and track live job opportunities across Bangladesh with direct BDJobs integration.
                   </>
                 )}
               </p>
@@ -465,7 +474,7 @@ function DashboardContent() {
                   <Plus className="size-4" />
                   <span>Schedule interview</span>
                 </Button>
-              ) : (
+              ) : activeTab === 'jobs' ? null : (
                 <Button
                   onClick={handleOpenAdd}
                   className="bg-slate-900 hover:bg-slate-800 text-white shadow-xs gap-2 shrink-0 cursor-pointer h-9 px-4 rounded-lg font-medium"
@@ -507,6 +516,14 @@ function DashboardContent() {
               onScheduleInterview={handleOpenScheduleInterview}
               onEditInterview={handleOpenEditInterview}
               onDeleteInterview={handleOpenDeleteInterview}
+              onNavigateToApplications={() => setActiveTab('overview')}
+            />
+          )}
+
+          {activeTab === 'jobs' && (
+            <JobDiscoveryPage
+              existingApplications={applications}
+              onSaveJob={createApplication}
               onNavigateToApplications={() => setActiveTab('overview')}
             />
           )}

@@ -18,6 +18,7 @@ import type {
   CreateInterviewPayload,
   UpdateInterviewPayload,
 } from '@/types/interview'
+import type { JobSearchParams, JobSearchResponse } from '@/types/job'
 
 /**
  * Standard typed API error carrying status code and structured validation details.
@@ -358,6 +359,28 @@ export const api = {
     async delete(id: string): Promise<void> {
       await apiClient<{ message: string }>(`/interviews/${encodeURIComponent(id)}`, {
         method: 'DELETE',
+      })
+    },
+  },
+
+  jobs: {
+    /**
+     * Searches jobs across supported providers (BDJobs).
+     */
+    async search(params: JobSearchParams = {}): Promise<JobSearchResponse> {
+      const searchParams = new URLSearchParams()
+      const query = params.query ?? params.q
+      if (query) searchParams.set('q', query)
+      if (params.location) searchParams.set('location', params.location)
+      if (params.employmentType) searchParams.set('employmentType', params.employmentType)
+      if (params.page) searchParams.set('page', String(params.page))
+      if (params.pageSize) searchParams.set('pageSize', String(params.pageSize))
+      if (params.provider) searchParams.set('provider', params.provider)
+
+      const qs = searchParams.toString()
+      const endpoint = qs ? `/jobs/search?${qs}` : '/jobs/search'
+      return apiClient<JobSearchResponse>(endpoint, {
+        method: 'GET',
       })
     },
   },

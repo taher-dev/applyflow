@@ -69,6 +69,8 @@ model Application {
   minSalary      Int?              @map("min_salary")
   maxSalary      Int?              @map("max_salary")
   salary         String?
+  source         String?
+  sourceJobId    String?           @map("source_job_id")
   appliedAt      DateTime?         @map("applied_at")
   followUpDate   DateTime?         @map("follow_up_date")
   notes          String?
@@ -81,6 +83,7 @@ model Application {
   @@index([userId])
   @@index([status])
   @@index([userId, status])
+  @@index([userId, sourceJobId])
   @@map("applications")
 }
 

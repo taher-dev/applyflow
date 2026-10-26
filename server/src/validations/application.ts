@@ -101,6 +101,8 @@ export const createApplicationSchema = z
       .optional()
       .nullable(),
     salary: z.string().trim().optional().nullable(),
+    source: z.string().trim().max(100).optional().nullable(),
+    sourceJobId: z.string().trim().max(100).optional().nullable(),
     appliedAt: z
       .string()
       .datetime({ message: 'appliedAt must be a valid ISO 8601 date string' })
@@ -199,6 +201,8 @@ export const updateApplicationSchema = z
       .optional()
       .nullable(),
     salary: z.string().trim().optional().nullable(),
+    source: z.string().trim().max(100).optional().nullable(),
+    sourceJobId: z.string().trim().max(100).optional().nullable(),
     appliedAt: z
       .string()
       .datetime({ message: 'appliedAt must be a valid ISO 8601 date string' })

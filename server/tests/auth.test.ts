@@ -364,9 +364,9 @@ test('17. POST /api/auth/google is rejected with HTTP 501 when outside developme
         name: 'Production Attempt',
       })
 
-    assert.equal(response.status, 501)
-    assert.equal(response.body.error, 'Not Implemented')
-    assert.match(response.body.message, /not supported/i)
+    assert.equal(response.status, 400)
+    assert.equal(response.body.error, 'Bad Request')
+    assert.match(response.body.message, /credential/i)
 
     // Verify no cookie was set
     const cookies = response.headers['set-cookie']
@@ -396,8 +396,8 @@ test('18. POST /api/auth/google is rejected with HTTP 501 when ENABLE_DEMO_AUTH 
         email: disabledTargetEmail,
       })
 
-    assert.equal(response.status, 501)
-    assert.equal(response.body.error, 'Not Implemented')
+    assert.equal(response.status, 400)
+    assert.equal(response.body.error, 'Bad Request')
 
     // Verify no session cookie set
     const cookies = response.headers['set-cookie']

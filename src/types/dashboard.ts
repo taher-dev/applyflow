@@ -30,6 +30,8 @@ export interface JobApplication {
   workplaceType: WorkplaceType
   employmentType?: EmploymentType
   jobUrl?: string
+  source?: string
+  sourceJobId?: string
   minSalary?: number
   maxSalary?: number
   salary?: string
@@ -89,6 +91,7 @@ export type NavigationKey =
   | 'applications'
   | 'pipeline'
   | 'interviews'
+  | 'jobs'
   | 'calendar'
   | 'settings'
 

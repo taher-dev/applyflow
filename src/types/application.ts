@@ -24,6 +24,8 @@ export interface BackendApplication {
   workplaceType: BackendWorkplaceType
   employmentType: BackendEmploymentType | null
   jobUrl: string | null
+  source?: string | null
+  sourceJobId?: string | null
   minSalary: number | null
   maxSalary: number | null
   salary: string | null
@@ -51,6 +53,8 @@ export interface CreateApplicationPayload {
   workplaceType?: string
   employmentType?: string | null
   jobUrl?: string | null
+  source?: string | null
+  sourceJobId?: string | null
   minSalary?: number | null
   maxSalary?: number | null
   salary?: string | null

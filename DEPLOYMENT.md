@@ -262,3 +262,64 @@ If an unexpected runtime regression occurs in production:
 - **Serverless Timeout**: Vercel Hobby functions have a default 10-second execution timeout. All ApplyFlow API queries complete in < 50ms, well within this limit.
 - **Bandwidth**: Vercel Hobby includes 100 GB/month of bandwidth, sufficient for thousands of active job seekers.
 - **Local Development**: Local Docker-based PostgreSQL and standalone development commands (`npm run dev`, `npm run server:dev`) remain completely functional without requiring cloud credentials.
+
+---
+
+## 9. Job Discovery & BDJobs Integration
+
+ApplyFlow includes a production-ready **Job Discovery** feature that connects directly to **BDJobs**, allowing users to search jobs, view structured metadata, apply on the original listing, and save listings directly to their application tracker.
+
+### 9.1 Selected Integration Method & Verification
+
+- **Data Source**: Live queries to BDJobs public search endpoint:
+  ```
+  GET https://api.bdjobs.com/Jobs/api/JobSearch/GetJobSearch?keyword={keyword}&isPro=1&pg={page}&rpp={pageSize}
+  ```
+  *(Parameter `isPro=1` is required by BDJobs to populate the `data` array with structured listings)*.
+- **Canonical Outbound Listing URL**:
+  ```
+  https://bdjobs.com/h/details/{jobId}
+  ```
+- **Fallback Search Link**:
+  ```
+  https://bdjobs.com/h/jobs?keyword={query}
+  ```
+- **Robots / Terms**: Does not disallow `/Jobs/api` or `/h/` paths.
+- **No API Secrets Required**: The public endpoint does not require API keys or paid credentials.
+- **Security & Hostname Whitelist**: Outbound links are strictly validated server-side and client-side against permitted BDJobs hostnames (`bdjobs.com`, `jobs.bdjobs.com`, `www.bdjobs.com`, `api.bdjobs.com`). No arbitrary redirects are allowed. All external links open with `target="_blank"` and `rel="noopener noreferrer"`.
+
+### 9.2 Upstream Rate Limits, Timeouts & Caching
+
+- **Serverless Timeout**: Upstream queries to `api.bdjobs.com` have a strict 6,000ms timeout (`AbortSignal.timeout(6000)`), keeping execution safely below Vercel Hobby's 10-second limit.
+- **Graceful Fallbacks**: If BDJobs is experiencing temporary downtime, rate limits, or network timeouts, the API returns a structured `{ status: "unavailable" }` response accompanied by a direct fallback link to BDJobs carrying over the user's search query. No fake or fabricated results are ever displayed.
+- **In-Memory Caching**: Identical search queries are cached in memory for 5 minutes (max 100 entries) to minimize redundant upstream bandwidth and avoid rate-limiting.
+
+### 9.3 Tracker Persistence (Dual-Mode & Duplicate Prevention)
+
+- **PostgreSQL / Prisma**: Added `source String?`, `sourceJobId String? @map("source_job_id")`, and `salary String?` with index `@@index([userId, sourceJobId])`.
+- **Guest Mode**: Guest users store discovered jobs in `localStorage` under `applyflow_guest_applications_v1`.
+- **Duplicate Prevention**: Both server API and guest storage enforce duplicate checking based on `sourceJobId` / `jobUrl`. Attempting to save a previously saved job returns HTTP 409 Conflict and alerts the user without creating duplicate records.
+- **Canonical Status**: Discovered jobs are saved with status `Saved`. Opening an external listing to apply never silently mutates the application state; status transitions remain user-controlled.
+
+### 9.4 Adding Another Provider
+
+The provider layer is modular and decoupled from React components:
+
+1. Implement the `JobProvider` interface in `server/src/services/jobs/types.ts`:
+   ```typescript
+   export interface JobProvider {
+     readonly id: string
+     readonly name: string
+     readonly isAvailable: boolean
+     search(params: JobSearchParams): Promise<JobSearchResponse>
+     getListingUrl(sourceJobId: string): string
+     getSearchUrl(params: JobSearchParams): string
+   }
+   ```
+2. Create the provider class in `server/src/services/jobs/<providerName>Provider.ts`.
+3. Register the provider in `server/src/services/jobs/jobService.ts`:
+   ```typescript
+   registerProvider(new MyNewProvider())
+   ```
+4. Frontend cards and tracker persistence automatically handle the new provider via the normalized `DiscoveredJob` model.
+

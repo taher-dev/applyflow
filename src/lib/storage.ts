@@ -53,6 +53,8 @@ export const JobApplicationSchema = z.object({
   workplaceType: WorkplaceTypeSchema,
   employmentType: EmploymentTypeSchema.optional(),
   jobUrl: z.string().optional(),
+  source: z.string().optional(),
+  sourceJobId: z.string().optional(),
   minSalary: z.number().optional(),
   maxSalary: z.number().optional(),
   salary: z.string().optional(),
@@ -88,6 +90,7 @@ export const NavigationKeySchema: z.ZodType<NavigationKey> = z.enum([
   'applications',
   'pipeline',
   'interviews',
+  'jobs',
   'calendar',
   'settings',
 ])

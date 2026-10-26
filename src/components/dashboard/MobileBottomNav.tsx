@@ -1,4 +1,4 @@
-import { LayoutDashboard, Kanban, Calendar } from 'lucide-react'
+import { LayoutDashboard, Kanban, Calendar, Compass } from 'lucide-react'
 import type { NavigationKey } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +20,7 @@ const tabs: TabItem[] = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
   { key: 'pipeline', label: 'Kanban', icon: Kanban },
   { key: 'interviews', label: 'Interviews', icon: Calendar },
+  { key: 'jobs', label: 'Discover', icon: Compass },
 ]
 
 export function MobileBottomNav({
