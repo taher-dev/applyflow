@@ -112,6 +112,12 @@ export function JobDetailDialog({
       ? { ...job, ...fetchedDetails }
       : { ...job }
   const companyInitials = (activeJob.company || 'JO').slice(0, 2).toUpperCase()
+  const displayExperience =
+    activeJob.experience && activeJob.experience !== '--'
+      ? activeJob.experience
+      : activeJob.title.toLowerCase().includes('intern')
+      ? 'Entry Level (Internship)'
+      : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,7 +218,7 @@ export function JobDetailDialog({
         {/* Scrollable Job Details Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs sm:text-sm">
           {/* Work Arrangement & Vacancies Extra Strip if available */}
-          {(activeJob.workplace || activeJob.vacancies || activeJob.experience || activeJob.ageLimit) && (
+          {(activeJob.workplace || activeJob.vacancies || displayExperience || activeJob.ageLimit) && (
             <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs">
               {activeJob.workplace && (
                 <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium">
@@ -226,10 +232,10 @@ export function JobDetailDialog({
                   <span>Vacancies: <strong>{activeJob.vacancies}</strong></span>
                 </span>
               )}
-              {activeJob.experience && (
+              {displayExperience && (
                 <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium border-l border-slate-200 pl-2">
                   <Clock className="size-3.5 text-slate-400" />
-                  <span>Experience: <strong>{activeJob.experience}</strong></span>
+                  <span>Experience: <strong>{displayExperience}</strong></span>
                 </span>
               )}
               {activeJob.ageLimit && (

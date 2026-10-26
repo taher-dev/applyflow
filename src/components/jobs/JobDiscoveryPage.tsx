@@ -13,12 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  SlidersHorizontal,
   ChevronDown,
-  ChevronUp,
-  X,
-  ArrowUpDown,
-  Filter,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -37,7 +32,7 @@ interface JobDiscoveryPageProps {
 }
 
 const BDJOBS_CATEGORIES = [
-  { label: 'All Functional Categories', value: '' },
+  { label: 'Category: All', value: '' },
   { label: 'IT & Telecommunication', value: 'IT & Telecommunication' },
   { label: 'Accounting / Finance', value: 'Accounting' },
   { label: 'Bank / Non-Bank Fin. Inst.', value: 'Bank' },
@@ -57,7 +52,7 @@ const BDJOBS_CATEGORIES = [
 ]
 
 const BDJOBS_DIVISIONS = [
-  { label: 'All Bangladesh', value: '' },
+  { label: 'Region: All Bangladesh', value: '' },
   { label: 'Dhaka', value: 'Dhaka' },
   { label: 'Chattogram', value: 'Chattogram' },
   { label: 'Sylhet', value: 'Sylhet' },
@@ -72,7 +67,7 @@ const BDJOBS_DIVISIONS = [
 ]
 
 const BDJOBS_EMPLOYMENT_TYPES = [
-  { label: 'All Types', value: '' },
+  { label: 'Job Type: All', value: '' },
   { label: 'Full Time', value: 'Full Time' },
   { label: 'Part Time', value: 'Part Time' },
   { label: 'Contract', value: 'Contract' },
@@ -80,28 +75,28 @@ const BDJOBS_EMPLOYMENT_TYPES = [
 ]
 
 const BDJOBS_EXPERIENCES = [
-  { label: 'Any Experience', value: '' },
-  { label: 'Freshers / Entry Level', value: 'freshers' },
+  { label: 'Experience: All', value: '' },
+  { label: 'Entry Level / Interns', value: 'freshers' },
   { label: '1 - 3 Years', value: '1-3' },
   { label: '3 - 5 Years', value: '3-5' },
   { label: '5+ Years (Senior)', value: '5plus' },
 ]
 
 const BDJOBS_WORKPLACES = [
-  { label: 'All Arrangements', value: '' },
+  { label: 'Workplace: All', value: '' },
   { label: 'On-site', value: 'onsite' },
   { label: 'Hybrid', value: 'hybrid' },
   { label: 'Remote', value: 'remote' },
 ]
 
 const BDJOBS_SALARY_OPTIONS = [
-  { label: 'All Salaries', value: '' },
+  { label: 'Salary: All', value: '' },
   { label: 'Disclosed Salary Only', value: 'disclosed' },
   { label: 'Negotiable Only', value: 'negotiable' },
 ]
 
 const BDJOBS_POSTED_OPTIONS = [
-  { label: 'Any Time', value: '' },
+  { label: 'Posted: Any Time', value: '' },
   { label: 'Past 24 Hours', value: '24h' },
   { label: 'Past 3 Days', value: '3d' },
   { label: 'Past 7 Days', value: '7d' },
@@ -109,10 +104,53 @@ const BDJOBS_POSTED_OPTIONS = [
 ]
 
 const BDJOBS_SORT_OPTIONS = [
-  { label: 'Most Relevant', value: 'relevant' },
-  { label: 'Newly Published', value: 'newest' },
-  { label: 'Deadline Closing Soon', value: 'deadline' },
+  { label: 'Sort: Relevant', value: 'relevant' },
+  { label: 'Sort: Newly Published', value: 'newest' },
+  { label: 'Sort: Deadline Closing', value: 'deadline' },
 ]
+
+interface FilterDropdownProps {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  options: { label: string; value: string }[]
+  title?: string
+}
+
+function FilterDropdown({ id, value, onChange, options, title }: FilterDropdownProps) {
+  const isSelected = Boolean(value) && value !== 'relevant'
+  return (
+    <div className="relative inline-flex items-center shrink-0" title={title}>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          'h-8 pl-3 pr-7 rounded-xl text-xs font-medium border appearance-none cursor-pointer transition-all outline-none',
+          isSelected
+            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs font-semibold'
+            : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'
+        )}
+      >
+        {options.map((opt) => (
+          <option
+            key={opt.label}
+            value={opt.value}
+            className="bg-white text-slate-800 font-normal"
+          >
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className={cn(
+          'size-3 absolute right-2 pointer-events-none transition-colors',
+          isSelected ? 'text-white/80' : 'text-slate-400'
+        )}
+      />
+    </div>
+  )
+}
 
 const AVATAR_PALETTES = [
   'bg-blue-50 text-blue-700 border-blue-200/60',
@@ -176,7 +214,6 @@ export function JobDiscoveryPage({
   const [selectedSalary, setSelectedSalary] = useState('')
   const [selectedPostedWithin, setSelectedPostedWithin] = useState('')
   const [selectedSortBy, setSelectedSortBy] = useState('relevant')
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
 
   const [isLoading, setIsLoading] = useState(true)
@@ -290,30 +327,6 @@ export function JobDiscoveryPage({
     setSelectedPostedWithin('')
     setSelectedSortBy('relevant')
     setCurrentPage(1)
-  }
-
-  const handleRemoveFilter = (filterKey: string) => {
-    setIsLoading(true)
-    setCurrentPage(1)
-    if (filterKey === 'location') {
-      setLocationInput('')
-      setActiveLocation('')
-    } else if (filterKey === 'employmentType') {
-      setSelectedEmploymentType('')
-    } else if (filterKey === 'category') {
-      setSelectedCategory('')
-    } else if (filterKey === 'experience') {
-      setSelectedExperience('')
-    } else if (filterKey === 'workplace') {
-      setSelectedWorkplace('')
-    } else if (filterKey === 'salary') {
-      setSelectedSalary('')
-    } else if (filterKey === 'postedWithin') {
-      setSelectedPostedWithin('')
-    } else if (filterKey === 'query') {
-      setKeywordInput('')
-      setActiveQuery('')
-    }
   }
 
   const activeFiltersCount = useMemo(() => {
@@ -474,39 +487,6 @@ export function JobDiscoveryPage({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 shrink-0 justify-end pt-1 sm:pt-0">
-            {/* Comprehensive BDJobs Filters Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsFilterPanelOpen((prev) => !prev)}
-              className={cn(
-                'h-9 px-3 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer',
-                isFilterPanelOpen || activeFiltersCount > 0
-                  ? 'border-slate-900 bg-slate-900 text-white shadow-2xs'
-                  : 'border-slate-200 text-slate-700 bg-slate-50/80 hover:bg-slate-100 hover:text-slate-900'
-              )}
-              title="Toggle comprehensive BDJobs filters"
-            >
-              <SlidersHorizontal className="size-3.5" />
-              <span>Filters</span>
-              {activeFiltersCount > 0 && (
-                <span
-                  className={cn(
-                    'size-4.5 rounded-full text-[10px] font-bold flex items-center justify-center',
-                    isFilterPanelOpen || activeFiltersCount > 0
-                      ? 'bg-white text-slate-900'
-                      : 'bg-slate-900 text-white'
-                  )}
-                >
-                  {activeFiltersCount}
-                </span>
-              )}
-              {isFilterPanelOpen ? (
-                <ChevronUp className="size-3" />
-              ) : (
-                <ChevronDown className="size-3" />
-              )}
-            </button>
-
             {hasActiveFilters && (
               <button
                 type="button"
@@ -534,413 +514,133 @@ export function JobDiscoveryPage({
           </div>
         </form>
 
-        {/* Collapsible Comprehensive Filter Drawer (All BDJobs Filtering Options) */}
-        {isFilterPanelOpen && (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm space-y-4 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <div className="flex items-center gap-2">
-                <Filter className="size-3.5 text-slate-500" />
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-                  Comprehensive BDJobs Filters
-                </h4>
-              </div>
-              <div className="flex items-center gap-3">
-                {activeFiltersCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearFilters}
-                    className="text-xs text-rose-600 hover:text-rose-700 font-medium cursor-pointer"
-                  >
-                    Reset all
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsFilterPanelOpen(false)}
-                  className="size-6 inline-flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="Close filters"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            </div>
+        {/* Compact Dropdown Filters Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* 1. Category */}
+            <FilterDropdown
+              id="filter-dropdown-category"
+              value={selectedCategory}
+              onChange={(val) => {
+                setSelectedCategory(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_CATEGORIES}
+              title="Filter by functional category"
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {/* 1. Category */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-category" className="text-xs font-medium text-slate-700">
-                  Functional Category
-                </label>
-                <select
-                  id="filter-category"
-                  value={selectedCategory}
-                  onChange={(e) => {
-                    setSelectedCategory(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_CATEGORIES.map((cat) => (
-                    <option key={cat.label} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 2. Experience Level */}
+            <FilterDropdown
+              id="filter-dropdown-experience"
+              value={selectedExperience}
+              onChange={(val) => {
+                setSelectedExperience(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_EXPERIENCES}
+              title="Filter by experience level"
+            />
 
-              {/* 2. Region / Division */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-division" className="text-xs font-medium text-slate-700">
-                  Region / Division
-                </label>
-                <select
-                  id="filter-division"
-                  value={activeLocation}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setActiveLocation(val)
-                    setLocationInput(val)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_DIVISIONS.map((div) => (
-                    <option key={div.label} value={div.value}>
-                      {div.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 3. Job Type */}
+            <FilterDropdown
+              id="filter-dropdown-employment-type"
+              value={selectedEmploymentType}
+              onChange={(val) => {
+                setSelectedEmploymentType(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_EMPLOYMENT_TYPES}
+              title="Filter by employment type"
+            />
 
-              {/* 3. Experience Requirement */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-experience" className="text-xs font-medium text-slate-700">
-                  Experience Level
-                </label>
-                <select
-                  id="filter-experience"
-                  value={selectedExperience}
-                  onChange={(e) => {
-                    setSelectedExperience(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_EXPERIENCES.map((exp) => (
-                    <option key={exp.label} value={exp.value}>
-                      {exp.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 4. Workplace Arrangement */}
+            <FilterDropdown
+              id="filter-dropdown-workplace"
+              value={selectedWorkplace}
+              onChange={(val) => {
+                setSelectedWorkplace(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_WORKPLACES}
+              title="Filter by workplace arrangement"
+            />
 
-              {/* 4. Work Arrangement */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-workplace" className="text-xs font-medium text-slate-700">
-                  Work Arrangement
-                </label>
-                <select
-                  id="filter-workplace"
-                  value={selectedWorkplace}
-                  onChange={(e) => {
-                    setSelectedWorkplace(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_WORKPLACES.map((wp) => (
-                    <option key={wp.label} value={wp.value}>
-                      {wp.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 5. Region / Division */}
+            <FilterDropdown
+              id="filter-dropdown-division"
+              value={activeLocation}
+              onChange={(val) => {
+                setActiveLocation(val)
+                setLocationInput(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_DIVISIONS}
+              title="Filter by region or division"
+            />
 
-              {/* 5. Employment Type */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-emp-type" className="text-xs font-medium text-slate-700">
-                  Employment Type
-                </label>
-                <select
-                  id="filter-emp-type"
-                  value={selectedEmploymentType}
-                  onChange={(e) => {
-                    setSelectedEmploymentType(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_EMPLOYMENT_TYPES.map((et) => (
-                    <option key={et.label} value={et.value}>
-                      {et.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 6. Salary Option */}
+            <FilterDropdown
+              id="filter-dropdown-salary"
+              value={selectedSalary}
+              onChange={(val) => {
+                setSelectedSalary(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_SALARY_OPTIONS}
+              title="Filter by salary specification"
+            />
 
-              {/* 6. Salary Preference */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-salary" className="text-xs font-medium text-slate-700">
-                  Salary Option
-                </label>
-                <select
-                  id="filter-salary"
-                  value={selectedSalary}
-                  onChange={(e) => {
-                    setSelectedSalary(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_SALARY_OPTIONS.map((sal) => (
-                    <option key={sal.label} value={sal.value}>
-                      {sal.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 7. Date Posted */}
+            <FilterDropdown
+              id="filter-dropdown-posted"
+              value={selectedPostedWithin}
+              onChange={(val) => {
+                setSelectedPostedWithin(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_POSTED_OPTIONS}
+              title="Filter by date posted"
+            />
 
-              {/* 7. Date Posted */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-posted" className="text-xs font-medium text-slate-700">
-                  Posted Within
-                </label>
-                <select
-                  id="filter-posted"
-                  value={selectedPostedWithin}
-                  onChange={(e) => {
-                    setSelectedPostedWithin(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_POSTED_OPTIONS.map((po) => (
-                    <option key={po.label} value={po.value}>
-                      {po.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* 8. Sort Order */}
+            <FilterDropdown
+              id="filter-dropdown-sort"
+              value={selectedSortBy}
+              onChange={(val) => {
+                setSelectedSortBy(val)
+                setCurrentPage(1)
+              }}
+              options={BDJOBS_SORT_OPTIONS}
+              title="Sort job listings"
+            />
 
-              {/* 8. Sort Order */}
-              <div className="space-y-1.5">
-                <label htmlFor="filter-sort" className="text-xs font-medium text-slate-700">
-                  Sort Listings By
-                </label>
-                <select
-                  id="filter-sort"
-                  value={selectedSortBy}
-                  onChange={(e) => {
-                    setSelectedSortBy(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition-colors cursor-pointer"
-                >
-                  {BDJOBS_SORT_OPTIONS.map((so) => (
-                    <option key={so.label} value={so.value}>
-                      {so.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Filter Strip & Result Count */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-slate-400 text-[11px] font-medium mr-0.5">Quick:</span>
-            {BDJOBS_EMPLOYMENT_TYPES.map((type) => {
-              const isSelected = selectedEmploymentType === type.value
-              return (
-                <button
-                  key={type.label}
-                  type="button"
-                  onClick={() => {
-                    setSelectedEmploymentType(type.value)
-                    setCurrentPage(1)
-                  }}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-slate-900 text-white shadow-2xs'
-                      : 'bg-white border border-slate-200/80 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              )
-            })}
-
-            <div className="hidden sm:block h-4 w-px bg-slate-200 mx-1" />
-
-            {/* Workplace Quick Chips */}
-            {['remote', 'onsite'].map((wpVal) => {
-              const isSelected = selectedWorkplace === wpVal
-              const label = wpVal === 'remote' ? 'Remote Only' : 'On-site Only'
-              return (
-                <button
-                  key={wpVal}
-                  type="button"
-                  onClick={() => {
-                    setSelectedWorkplace(isSelected ? '' : wpVal)
-                    setCurrentPage(1)
-                  }}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-slate-900 text-white shadow-2xs'
-                      : 'bg-white border border-slate-200/80 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="flex items-center gap-3 text-slate-500 text-xs">
-            {/* Quick Sort Dropdown */}
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown className="size-3 text-slate-400" />
-              <select
-                aria-label="Sort listings by"
-                value={selectedSortBy}
-                onChange={(e) => {
-                  setSelectedSortBy(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="h-7 text-xs bg-transparent border-0 text-slate-600 hover:text-slate-900 font-medium outline-none cursor-pointer pr-1"
+            {/* Clear Filters Reset Button */}
+            {activeFiltersCount > 0 && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="h-8 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-colors text-xs font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
+                title="Clear all active filters"
               >
-                {BDJOBS_SORT_OPTIONS.map((so) => (
-                  <option key={so.label} value={so.value}>
-                    {so.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <RotateCcw className="size-3" />
+                <span>Reset filters</span>
+              </button>
+            )}
+          </div>
 
-            <span className="text-slate-200">|</span>
-
-            <div>
-              {isLoading ? (
-                <span className="inline-flex items-center gap-1.5 text-slate-500">
-                  <Loader2 className="size-3 animate-spin" /> Searching...
-                </span>
-              ) : totalResults > 0 ? (
-                <span>
-                  Found <strong className="text-slate-800 font-semibold">{totalResults}</strong> jobs
-                </span>
-              ) : null}
-            </div>
+          {/* Results Count / Searching Status */}
+          <div className="text-slate-500 text-xs shrink-0 ml-auto py-1">
+            {isLoading ? (
+              <span className="inline-flex items-center gap-1.5 text-slate-500">
+                <Loader2 className="size-3 animate-spin" /> Searching...
+              </span>
+            ) : totalResults > 0 ? (
+              <span>
+                Found <strong className="text-slate-800 font-semibold">{totalResults}</strong> jobs
+              </span>
+            ) : null}
           </div>
         </div>
-
-        {/* Active Filter Dismissible Pills Bar */}
-        {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 px-1 pt-0.5">
-            <span className="text-[11px] text-slate-400 font-medium mr-1">Active filters:</span>
-
-            {activeLocation && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                <MapPin className="size-3 text-slate-500" />
-                {activeLocation}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('location')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedCategory && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                Category: {BDJOBS_CATEGORIES.find((c) => c.value === selectedCategory)?.label || selectedCategory}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('category')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedEmploymentType && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                {selectedEmploymentType}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('employmentType')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedExperience && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                Exp: {BDJOBS_EXPERIENCES.find((e) => e.value === selectedExperience)?.label || selectedExperience}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('experience')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedWorkplace && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                {BDJOBS_WORKPLACES.find((w) => w.value === selectedWorkplace)?.label || selectedWorkplace}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('workplace')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedSalary && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                {selectedSalary === 'disclosed' ? 'Disclosed Salary' : 'Negotiable'}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('salary')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            {selectedPostedWithin && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                Posted: {BDJOBS_POSTED_OPTIONS.find((p) => p.value === selectedPostedWithin)?.label}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFilter('postedWithin')}
-                  className="hover:text-slate-950 cursor-pointer ml-0.5"
-                >
-                  <X className="size-3" />
-                </button>
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="text-[11px] text-rose-600 hover:text-rose-700 font-medium cursor-pointer ml-1"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
       </div>
 
       {/* 3. Fallback / Unreachable Warning Card */}
@@ -1062,6 +762,13 @@ export function JobDiscoveryPage({
             const isSaving = savingJobId === job.id
             const avatarTheme = getCompanyAvatarTheme(job.company)
             const initials = getCompanyInitials(job.company)
+            const isInternRole = job.title.toLowerCase().includes('intern')
+            const displayExperience =
+              job.experience && job.experience !== '--'
+                ? job.experience
+                : isInternRole
+                ? 'Entry Level'
+                : null
 
             return (
               <div
@@ -1133,13 +840,23 @@ export function JobDiscoveryPage({
                       </span>
                     )}
 
-                    {job.experience && (
+                    {displayExperience && (
                       <span
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-full truncate max-w-[160px]"
-                        title={job.experience}
+                        className={cn(
+                          'inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full truncate max-w-[160px]',
+                          isInternRole
+                            ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/70'
+                            : 'text-slate-600 bg-slate-100/80'
+                        )}
+                        title={displayExperience}
                       >
-                        <Clock className="size-3 text-slate-400 shrink-0" />
-                        <span className="truncate">{job.experience}</span>
+                        <Clock
+                          className={cn(
+                            'size-3 shrink-0',
+                            isInternRole ? 'text-emerald-500' : 'text-slate-400'
+                          )}
+                        />
+                        <span className="truncate">{displayExperience}</span>
                       </span>
                     )}
                   </div>
@@ -1149,6 +866,9 @@ export function JobDiscoveryPage({
                     <div className="flex items-center gap-1 text-slate-800 font-semibold truncate">
                       {shouldShowDollarSign(job.salary) && (
                         <DollarSign className="size-3.5 text-slate-400 shrink-0 -mr-0.5" />
+                      )}
+                      {isTkCurrency(job.salary) && (
+                        <span className="text-slate-500 font-bold text-xs">৳</span>
                       )}
                       <span className="truncate text-xs">
                         {job.salary || 'Negotiable'}

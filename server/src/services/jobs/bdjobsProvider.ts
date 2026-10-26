@@ -64,6 +64,29 @@ function cleanText(text?: unknown): string | null {
   return cleaned.length > 0 ? cleaned : null
 }
 
+/**
+ * Format experience text, ensuring intern roles are explicitly classified as Entry Level.
+ */
+function normalizeJobExperience(title: string, rawExp?: unknown): string | null {
+  const cleaned = cleanText(rawExp)
+  const isIntern = title.toLowerCase().includes('intern')
+  if (isIntern) {
+    if (
+      !cleaned ||
+      cleaned === '--' ||
+      cleaned.toLowerCase().includes('not mentioned') ||
+      cleaned.toLowerCase().includes('n/a')
+    ) {
+      return 'Entry Level (Internship)'
+    }
+    if (!cleaned.toLowerCase().includes('entry') && !cleaned.toLowerCase().includes('intern')) {
+      return `Entry Level (${cleaned})`
+    }
+    return cleaned
+  }
+  return cleaned
+}
+
 export class BDJobsProvider implements JobProvider {
   readonly id = 'bdjobs'
   readonly name = 'BDJobs'
@@ -154,7 +177,7 @@ export class BDJobsProvider implements JobProvider {
             location: cleanText(rawJob.location),
             employmentType: cleanText(rawJob.JobType),
             salary: cleanText(rawJob.Salary),
-            experience: cleanText(rawJob.experience),
+            experience: normalizeJobExperience(title, rawJob.experience),
             publishedAt: cleanText(rawJob.publishDate),
             deadline: cleanText(rawJob.deadlineDB),
             summary: cleanText(rawJob.jobCategory),
@@ -192,15 +215,20 @@ export class BDJobsProvider implements JobProvider {
         )
       }
 
-      // Apply experience filter
+      // Apply experience filter (job roles containing intern are classified as entry level)
       if (params.experience && params.experience.trim().length > 0) {
         const expKey = params.experience.trim().toLowerCase()
         normalizedJobs = normalizedJobs.filter((job) => {
-          if (!job.experience) return false
-          const expText = job.experience.toLowerCase()
+          const isIntern = job.title.toLowerCase().includes('intern')
+
           if (expKey === 'freshers' || expKey === 'entry') {
+            if (isIntern) return true
+            if (!job.experience) return false
+            const expText = job.experience.toLowerCase()
             return (
               expText.includes('fresh') ||
+              expText.includes('entry') ||
+              expText.includes('intern') ||
               expText.includes('not required') ||
               expText.includes('no experience') ||
               expText.includes('0') ||
@@ -208,12 +236,18 @@ export class BDJobsProvider implements JobProvider {
             )
           }
           if (expKey === '1-3' || expKey === '1_3') {
+            if (!job.experience) return false
+            const expText = job.experience.toLowerCase()
             return expText.includes('1') || expText.includes('2') || expText.includes('3')
           }
           if (expKey === '3-5' || expKey === '3_5') {
+            if (!job.experience) return false
+            const expText = job.experience.toLowerCase()
             return expText.includes('3') || expText.includes('4') || expText.includes('5')
           }
           if (expKey === '5plus' || expKey === '5+') {
+            if (!job.experience) return false
+            const expText = job.experience.toLowerCase()
             return (
               expText.includes('5') ||
               expText.includes('6') ||
@@ -223,7 +257,7 @@ export class BDJobsProvider implements JobProvider {
               expText.includes('senior')
             )
           }
-          return expText.includes(expKey)
+          return (job.experience || '').toLowerCase().includes(expKey)
         })
       }
 
@@ -403,7 +437,7 @@ export class BDJobsProvider implements JobProvider {
         workplace: cleanText(rawDetail.JobWorkPlace),
         vacancies: validVacancies,
         salary: cleanText(rawDetail.JobSalaryRangeText || rawDetail.JobSalaryRange),
-        experience: cleanText(rawDetail.experience),
+        experience: normalizeJobExperience(title, rawDetail.experience),
         educationRequirements: rawDetail.EducationRequirements
           ? String(rawDetail.EducationRequirements).trim()
           : null,
