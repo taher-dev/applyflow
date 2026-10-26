@@ -205,7 +205,11 @@ export function ApplicationDetailsDialog({
 
               {/* Salary / Compensation */}
               <div className="flex items-start gap-2 text-slate-700">
-                <DollarSign className="size-3.5 text-slate-400 shrink-0 mt-0.5" />
+                {/tk|bdt|৳|taka/i.test(salaryDisplay) ? (
+                  <span className="text-xs font-bold text-slate-400 shrink-0 mt-0.5 w-3.5 text-center leading-none">৳</span>
+                ) : (
+                  <DollarSign className="size-3.5 text-slate-400 shrink-0 mt-0.5" />
+                )}
                 <div className="min-w-0">
                   <span className="text-[10px] text-slate-400 block font-normal">Compensation</span>
                   <span className="font-semibold text-slate-900 text-xs truncate block">{salaryDisplay}</span>

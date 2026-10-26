@@ -133,6 +133,20 @@ function getCompanyInitials(name: string): string {
   return name.slice(0, 2).toUpperCase()
 }
 
+function isTkCurrency(salary?: string | null): boolean {
+  if (!salary) return false
+  return /tk|bdt|৳|taka/i.test(salary)
+}
+
+function shouldShowDollarSign(salary?: string | null): boolean {
+  if (!salary) return false
+  const trimmed = salary.trim().toLowerCase()
+  if (isTkCurrency(trimmed)) return false
+  if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed') return false
+  if (trimmed.includes('$')) return false
+  return /usd/i.test(trimmed)
+}
+
 function getCompanyAvatarTheme(name: string): string {
   if (!name) return AVATAR_PALETTES[0]
   let hash = 0
@@ -1122,7 +1136,9 @@ export function JobDiscoveryPage({
                   {/* Salary & Deadlines Row */}
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
                     <div className="flex items-center gap-1 text-slate-800 font-semibold truncate">
-                      <DollarSign className="size-3.5 text-slate-400 shrink-0 -mr-0.5" />
+                      {shouldShowDollarSign(job.salary) && (
+                        <DollarSign className="size-3.5 text-slate-400 shrink-0 -mr-0.5" />
+                      )}
                       <span className="truncate text-xs">
                         {job.salary || 'Negotiable'}
                       </span>
