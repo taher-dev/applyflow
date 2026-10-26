@@ -43,6 +43,20 @@ Track upcoming phone screenings, technical rounds, and behavioral conversations 
 
 ---
 
+## 📱 Mobile Experience
+
+ApplyFlow is engineered as a mobile-first responsive web application featuring an ergonomic bottom navigation bar with the **Discover** tab prominently positioned as the 3rd icon, touch-optimized cards, and native-feeling slide-over modals.
+
+| Mobile Job Discovery (3rd Tab) | Mobile Job Details Modal |
+|:---:|:---:|
+| <img src="./docs/screenshots/mobile_job_discovery.png" width="360" alt="ApplyFlow Mobile Job Discovery" /> | <img src="./docs/screenshots/mobile_job_detail_modal.png" width="360" alt="ApplyFlow Mobile Job Details Modal" /> |
+
+| Mobile Overview & Metrics | Mobile Interview Schedule |
+|:---:|:---:|
+| <img src="./docs/screenshots/mobile_overview.png" width="360" alt="ApplyFlow Mobile Overview Dashboard" /> | <img src="./docs/screenshots/mobile_interviews.png" width="360" alt="ApplyFlow Mobile Interview Schedule" /> |
+
+---
+
 ## ✨ Key Features
 
 - 🔍 **Live Job Discovery**: Direct integration with BDJobs public search API (`api.bdjobs.com`), complete with real-time in-memory filtering (Entry Level intern roles, locations, employment types, disclosed salaries).
