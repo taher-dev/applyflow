@@ -99,4 +99,25 @@ describe('Job Discovery API Endpoints', () => {
     assert.ok(bdjobs, 'BDJobs must be present in registered providers')
     assert.equal(bdjobs.name, 'BDJobs')
   })
+
+  test('5. GET /api/jobs/details rejects requests without jobId with HTTP 400', async () => {
+    const res = await fetch(`${baseUrl}/api/jobs/details`)
+    assert.equal(res.status, 400)
+    const data = (await res.json()) as { error: string; message: string }
+    assert.equal(data.error, 'Validation Error')
+  })
+
+  test('6. GET /api/jobs/details returns 404 for unknown or invalid job ID', async () => {
+    const res = await fetch(`${baseUrl}/api/jobs/details?jobId=nonexistent_job_9999999`)
+    assert.equal(res.status, 404)
+    const data = (await res.json()) as { error: string; message: string }
+    assert.equal(data.error, 'Not Found')
+  })
+
+  test('7. GET /api/jobs/:provider/:jobId path routing returns 404 for unknown job ID', async () => {
+    const res = await fetch(`${baseUrl}/api/jobs/bdjobs/nonexistent_job_8888888`)
+    assert.equal(res.status, 404)
+    const data = (await res.json()) as { error: string; message: string }
+    assert.equal(data.error, 'Not Found')
+  })
 })

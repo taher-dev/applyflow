@@ -1,7 +1,15 @@
-import type { DiscoveredJob, JobProvider, JobSearchParams, JobSearchResponse } from './types.js'
+import type { DiscoveredJob, DiscoveredJobDetail, JobProvider, JobSearchParams, JobSearchResponse } from './types.js'
 
-const ALLOWED_BDJOBS_HOSTNAMES = ['bdjobs.com', 'jobs.bdjobs.com', 'www.bdjobs.com', 'api.bdjobs.com']
+const ALLOWED_BDJOBS_HOSTNAMES = [
+  'bdjobs.com',
+  'jobs.bdjobs.com',
+  'www.bdjobs.com',
+  'api.bdjobs.com',
+  'gateway.bdjobs.com',
+  'storage.googleapis.com',
+]
 const BDJOBS_API_ENDPOINT = 'https://api.bdjobs.com/Jobs/api/JobSearch/GetJobSearch'
+const BDJOBS_DETAILS_API_ENDPOINT = 'https://gateway.bdjobs.com/ActtivejobsTest/api/JobSubsystem/jobDetails'
 const DEFAULT_TIMEOUT_MS = 6000
 
 interface RawBDJobsCommon {
@@ -29,6 +37,7 @@ interface RawBDJobsJob {
 interface RawBDJobsResponse {
   common?: RawBDJobsCommon
   data?: RawBDJobsJob[]
+  premiumData?: RawBDJobsJob[]
   error?: unknown
 }
 
@@ -110,7 +119,10 @@ export class BDJobsProvider implements JobProvider {
       }
 
       const json = (await response.json()) as RawBDJobsResponse
-      const rawJobs = Array.isArray(json?.data) ? json.data : []
+      const rawJobs = [
+        ...(Array.isArray(json?.data) ? json.data : []),
+        ...(Array.isArray(json?.premiumData) ? json.premiumData : []),
+      ]
       const common = json?.common || {}
 
       const totalResults = Number(common.total_records_found) || rawJobs.length
@@ -318,6 +330,109 @@ export class BDJobsProvider implements JobProvider {
         fallbackSearchUrl,
         error: errorMessage,
       }
+    }
+  }
+
+  /**
+   * Fetches the complete job detail from BDJobs Gateway API.
+   */
+  async getJobDetails(jobId: string): Promise<DiscoveredJobDetail | null> {
+    const cleanId = jobId.replace(/^bdjobs-/i, '').trim()
+    if (!cleanId) return null
+
+    const listingUrl = `https://bdjobs.com/h/details/${cleanId}`
+    const safeListingUrl = isValidBDJobsUrl(listingUrl) ? listingUrl : this.getFallbackSearchUrl('')
+
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+
+      const url = `${BDJOBS_DETAILS_API_ENDPOINT}?jobId=${encodeURIComponent(cleanId)}`
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        },
+      })
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        return null
+      }
+
+      const json = (await response.json()) as {
+        data?: Array<Record<string, unknown>>
+      }
+      const rawDetail = Array.isArray(json?.data) ? json.data[0] : null
+      if (!rawDetail || String(rawDetail.JobFound).toLowerCase() === 'false') {
+        return null
+      }
+
+      const title = cleanText(rawDetail.JobTitle) || 'Untitled Position'
+      const company = cleanText(rawDetail.CompnayName || rawDetail.CompanyNameENG) || 'Confidential'
+      const rawLogo = rawDetail.JobLOgoName ? String(rawDetail.JobLOgoName).trim() : null
+      const companyLogo =
+        rawLogo && (rawLogo.startsWith('http://') || rawLogo.startsWith('https://')) ? rawLogo : null
+
+      const skillsRaw = rawDetail.SuggestedSkills || rawDetail.SkillsRequired
+      const skills =
+        typeof skillsRaw === 'string'
+          ? skillsRaw
+              .split(',')
+              .map((s) => cleanText(s))
+              .filter((s): s is string => Boolean(s))
+          : []
+
+      const vacancies = cleanText(rawDetail.JobVacancies)
+      const validVacancies = vacancies && vacancies !== '--' ? vacancies : null
+
+      return {
+        id: `bdjobs-${cleanId}`,
+        source: this.id,
+        sourceJobId: cleanId,
+        title,
+        company,
+        companyLogo,
+        companyAddress: cleanText(rawDetail.CompanyAddress),
+        companyBusiness: cleanText(rawDetail.CompanyBusiness),
+        companyWebsite: cleanText(rawDetail.CompanyWeb),
+        location: cleanText(rawDetail.JobLocation),
+        employmentType: cleanText(rawDetail.JobNature),
+        workplace: cleanText(rawDetail.JobWorkPlace),
+        vacancies: validVacancies,
+        salary: cleanText(rawDetail.JobSalaryRangeText || rawDetail.JobSalaryRange),
+        experience: cleanText(rawDetail.experience),
+        educationRequirements: rawDetail.EducationRequirements
+          ? String(rawDetail.EducationRequirements).trim()
+          : null,
+        additionalRequirements: rawDetail.AdditionJobRequirements
+          ? String(rawDetail.AdditionJobRequirements).trim()
+          : null,
+        responsibilities: rawDetail.JobDescription ? String(rawDetail.JobDescription).trim() : null,
+        skills,
+        otherBenefits:
+          rawDetail.OtherBenefits || rawDetail.JobOtherBenifits
+            ? String(rawDetail.OtherBenefits || rawDetail.JobOtherBenifits).trim()
+            : null,
+        applyInstruction: cleanText(rawDetail.ApplyInstruction),
+        applyUrl: rawDetail.ApplyURL
+          ? String(rawDetail.ApplyURL).trim()
+          : rawDetail.ApplyRedirectUrl
+          ? `https:${rawDetail.ApplyRedirectUrl}`
+          : null,
+        ageLimit: cleanText(rawDetail.Age) && rawDetail.Age !== 'Na' ? cleanText(rawDetail.Age) : null,
+        gender: cleanText(rawDetail.Gender),
+        jobContext: cleanText(rawDetail.Context),
+        publishedAt: cleanText(rawDetail.PostedOn),
+        deadline: cleanText(rawDetail.Deadline || rawDetail.DeadlineDB),
+        summary: cleanText(rawDetail.jobCategory || rawDetail.CategoryName),
+        listingUrl: safeListingUrl,
+        retrievedAt: new Date().toISOString(),
+      }
+    } catch {
+      return null
     }
   }
 }

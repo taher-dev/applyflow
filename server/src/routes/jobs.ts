@@ -159,3 +159,88 @@ jobsRouter.get(
     })
   }
 )
+
+/**
+ * GET /api/jobs/details
+ * Query params: provider (optional, default 'bdjobs'), jobId (required)
+ * Returns the full job detail from the designated external provider.
+ */
+jobsRouter.get(
+  '/details',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const provider = String(req.query.provider || 'bdjobs').trim().toLowerCase()
+      const jobId = String(req.query.jobId || req.query.id || '').trim()
+
+      if (!jobId) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'jobId is required to retrieve job details',
+        })
+        return
+      }
+
+      const jobDetail = await jobService.getJobDetails(provider, jobId)
+      if (!jobDetail) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: `Job details not found for ID "${jobId}" on provider "${provider}"`,
+        })
+        return
+      }
+
+      res.status(200).json({
+        success: true,
+        provider,
+        job: jobDetail,
+      })
+    } catch {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred while retrieving job details',
+      })
+    }
+  }
+)
+
+/**
+ * GET /api/jobs/:provider/:jobId
+ * Path-parameterized variant for retrieving full job detail.
+ */
+jobsRouter.get(
+  '/:provider/:jobId',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const provider = String(req.params.provider || 'bdjobs').trim().toLowerCase()
+      const jobId = String(req.params.jobId || '').trim()
+
+      if (!jobId) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'jobId is required',
+        })
+        return
+      }
+
+      const jobDetail = await jobService.getJobDetails(provider, jobId)
+      if (!jobDetail) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: `Job details not found for ID "${jobId}" on provider "${provider}"`,
+        })
+        return
+      }
+
+      res.status(200).json({
+        success: true,
+        provider,
+        job: jobDetail,
+      })
+    } catch {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred while retrieving job details',
+      })
+    }
+  }
+)

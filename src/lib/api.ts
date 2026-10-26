@@ -18,7 +18,7 @@ import type {
   CreateInterviewPayload,
   UpdateInterviewPayload,
 } from '@/types/interview'
-import type { JobSearchParams, JobSearchResponse } from '@/types/job'
+import type { DiscoveredJobDetail, JobSearchParams, JobSearchResponse } from '@/types/job'
 
 /**
  * Standard typed API error carrying status code and structured validation details.
@@ -390,6 +390,19 @@ export const api = {
       return apiClient<JobSearchResponse>(endpoint, {
         method: 'GET',
       })
+    },
+
+    /**
+     * Retrieves full details for a discovered job listing.
+     */
+    async getDetails(jobId: string, provider: string = 'bdjobs'): Promise<DiscoveredJobDetail> {
+      const data = await apiClient<{ success: boolean; provider: string; job: DiscoveredJobDetail }>(
+        `/jobs/details?provider=${encodeURIComponent(provider)}&jobId=${encodeURIComponent(jobId)}`,
+        {
+          method: 'GET',
+        }
+      )
+      return data.job
     },
   },
 }

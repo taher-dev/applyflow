@@ -19,6 +19,29 @@ export interface DiscoveredJob {
 }
 
 /**
+ * Detailed normalized model for a discovered job listing including full requirements and benefits.
+ */
+export interface DiscoveredJobDetail extends DiscoveredJob {
+  companyLogo?: string | null
+  companyAddress?: string | null
+  companyBusiness?: string | null
+  companyWebsite?: string | null
+  vacancies?: string | null
+  workplace?: string | null
+  educationRequirements?: string | null
+  experienceRequirements?: string | null
+  additionalRequirements?: string | null
+  responsibilities?: string | null
+  skills?: string[]
+  otherBenefits?: string | null
+  applyInstruction?: string | null
+  applyUrl?: string | null
+  ageLimit?: string | null
+  gender?: string | null
+  jobContext?: string | null
+}
+
+/**
  * Common parameters for searching jobs across providers.
  */
 export interface JobSearchParams {
@@ -63,4 +86,5 @@ export interface JobProvider {
   readonly allowedHostnames: string[]
   getFallbackSearchUrl(query: string): string
   search(params: JobSearchParams): Promise<JobSearchResponse>
+  getJobDetails?(jobId: string): Promise<DiscoveredJobDetail | null>
 }

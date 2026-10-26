@@ -1,4 +1,4 @@
-import type { JobProvider, JobSearchParams, JobSearchResponse } from './types.js'
+import type { DiscoveredJobDetail, JobProvider, JobSearchParams, JobSearchResponse } from './types.js'
 import { BDJobsProvider } from './bdjobsProvider.js'
 
 interface CacheEntry {
@@ -6,12 +6,19 @@ interface CacheEntry {
   expiresAt: number
 }
 
+interface DetailsCacheEntry {
+  data: DiscoveredJobDetail
+  expiresAt: number
+}
+
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const DETAILS_CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
 const MAX_CACHE_ENTRIES = 100
 
 class JobService {
   private providers = new Map<string, JobProvider>()
   private cache = new Map<string, CacheEntry>()
+  private detailsCache = new Map<string, DetailsCacheEntry>()
 
   constructor() {
     this.registerProvider(new BDJobsProvider())
@@ -74,6 +81,40 @@ class JobService {
 
   clearCache(): void {
     this.cache.clear()
+    this.detailsCache.clear()
+  }
+
+  async getJobDetails(
+    providerId: string = 'bdjobs',
+    jobId: string
+  ): Promise<DiscoveredJobDetail | null> {
+    const cleanJobId = jobId.trim()
+    if (!cleanJobId) return null
+
+    const provider = this.getProvider(providerId)
+    if (!provider || !provider.getJobDetails) {
+      return null
+    }
+
+    const cacheKey = `${provider.id.toLowerCase()}:${cleanJobId.toLowerCase()}`
+    const cached = this.detailsCache.get(cacheKey)
+    if (cached && Date.now() <= cached.expiresAt) {
+      return cached.data
+    }
+
+    const detail = await provider.getJobDetails(cleanJobId)
+    if (detail) {
+      if (this.detailsCache.size >= MAX_CACHE_ENTRIES) {
+        const firstKey = this.detailsCache.keys().next().value
+        if (firstKey) this.detailsCache.delete(firstKey)
+      }
+      this.detailsCache.set(cacheKey, {
+        data: detail,
+        expiresAt: Date.now() + DETAILS_CACHE_TTL_MS,
+      })
+    }
+
+    return detail
   }
 
   async searchJobs(

@@ -15,6 +15,26 @@ export interface DiscoveredJob {
   retrievedAt: string
 }
 
+export interface DiscoveredJobDetail extends DiscoveredJob {
+  companyLogo?: string | null
+  companyAddress?: string | null
+  companyBusiness?: string | null
+  companyWebsite?: string | null
+  vacancies?: string | null
+  workplace?: string | null
+  educationRequirements?: string | null
+  experienceRequirements?: string | null
+  additionalRequirements?: string | null
+  responsibilities?: string | null
+  skills?: string[]
+  otherBenefits?: string | null
+  applyInstruction?: string | null
+  applyUrl?: string | null
+  ageLimit?: string | null
+  gender?: string | null
+  jobContext?: string | null
+}
+
 export interface JobSearchParams {
   query?: string
   q?: string

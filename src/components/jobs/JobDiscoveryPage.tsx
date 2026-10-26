@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
 import type { DiscoveredJob, JobSearchResponse } from '@/types/job'
 import type { JobApplication, WorkplaceType, EmploymentType } from '@/types/dashboard'
+import { JobDetailDialog } from '@/components/jobs/JobDetailDialog'
 import { toast } from 'sonner'
 
 interface JobDiscoveryPageProps {
@@ -182,6 +183,7 @@ export function JobDiscoveryPage({
   const [searchResponse, setSearchResponse] = useState<JobSearchResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [savingJobId, setSavingJobId] = useState<string | null>(null)
+  const [selectedJobForDetail, setSelectedJobForDetail] = useState<DiscoveredJob | null>(null)
   const [retryTrigger, setRetryTrigger] = useState(0)
 
   // Fast duplicate lookups
@@ -1064,7 +1066,16 @@ export function JobDiscoveryPage({
             return (
               <div
                 key={job.id}
-                className={`group relative rounded-2xl border bg-white p-5 flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedJobForDetail(job)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedJobForDetail(job)
+                  }
+                }}
+                className={`group relative rounded-2xl border bg-white p-5 flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
                   isSaved
                     ? 'border-emerald-200/90 bg-emerald-50/15'
                     : 'border-slate-200/85 hover:border-slate-300'
@@ -1162,6 +1173,7 @@ export function JobDiscoveryPage({
                     href={job.listingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-8.5 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold transition-colors shadow-2xs select-none"
                   >
                     <span>Apply on BDJobs</span>
@@ -1172,7 +1184,10 @@ export function JobDiscoveryPage({
                   <button
                     type="button"
                     disabled={isSaved || isSaving}
-                    onClick={() => handleSaveToApplyFlow(job)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSaveToApplyFlow(job)
+                    }}
                     className={`h-8.5 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none ${
                       isSaved
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default'
@@ -1249,6 +1264,18 @@ export function JobDiscoveryPage({
           Job data provided via BDJobs search. Outbound links navigate directly to official BDJobs job postings.
         </p>
       </div>
+
+      {/* 9. Complete BDJobs Detail Dialog */}
+      <JobDetailDialog
+        job={selectedJobForDetail}
+        open={Boolean(selectedJobForDetail)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedJobForDetail(null)
+        }}
+        isSaved={selectedJobForDetail ? isJobAlreadySaved(selectedJobForDetail) : false}
+        isSaving={selectedJobForDetail ? savingJobId === selectedJobForDetail.id : false}
+        onSaveJob={handleSaveToApplyFlow}
+      />
     </div>
   )
 }
