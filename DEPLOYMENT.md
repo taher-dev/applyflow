@@ -26,7 +26,7 @@ ApplyFlow uses a **Single-Origin Full-Stack Architecture**:
                                               └─────────────────────┘
 ```
 
-- **Single Domain**: Both frontend assets and `/api/*` endpoints are served from the same domain (e.g., `https://applyflow.vercel.app`).
+- **Single Domain**: Both frontend assets and `/api/*` endpoints are served from the same domain (e.g., `https://applyflowai.vercel.app`).
 - **No Cross-Site Cookie Issues**: Session cookies (`applyflow_session`) use `SameSite=Lax; Secure; HttpOnly`, completely eliminating third-party cookie blocking in modern browsers (Safari, Chrome Incognito, iOS).
 - **Zero Cost**: Operates entirely within the free Hobby tiers of Vercel and Neon.
 
@@ -93,14 +93,14 @@ Configure the following variables in the **Vercel Dashboard** under **Project Se
 |---|---|---|---|
 | `DATABASE_URL` | Production, Preview | Neon Pooled PostgreSQL connection string | `postgresql://user:pass@ep-xyz-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true` |
 | `NODE_ENV` | Production, Preview | Sets production runtime mode | `production` |
-| `CORS_ORIGIN` | Production | Primary production frontend domain | `https://your-project.vercel.app` |
+| `CORS_ORIGIN` | Production | Primary production frontend domain | `https://applyflowai.vercel.app` |
 | `ENABLE_DEMO_AUTH` | Production, Preview | Enables demo authentication fallback | `true` |
 | `VITE_GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for Frontend GIS | `xxxx.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_ID` | Production, Preview, Dev | Google OAuth 2.0 Client ID for backend audience check | `xxxx.apps.googleusercontent.com` |
 
 | `RESEND_API_KEY` | Production, Preview, Dev | Resend API key for password reset email delivery (Recommended for Vercel) | `re_xxxxxxxxx` |
 | `EMAIL_FROM` | Production, Preview, Dev | Sender email address for password reset and notifications | `ApplyFlow <no-reply@yourdomain.com>` or `onboarding@resend.dev` |
-| `APP_URL` | Production | Explicit public application URL for reset link generation | `https://your-project.vercel.app` |
+| `APP_URL` | Production | Explicit public application URL for reset link generation | `https://applyflowai.vercel.app` |
 | `SMTP_HOST` | Production, Preview, Dev | Optional SMTP server host (fallback if not using Resend) | `smtp.gmail.com` |
 | `SMTP_PORT` | Production, Preview, Dev | Optional SMTP server port | `587` |
 | `SMTP_USER` | Production, Preview, Dev | Optional SMTP authentication username | `your-email@gmail.com` |
@@ -125,7 +125,7 @@ To enable live Google Sign-In with real user Google accounts:
    - **Name**: `ApplyFlow Web Client`
    - **Authorized JavaScript origins**:
      - `http://localhost:5173` (for local development)
-     - `https://<your-project>.vercel.app` (your production Vercel domain)
+     - `https://applyflowai.vercel.app` (your production Vercel domain)
      - Any custom domains you use
    - Click **Create** and copy your **Client ID** (ends with `.apps.googleusercontent.com`).
 5. Set the Client ID:
@@ -149,7 +149,7 @@ ApplyFlow sends secure, responsive HTML password reset confirmation emails.
 3. In your **Vercel Project Settings > Environment Variables**:
    - `RESEND_API_KEY`: `re_xxxxxxxxx`
    - `EMAIL_FROM`: `ApplyFlow <onboarding@resend.dev>` (or your verified domain like `ApplyFlow <no-reply@applyflow.app>`)
-   - `APP_URL`: `https://<your-project>.vercel.app` (your actual Vercel domain; if omitted, ApplyFlow automatically infers it from incoming client request headers)
+   - `APP_URL`: `https://applyflowai.vercel.app` (your actual Vercel domain; if omitted, ApplyFlow automatically infers it from incoming client request headers)
 
 #### Option B: Standard SMTP (Gmail, SendGrid, Mailgun)
 If you prefer standard SMTP, configure:
@@ -212,7 +212,7 @@ Once the deployment completes, verify each core capability:
 ### 1. Health Probe
 Visit:
 ```
-https://<your-project>.vercel.app/api/health
+https://applyflowai.vercel.app/api/health
 ```
 Expected response:
 ```json
@@ -220,7 +220,7 @@ Expected response:
 ```
 
 ### 2. User Authentication & Session Persistence
-1. Navigate to `https://<your-project>.vercel.app`.
+1. Navigate to `https://applyflowai.vercel.app`.
 2. Register a new account (`name`, `email`, `password`).
 3. Check Developer Tools > **Application > Cookies**:
    - Cookie `applyflow_session` should be present.
@@ -235,7 +235,7 @@ Expected response:
 5. Delete the application; verify related interviews are cleaned up via database cascade.
 
 ### 4. Direct SPA Routing & Page Refresh
-1. Navigate to `https://<your-project>.vercel.app/`.
+1. Navigate to `https://applyflowai.vercel.app/`.
 2. Switch tabs to **Kanban** or **Interviews**.
 3. Hard refresh the browser (`Ctrl+F5` or `Cmd+Shift+R`):
    - Page should load cleanly without 404 errors (handled by Vercel rewrite to `index.html`).

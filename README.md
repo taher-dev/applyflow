@@ -1,8 +1,19 @@
 # ApplyFlow 🚀
 
+🌐 **Live Application**: [https://applyflowai.vercel.app](https://applyflowai.vercel.app)
+
+[![Live App](https://img.shields.io/badge/Live_App-applyflowai.vercel.app-0070F3?style=for-the-badge&logo=vercel&logoColor=white)](https://applyflowai.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+
 > **A modern, full-stack job application tracker and career management platform with live BDJobs discovery.**
 
 ApplyFlow streamlines your entire job hunt — from discovering active listings and saving opportunities to tracking application pipelines, scheduling multi-round interviews, and monitoring your response metrics.
+
+### 📌 GitHub Repository Details
+- **Description**: Full-stack job application tracker and career pipeline manager with live BDJobs discovery, Kanban board, interview scheduler, and dual guest/cloud synchronization.
+- **Topics**: `job-tracker`, `job-application-tracker`, `career-management`, `bdjobs`, `react`, `typescript`, `vite`, `tailwindcss`, `kanban-board`, `interview-scheduler`, `prisma`, `neon-postgres`, `express`, `vercel`
 
 ---
 
