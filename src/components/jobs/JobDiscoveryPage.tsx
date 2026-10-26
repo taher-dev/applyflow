@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Loader2,
   ChevronDown,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -286,6 +287,7 @@ export function JobDiscoveryPage({
   const [selectedPostedWithin, setSelectedPostedWithin] = useState('')
   const [selectedSortBy, setSelectedSortBy] = useState('relevant')
   const [currentPage, setCurrentPage] = useState(1)
+  const [showFilters, setShowFilters] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [searchResponse, setSearchResponse] = useState<JobSearchResponse | null>(null)
@@ -409,6 +411,7 @@ export function JobDiscoveryPage({
     if (selectedWorkplace) count++
     if (selectedSalary) count++
     if (selectedPostedWithin) count++
+    if (selectedSortBy && selectedSortBy !== 'relevant') count++
     return count
   }, [
     activeLocation,
@@ -418,6 +421,7 @@ export function JobDiscoveryPage({
     selectedWorkplace,
     selectedSalary,
     selectedPostedWithin,
+    selectedSortBy,
   ])
 
   const handleSaveToApplyFlow = async (job: DiscoveredJob) => {
@@ -563,6 +567,30 @@ export function JobDiscoveryPage({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 shrink-0 justify-end pt-1 sm:pt-0">
+            {/* Filter Toggle Button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className={cn(
+                'h-9 px-3 rounded-xl border text-xs gap-1.5 cursor-pointer transition-colors',
+                showFilters || activeFiltersCount > 0
+                  ? 'bg-slate-100 border-slate-300 text-slate-900 font-semibold'
+                  : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              )}
+              aria-expanded={showFilters}
+              aria-label="Toggle filters"
+            >
+              <SlidersHorizontal className="size-3.5" />
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="size-4.5 rounded-full bg-slate-900 text-white text-[10px] font-bold inline-flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+
             {hasActiveFilters && (
               <button
                 type="button"
@@ -590,132 +618,161 @@ export function JobDiscoveryPage({
           </div>
         </form>
 
-        {/* Compact Dropdown Filters Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {/* 1. Category */}
-            <FilterDropdown
-              id="filter-dropdown-category"
-              value={selectedCategory}
-              onChange={(val) => {
-                setSelectedCategory(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_CATEGORIES}
-              title="Filter by functional category"
-            />
+        {/* Collapsible Dropdown Filters Panel */}
+        {showFilters && (
+          <div className="p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-3 transition-all duration-200 animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100 text-xs">
+              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <SlidersHorizontal className="size-3.5 text-slate-500" />
+                <span>Filter Listings</span>
+                {activeFiltersCount > 0 && (
+                  <span className="text-[11px] font-normal text-slate-500">
+                    ({activeFiltersCount} active)
+                  </span>
+                )}
+              </span>
+              {activeFiltersCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="text-xs text-rose-600 hover:text-rose-700 font-medium inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Reset all filters</span>
+                </button>
+              )}
+            </div>
 
-            {/* 2. Experience Level */}
-            <FilterDropdown
-              id="filter-dropdown-experience"
-              value={selectedExperience}
-              onChange={(val) => {
-                setSelectedExperience(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_EXPERIENCES}
-              title="Filter by experience level"
-            />
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              {/* 1. Category */}
+              <FilterDropdown
+                id="filter-dropdown-category"
+                value={selectedCategory}
+                onChange={(val) => {
+                  setSelectedCategory(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_CATEGORIES}
+                title="Filter by functional category"
+              />
 
-            {/* 3. Job Type */}
-            <FilterDropdown
-              id="filter-dropdown-employment-type"
-              value={selectedEmploymentType}
-              onChange={(val) => {
-                setSelectedEmploymentType(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_EMPLOYMENT_TYPES}
-              title="Filter by employment type"
-            />
+              {/* 2. Experience Level */}
+              <FilterDropdown
+                id="filter-dropdown-experience"
+                value={selectedExperience}
+                onChange={(val) => {
+                  setSelectedExperience(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_EXPERIENCES}
+                title="Filter by experience level"
+              />
 
-            {/* 4. Workplace Arrangement */}
-            <FilterDropdown
-              id="filter-dropdown-workplace"
-              value={selectedWorkplace}
-              onChange={(val) => {
-                setSelectedWorkplace(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_WORKPLACES}
-              title="Filter by workplace arrangement"
-            />
+              {/* 3. Job Type */}
+              <FilterDropdown
+                id="filter-dropdown-employment-type"
+                value={selectedEmploymentType}
+                onChange={(val) => {
+                  setSelectedEmploymentType(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_EMPLOYMENT_TYPES}
+                title="Filter by employment type"
+              />
 
-            {/* 5. Region / Division */}
-            <FilterDropdown
-              id="filter-dropdown-division"
-              value={activeLocation}
-              onChange={(val) => {
-                setActiveLocation(val)
-                setLocationInput(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_DIVISIONS}
-              title="Filter by region or division"
-            />
+              {/* 4. Workplace Arrangement */}
+              <FilterDropdown
+                id="filter-dropdown-workplace"
+                value={selectedWorkplace}
+                onChange={(val) => {
+                  setSelectedWorkplace(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_WORKPLACES}
+                title="Filter by workplace arrangement"
+              />
 
-            {/* 6. Salary Option */}
-            <FilterDropdown
-              id="filter-dropdown-salary"
-              value={selectedSalary}
-              onChange={(val) => {
-                setSelectedSalary(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_SALARY_OPTIONS}
-              title="Filter by salary specification"
-            />
+              {/* 5. Region / Division */}
+              <FilterDropdown
+                id="filter-dropdown-division"
+                value={activeLocation}
+                onChange={(val) => {
+                  setActiveLocation(val)
+                  setLocationInput(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_DIVISIONS}
+                title="Filter by region or division"
+              />
 
-            {/* 7. Date Posted */}
-            <FilterDropdown
-              id="filter-dropdown-posted"
-              value={selectedPostedWithin}
-              onChange={(val) => {
-                setSelectedPostedWithin(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_POSTED_OPTIONS}
-              title="Filter by date posted"
-            />
+              {/* 6. Salary Option */}
+              <FilterDropdown
+                id="filter-dropdown-salary"
+                value={selectedSalary}
+                onChange={(val) => {
+                  setSelectedSalary(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_SALARY_OPTIONS}
+                title="Filter by salary specification"
+              />
 
-            {/* 8. Sort Order */}
-            <FilterDropdown
-              id="filter-dropdown-sort"
-              value={selectedSortBy}
-              onChange={(val) => {
-                setSelectedSortBy(val)
-                setCurrentPage(1)
-              }}
-              options={BDJOBS_SORT_OPTIONS}
-              title="Sort job listings"
-            />
+              {/* 7. Date Posted */}
+              <FilterDropdown
+                id="filter-dropdown-posted"
+                value={selectedPostedWithin}
+                onChange={(val) => {
+                  setSelectedPostedWithin(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_POSTED_OPTIONS}
+                title="Filter by date posted"
+              />
 
-            {/* Clear Filters Reset Button */}
-            {activeFiltersCount > 0 && (
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="h-8 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-colors text-xs font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
-                title="Clear all active filters"
-              >
-                <RotateCcw className="size-3" />
-                <span>Reset filters</span>
-              </button>
-            )}
+              {/* 8. Sort Order */}
+              <FilterDropdown
+                id="filter-dropdown-sort"
+                value={selectedSortBy}
+                onChange={(val) => {
+                  setSelectedSortBy(val)
+                  setCurrentPage(1)
+                }}
+                options={BDJOBS_SORT_OPTIONS}
+                title="Sort job listings"
+              />
+            </div>
           </div>
+        )}
 
-          {/* Results Count / Searching Status */}
-          <div className="text-slate-500 text-xs shrink-0 ml-auto py-1">
+        {/* Results Count & Status Summary Bar */}
+        <div className="flex items-center justify-between text-xs text-slate-500 px-1 pt-0.5">
+          <div>
             {isLoading ? (
               <span className="inline-flex items-center gap-1.5 text-slate-500">
-                <Loader2 className="size-3 animate-spin" /> Searching...
+                <Loader2 className="size-3 animate-spin" /> Searching jobs...
               </span>
             ) : totalResults > 0 ? (
               <span>
                 Found <strong className="text-slate-800 font-semibold">{totalResults}</strong> jobs
+                {activeFiltersCount > 0 && !showFilters && (
+                  <span className="text-slate-400 ml-1.5">
+                    ({activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} applied)
+                  </span>
+                )}
               </span>
             ) : null}
           </div>
+
+          {activeFiltersCount > 0 && !showFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-xs text-slate-500 hover:text-rose-600 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <RotateCcw className="size-3" />
+              <span>Reset filters</span>
+            </button>
+          )}
         </div>
       </div>
 
