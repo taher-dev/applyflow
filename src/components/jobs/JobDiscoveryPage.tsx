@@ -177,11 +177,26 @@ function isTkCurrency(salary?: string | null): boolean {
   return /tk|bdt|৳|taka/i.test(salary)
 }
 
+function formatSalary(salary?: string | null): string {
+  if (!salary) return 'Tk. --'
+  const trimmed = salary.trim()
+  if (
+    !trimmed ||
+    trimmed === '--' ||
+    trimmed === '-' ||
+    trimmed.toLowerCase() === 'not mentioned' ||
+    trimmed.toLowerCase() === 'undisclosed'
+  ) {
+    return 'Tk. --'
+  }
+  return trimmed
+}
+
 function shouldShowDollarSign(salary?: string | null): boolean {
   if (!salary) return false
   const trimmed = salary.trim().toLowerCase()
-  if (isTkCurrency(trimmed)) return false
-  if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed') return false
+  if (isTkCurrency(trimmed) || trimmed.startsWith('tk')) return false
+  if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed' || trimmed === '--') return false
   if (trimmed.includes('$')) return false
   return /usd/i.test(trimmed)
 }
@@ -390,7 +405,7 @@ export function JobDiscoveryPage({
       jobUrl: job.listingUrl,
       source: job.source,
       sourceJobId: job.sourceJobId || undefined,
-      salary: job.salary || undefined,
+      salary: formatSalary(job.salary),
       appliedDate: new Date().toISOString().slice(0, 10),
       status: 'Saved',
       notes: job.experience ? `Required Experience: ${job.experience}` : undefined,
@@ -864,14 +879,11 @@ export function JobDiscoveryPage({
                   {/* Salary & Deadlines Row */}
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
                     <div className="flex items-center gap-1 text-slate-800 font-semibold truncate">
-                      {shouldShowDollarSign(job.salary) && (
+                      {shouldShowDollarSign(formatSalary(job.salary)) && (
                         <DollarSign className="size-3.5 text-slate-400 shrink-0 -mr-0.5" />
                       )}
-                      {isTkCurrency(job.salary) && (
-                        <span className="text-slate-500 font-bold text-xs">৳</span>
-                      )}
                       <span className="truncate text-xs">
-                        {job.salary || 'Negotiable'}
+                        {formatSalary(job.salary)}
                       </span>
                     </div>
 

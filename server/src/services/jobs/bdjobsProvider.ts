@@ -87,6 +87,23 @@ function normalizeJobExperience(title: string, rawExp?: unknown): string | null 
   return cleaned
 }
 
+/**
+ * Format salary text, providing 'Tk. --' placeholder when salary is not defined.
+ */
+function normalizeJobSalary(rawSalary?: unknown): string {
+  const cleaned = cleanText(rawSalary)
+  if (
+    !cleaned ||
+    cleaned === '--' ||
+    cleaned === '-' ||
+    cleaned.toLowerCase() === 'not mentioned' ||
+    cleaned.toLowerCase() === 'undisclosed'
+  ) {
+    return 'Tk. --'
+  }
+  return cleaned
+}
+
 export class BDJobsProvider implements JobProvider {
   readonly id = 'bdjobs'
   readonly name = 'BDJobs'
@@ -176,7 +193,7 @@ export class BDJobsProvider implements JobProvider {
             company,
             location: cleanText(rawJob.location),
             employmentType: cleanText(rawJob.JobType),
-            salary: cleanText(rawJob.Salary),
+            salary: normalizeJobSalary(rawJob.Salary),
             experience: normalizeJobExperience(title, rawJob.experience),
             publishedAt: cleanText(rawJob.publishDate),
             deadline: cleanText(rawJob.deadlineDB),
@@ -287,10 +304,10 @@ export class BDJobsProvider implements JobProvider {
           if (!job.salary) return false
           const salText = job.salary.toLowerCase()
           if (salParam === 'disclosed' || salParam === 'true') {
-            return !salText.includes('negotiable') && /\d/.test(salText)
+            return !salText.includes('negotiable') && !salText.includes('--') && /\d/.test(salText)
           }
           if (salParam === 'negotiable') {
-            return salText.includes('negotiable')
+            return salText.includes('negotiable') || salText === 'tk. --'
           }
           return true
         })
@@ -436,7 +453,7 @@ export class BDJobsProvider implements JobProvider {
         employmentType: cleanText(rawDetail.JobNature),
         workplace: cleanText(rawDetail.JobWorkPlace),
         vacancies: validVacancies,
-        salary: cleanText(rawDetail.JobSalaryRangeText || rawDetail.JobSalaryRange),
+        salary: normalizeJobSalary(rawDetail.JobSalaryRangeText || rawDetail.JobSalaryRange),
         experience: normalizeJobExperience(title, rawDetail.experience),
         educationRequirements: rawDetail.EducationRequirements
           ? String(rawDetail.EducationRequirements).trim()

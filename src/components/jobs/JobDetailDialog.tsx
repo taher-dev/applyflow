@@ -54,8 +54,8 @@ function isTkCurrency(salary?: string | null): boolean {
 function shouldShowDollarSign(salary?: string | null): boolean {
   if (!salary) return false
   const trimmed = salary.trim().toLowerCase()
-  if (isTkCurrency(trimmed)) return false
-  if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed') return false
+  if (isTkCurrency(trimmed) || trimmed.startsWith('tk')) return false
+  if (trimmed === 'negotiable' || trimmed === 'not mentioned' || trimmed === 'undisclosed' || trimmed === '--') return false
   if (trimmed.includes('$')) return false
   return /usd/i.test(trimmed)
 }
@@ -118,6 +118,15 @@ export function JobDetailDialog({
       : activeJob.title.toLowerCase().includes('intern')
       ? 'Entry Level (Internship)'
       : null
+  const displaySalary =
+    activeJob.salary &&
+    activeJob.salary.trim() !== '' &&
+    activeJob.salary.trim() !== '--' &&
+    activeJob.salary.trim() !== '-' &&
+    activeJob.salary.trim().toLowerCase() !== 'not mentioned' &&
+    activeJob.salary.trim().toLowerCase() !== 'undisclosed'
+      ? activeJob.salary
+      : 'Tk. --'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,13 +185,10 @@ export function JobDetailDialog({
             <div className="p-2 rounded-xl bg-white border border-slate-200/70">
               <span className="text-[10px] text-slate-400 block font-medium">Compensation</span>
               <div className="flex items-center gap-1 font-semibold text-slate-800 mt-0.5 truncate">
-                {shouldShowDollarSign(activeJob.salary) && (
+                {shouldShowDollarSign(displaySalary) && (
                   <DollarSign className="size-3 text-slate-400 shrink-0 -mr-0.5" />
                 )}
-                {isTkCurrency(activeJob.salary) && (
-                  <span className="text-slate-500 font-bold text-xs">৳</span>
-                )}
-                <span className="truncate">{activeJob.salary || 'Negotiable'}</span>
+                <span className="truncate">{displaySalary}</span>
               </div>
             </div>
 
