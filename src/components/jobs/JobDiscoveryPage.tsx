@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react'
 import {
   Search,
   MapPin,
@@ -125,7 +125,7 @@ export function JobDiscoveryPage({
   }
 
   // Handle explicit search submission
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setActiveQuery(keywordInput.trim())

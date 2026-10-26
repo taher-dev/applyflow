@@ -1,15 +1,18 @@
-import { cn } from '@/lib/utils'
+import * as React from "react"
+import { cn } from "cn"
 
 function Skeleton({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn('animate-pulse rounded-md bg-slate-200/80', className)}
+      data-slot="skeleton"
+      className={cn("animate-pulse rounded-md bg-muted/60", className)}
       {...props}
     />
   )
 }
 
 export { Skeleton }
+
