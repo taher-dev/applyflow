@@ -322,11 +322,11 @@ export function JobDiscoveryPage({
 
   const handleSaveToApplyFlow = async (job: DiscoveredJob) => {
     if (isJobAlreadySaved(job)) {
-      toast.info('Already tracked', {
-        description: `"${job.title}" at ${job.company} is already in your tracker.`,
+      toast.info('Already saved', {
+        description: `"${job.title}" at ${job.company} is already in your saved jobs.`,
         action: onNavigateToApplications
           ? {
-              label: 'View in Tracker',
+              label: 'View in Saved',
               onClick: onNavigateToApplications,
             }
           : undefined,
@@ -373,7 +373,7 @@ export function JobDiscoveryPage({
         description: `"${job.title}" added to your saved jobs.`,
         action: onNavigateToApplications
           ? {
-              label: 'View Tracker',
+              label: 'View in Saved',
               onClick: onNavigateToApplications,
             }
           : undefined,
@@ -383,8 +383,8 @@ export function JobDiscoveryPage({
         (err instanceof ApiError && err.status === 409) ||
         (err instanceof Error && err.message.toLowerCase().includes('already saved'))
       if (isConflict) {
-        toast.info('Already in your tracker', {
-          description: `"${job.title}" is already tracked.`,
+        toast.info('Already saved', {
+          description: `"${job.title}" is already in your saved jobs.`,
         })
       } else {
         toast.error('Failed to save job', {
@@ -1083,17 +1083,10 @@ export function JobDiscoveryPage({
                       </div>
                     </div>
 
-                    {/* Status Pill Badge */}
-                    {isSaved ? (
-                      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <Check className="size-3 text-emerald-600" />
-                        Tracked
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-[10px] font-medium text-slate-500 bg-slate-100/80 border border-slate-200/60 px-2 py-0.5 rounded-full">
-                        BDJobs
-                      </span>
-                    )}
+                    {/* Source Pill Badge */}
+                    <span className="shrink-0 text-[10px] font-medium text-slate-500 bg-slate-100/80 border border-slate-200/60 px-2 py-0.5 rounded-full">
+                      BDJobs
+                    </span>
                   </div>
 
                   {/* Metadata Pills: Location, Employment Type, Experience */}
