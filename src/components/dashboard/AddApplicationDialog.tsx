@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -173,6 +173,8 @@ export function ApplicationFormDialog({
       followUpDate: '',
     },
   })
+
+  const currentStatus = useWatch({ control, name: 'status' })
 
   // Prefill when editing, reset to blank when creating
   useEffect(() => {
@@ -374,10 +376,11 @@ export function ApplicationFormDialog({
                 )}
               </div>
 
-              {/* Applied Date */}
+              {/* Applied / Saved Date */}
               <div className="space-y-1.5">
                 <Label htmlFor="appliedDate" className="text-xs font-medium">
-                  Applied Date <span className="text-rose-500">*</span>
+                  {currentStatus === 'Saved' ? 'Date Saved' : 'Applied Date'}{' '}
+                  <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   id="appliedDate"

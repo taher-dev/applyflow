@@ -194,13 +194,14 @@ export function RecentApplications({
       }
 
       // Category Tab filter (matching reference UI)
-      if (categoryTab === 'applied') {
+      if (categoryTab === 'saved') {
+        if (app.status !== 'Saved') return false
+      } else if (categoryTab === 'applied') {
         const isApplied =
           app.status === 'Applied' ||
           app.status === 'Active' ||
           app.status === 'Screening' ||
-          app.status === 'Interview' ||
-          app.status === 'Saved'
+          app.status === 'Interview'
         if (!isApplied) return false
       } else if (categoryTab === 'rejected') {
         if (app.status !== 'Rejected') return false
@@ -212,8 +213,7 @@ export function RecentApplications({
             app.status === 'Applied' ||
             app.status === 'Active' ||
             app.status === 'Screening' ||
-            app.status === 'Interview' ||
-            app.status === 'Saved'
+            app.status === 'Interview'
           if (!isApplied) return false
         } else if (app.status !== statusFilter) {
           return false
@@ -313,6 +313,17 @@ export function RecentApplications({
 
   const handleStatusChange = (status: StatusFilter) => {
     setStatusFilter(status)
+    if (status === 'ALL') {
+      setCategoryTab('all')
+    } else if (status === 'Saved') {
+      setCategoryTab('saved')
+    } else if (status === 'Applied') {
+      setCategoryTab('applied')
+    } else if (status === 'Rejected') {
+      setCategoryTab('rejected')
+    } else if (status === 'Offer') {
+      setCategoryTab('offer')
+    }
     setCurrentPage(1)
   }
 
@@ -761,10 +772,11 @@ export function RecentApplications({
                       )}
                     </div>
 
-                    {/* Applied Date */}
+                    {/* Date */}
                     <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 mt-0.5">
                       <Calendar className="size-3 text-muted-foreground/70" />
                       <span>
+                        {app.status === 'Saved' ? 'Saved ' : ''}
                         {new Date(app.appliedDate).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -789,7 +801,7 @@ export function RecentApplications({
                       Location & Arrangement
                     </TableHead>
                     <TableHead className="w-[14%] text-xs font-semibold text-slate-500 whitespace-normal leading-tight">
-                      Applied Date
+                      {categoryTab === 'saved' ? 'Date Saved' : 'Date'}
                     </TableHead>
                     <TableHead className="w-[15%] text-xs font-semibold text-slate-500 whitespace-normal leading-tight">
                       Status

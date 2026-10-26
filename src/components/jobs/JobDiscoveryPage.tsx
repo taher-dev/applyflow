@@ -218,7 +218,7 @@ export function JobDiscoveryPage({
     try {
       await onSaveJob(applicationPayload)
       toast.success('Saved to ApplyFlow!', {
-        description: `"${job.title}" added to your saved applications.`,
+        description: `"${job.title}" added to your saved jobs.`,
         action: onNavigateToApplications
           ? {
               label: 'View Tracker',

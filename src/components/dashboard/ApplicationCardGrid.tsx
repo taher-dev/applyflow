@@ -63,6 +63,11 @@ function getCardTheme(status: ApplicationStatus, index: number): PastelTheme {
             hoverBorder: 'hover:border-orange-300',
           }
     case 'Saved':
+      return {
+        bg: 'bg-[#FFFBEB]',
+        border: 'border-[#FEE685]',
+        hoverBorder: 'hover:border-amber-300',
+      }
     default:
       return {
         bg: 'bg-[#EFF3F6]',
@@ -136,7 +141,7 @@ export function ApplicationCardGrid({
             <div>
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-slate-500">
-                  {formatCardDate(app.appliedDate)}
+                  {app.status === 'Saved' ? `Saved ${formatCardDate(app.appliedDate)}` : formatCardDate(app.appliedDate)}
                 </span>
                 <button
                   type="button"
@@ -173,7 +178,14 @@ export function ApplicationCardGrid({
                     {app.workplaceType}
                   </span>
                 )}
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/95 text-slate-700 shadow-2xs border border-black/5">
+                <span
+                  className={cn(
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium shadow-2xs border',
+                    app.status === 'Saved'
+                      ? 'bg-amber-100 text-amber-800 border-amber-200'
+                      : 'bg-white/95 text-slate-700 border-black/5'
+                  )}
+                >
                   {app.status}
                 </span>
               </div>

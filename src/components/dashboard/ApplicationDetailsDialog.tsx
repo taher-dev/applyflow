@@ -142,7 +142,10 @@ export function ApplicationDetailsDialog({
               {isValidAppliedDate && (
                 <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
                   <Calendar className="size-3 text-slate-400" />
-                  <span>Applied {formattedAppliedDate}</span>
+                  <span>
+                    {application.status === 'Saved' ? 'Saved' : 'Applied'}{' '}
+                    {formattedAppliedDate}
+                  </span>
                 </span>
               )}
             </div>
