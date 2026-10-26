@@ -8,18 +8,13 @@ import {
   Bookmark,
   Check,
   RotateCcw,
-  Compass,
   AlertCircle,
   Clock,
-  Building2,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
@@ -34,12 +29,43 @@ interface JobDiscoveryPageProps {
 }
 
 const EMPLOYMENT_TYPES = [
-  { label: 'All Types', value: '' },
+  { label: 'All', value: '' },
   { label: 'Full Time', value: 'Full Time' },
   { label: 'Part Time', value: 'Part Time' },
   { label: 'Contract', value: 'Contract' },
   { label: 'Internship', value: 'Internship' },
 ]
+
+const AVATAR_PALETTES = [
+  'bg-blue-50 text-blue-700 border-blue-200/60',
+  'bg-purple-50 text-purple-700 border-purple-200/60',
+  'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  'bg-amber-50 text-amber-700 border-amber-200/60',
+  'bg-indigo-50 text-indigo-700 border-indigo-200/60',
+  'bg-rose-50 text-rose-700 border-rose-200/60',
+  'bg-teal-50 text-teal-700 border-teal-200/60',
+  'bg-slate-100 text-slate-700 border-slate-200/60',
+]
+
+function getCompanyInitials(name: string): string {
+  if (!name) return 'JO'
+  const words = name.trim().split(/\s+/)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+function getCompanyAvatarTheme(name: string): string {
+  if (!name) return AVATAR_PALETTES[0]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i)
+    hash |= 0
+  }
+  const index = Math.abs(hash) % AVATAR_PALETTES.length
+  return AVATAR_PALETTES[index]
+}
 
 export function JobDiscoveryPage({
   existingApplications,
@@ -60,7 +86,7 @@ export function JobDiscoveryPage({
   const [savingJobId, setSavingJobId] = useState<string | null>(null)
   const [retryTrigger, setRetryTrigger] = useState(0)
 
-  // Track saved jobs set for fast duplicate lookups
+  // Fast duplicate lookups
   const savedJobIdentifiers = useMemo(() => {
     const ids = new Set<string>()
     for (const app of existingApplications) {
@@ -83,7 +109,7 @@ export function JobDiscoveryPage({
     [savedJobIdentifiers]
   )
 
-  // Trigger search on mount and when query/filter values change
+  // Fetch search results
   useEffect(() => {
     let cancelled = false
 
@@ -107,7 +133,7 @@ export function JobDiscoveryPage({
           const message =
             err instanceof ApiError
               ? err.message
-              : 'Unable to connect to job search service. Please check your network and try again.'
+              : 'Unable to connect to BDJobs. Please check your network and try again.'
           setError(message)
           setIsLoading(false)
         }
@@ -124,7 +150,6 @@ export function JobDiscoveryPage({
     setRetryTrigger((prev) => prev + 1)
   }
 
-  // Handle explicit search submission
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -133,7 +158,6 @@ export function JobDiscoveryPage({
     setCurrentPage(1)
   }
 
-  // Clear all filters
   const handleClearFilters = () => {
     setIsLoading(true)
     setKeywordInput('')
@@ -144,11 +168,10 @@ export function JobDiscoveryPage({
     setCurrentPage(1)
   }
 
-  // Save discovered job to ApplyFlow
   const handleSaveToApplyFlow = async (job: DiscoveredJob) => {
     if (isJobAlreadySaved(job)) {
       toast.info('Already tracked', {
-        description: `"${job.title}" at ${job.company} is already in your application pipeline.`,
+        description: `"${job.title}" at ${job.company} is already in your tracker.`,
         action: onNavigateToApplications
           ? {
               label: 'View in Tracker',
@@ -161,7 +184,6 @@ export function JobDiscoveryPage({
 
     setSavingJobId(job.id)
 
-    // Map discovered job to ApplyFlow JobApplication
     const workplaceType: WorkplaceType =
       job.location && job.location.toLowerCase().includes('remote')
         ? 'Remote'
@@ -196,7 +218,7 @@ export function JobDiscoveryPage({
     try {
       await onSaveJob(applicationPayload)
       toast.success('Saved to ApplyFlow!', {
-        description: `"${job.title}" at ${job.company} added as Saved.`,
+        description: `"${job.title}" added to your saved applications.`,
         action: onNavigateToApplications
           ? {
               label: 'View Tracker',
@@ -210,7 +232,7 @@ export function JobDiscoveryPage({
         (err instanceof Error && err.message.toLowerCase().includes('already saved'))
       if (isConflict) {
         toast.info('Already in your tracker', {
-          description: `"${job.title}" is already tracked in your pipeline.`,
+          description: `"${job.title}" is already tracked.`,
         })
       } else {
         toast.error('Failed to save job', {
@@ -232,167 +254,150 @@ export function JobDiscoveryPage({
       ? `https://bdjobs.com/h/jobs?keyword=${encodeURIComponent(activeQuery)}`
       : 'https://bdjobs.com/h/jobs')
 
+  const hasActiveFilters = Boolean(
+    keywordInput || locationInput || activeQuery || activeLocation || selectedEmploymentType
+  )
+
   return (
-    <div className="w-full space-y-6">
-      {/* 1. Header Banner & Context */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-sm">
-        <div className="relative z-10 max-w-3xl space-y-2">
+    <div className="w-full space-y-5">
+      {/* 1. Minimal Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+        <div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              <Compass className="size-3.5" />
-              Live Job Discovery
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+              Job Discovery
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              BDJobs
             </span>
-            <Badge variant="outline" className="text-slate-300 border-slate-700 text-xs">
-              Powered by BDJobs
-            </Badge>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Find Your Next Career Move
-          </h1>
-          <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-            Search live job listings across Bangladesh, explore verified company openings,
-            and instantly track applications inside ApplyFlow with one click.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Search live job openings across Bangladesh and save listings directly to your tracker.
           </p>
         </div>
-        {/* Subtle decorative glow */}
-        <div
-          className="absolute -right-12 -bottom-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"
-          aria-hidden="true"
-        />
       </div>
 
-      {/* 2. Search & Filter Bar */}
-      <Card className="border-slate-200/90 shadow-2xs">
-        <CardContent className="p-4 sm:p-5">
-          <form onSubmit={handleSearchSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              {/* Keyword Search */}
-              <div className="sm:col-span-5 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                <Input
-                  id="job-keyword-input"
-                  placeholder="Job title, keywords, or company..."
-                  value={keywordInput}
-                  onChange={(e) => setKeywordInput(e.target.value)}
-                  className="pl-9 h-10 text-sm bg-slate-50/50 border-slate-200 focus-visible:bg-white"
-                />
-              </div>
+      {/* 2. Modern Minimal Search Bar & Filters */}
+      <div className="space-y-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-colors p-1.5 sm:p-2 flex flex-col sm:flex-row sm:items-center gap-2"
+        >
+          {/* Keyword Field */}
+          <div className="relative flex-1 flex items-center min-w-0">
+            <Search className="size-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              id="job-keyword-input"
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              placeholder="Search job title, skills, or company..."
+              className="w-full h-9 pl-9 pr-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none focus:ring-0"
+            />
+          </div>
 
-              {/* Location Input */}
-              <div className="sm:col-span-4 relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                <Input
-                  id="job-location-input"
-                  placeholder="Location (e.g. Dhaka, Remote)..."
-                  value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
-                  className="pl-9 h-10 text-sm bg-slate-50/50 border-slate-200 focus-visible:bg-white"
-                />
-              </div>
+          <div className="hidden sm:block h-5 w-px bg-slate-200" />
 
-              {/* Search Action Buttons */}
-              <div className="sm:col-span-3 flex items-center gap-2">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white cursor-pointer font-medium text-sm gap-2"
+          {/* Location Field */}
+          <div className="relative sm:w-60 flex items-center min-w-0">
+            <MapPin className="size-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              id="job-location-input"
+              value={locationInput}
+              onChange={(e) => setLocationInput(e.target.value)}
+              placeholder="Location (e.g. Dhaka, Remote)..."
+              className="w-full h-9 pl-9 pr-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none focus:ring-0"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5 shrink-0 justify-end pt-1 sm:pt-0">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="h-9 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors text-xs inline-flex items-center gap-1 cursor-pointer"
+                title="Reset search and filters"
+              >
+                <RotateCcw className="size-3.5" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="h-9 px-4.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs gap-1.5 cursor-pointer"
+            >
+              {isLoading ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              <span>Search</span>
+            </Button>
+          </div>
+        </form>
+
+        {/* Quick Filter Pills & Result Meta */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-slate-400 text-[11px] font-medium mr-0.5">Type:</span>
+            {EMPLOYMENT_TYPES.map((type) => {
+              const isSelected = selectedEmploymentType === type.value
+              return (
+                <button
+                  key={type.label}
+                  type="button"
+                  onClick={() => {
+                    setSelectedEmploymentType(type.value)
+                    setCurrentPage(1)
+                  }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-slate-900 text-white shadow-2xs'
+                      : 'bg-white border border-slate-200/80 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 >
-                  {isLoading ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Search className="size-4" />
-                  )}
-                  <span>Search</span>
-                </Button>
+                  {type.label}
+                </button>
+              )
+            })}
+          </div>
 
-                {(keywordInput || locationInput || activeQuery || activeLocation || selectedEmploymentType) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleClearFilters}
-                    className="h-10 px-3 border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer"
-                    title="Clear filters"
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Employment Type Quick Filters */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
-              <span className="text-slate-400 mr-1 font-medium flex items-center gap-1">
-                <Briefcase className="size-3" /> Type:
+          <div className="text-slate-500 text-xs">
+            {isLoading ? (
+              <span className="inline-flex items-center gap-1.5 text-slate-500">
+                <Loader2 className="size-3 animate-spin" /> Searching listings...
               </span>
-              {EMPLOYMENT_TYPES.map((type) => {
-                const isSelected = selectedEmploymentType === type.value
-                return (
-                  <button
-                    key={type.label}
-                    type="button"
-                    onClick={() => {
-                      setSelectedEmploymentType(type.value)
-                      setCurrentPage(1)
-                    }}
-                    className={`px-2.5 py-1 rounded-lg transition-all text-xs font-medium cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
-                    }`}
-                  >
-                    {type.label}
-                  </button>
-                )
-              })}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* 3. Search Summary & Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 px-1">
-        <div className="flex items-center gap-2">
-          {!isLoading && totalResults > 0 && (
-            <span>
-              Found <strong className="text-slate-900 font-semibold">{totalResults}</strong> jobs
-              {activeQuery && <> for &ldquo;<span className="text-slate-800">{activeQuery}</span>&rdquo;</>}
-              {activeLocation && <> in &ldquo;<span className="text-slate-800">{activeLocation}</span>&rdquo;</>}
-            </span>
-          )}
-          {isLoading && (
-            <span className="flex items-center gap-1.5 text-slate-600">
-              <Loader2 className="size-3.5 animate-spin text-slate-800" />
-              Searching BDJobs for live listings...
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400">Source:</span>
-          <span className="inline-flex items-center gap-1 text-slate-700 font-medium">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            BDJobs Live Feed
-          </span>
+            ) : totalResults > 0 ? (
+              <span>
+                Found <strong className="text-slate-800 font-semibold">{totalResults}</strong> jobs
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      {/* 4. Error / Provider Unavailable Fallback Banner */}
+      {/* 3. Fallback / Unreachable Warning Card */}
       {(!isProviderAvailable || error) && (
-        <div className="rounded-xl border border-amber-200/90 bg-amber-50/80 p-5 text-amber-900 shadow-2xs">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="size-4 text-amber-600 shrink-0" />
-                <h3 className="font-semibold text-sm text-amber-950">
-                  {error || 'Live BDJobs search service is temporarily unreachable'}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 text-amber-900">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="size-4.5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <h3 className="font-semibold text-xs sm:text-sm text-amber-950">
+                  {error || 'BDJobs live search is currently unreachable'}
                 </h3>
+                <p className="text-xs text-amber-800/90 leading-relaxed max-w-xl">
+                  Live results couldn&apos;t be fetched right now. You can open BDJobs directly with your
+                  query carried over.
+                </p>
               </div>
-              <p className="text-xs text-amber-800 leading-relaxed max-w-2xl">
-                We couldn&apos;t load live results inside ApplyFlow at this moment. You can directly browse
-                the verified search results on BDJobs with your query carried over.
-              </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
               <Button
                 size="sm"
                 variant="outline"
@@ -415,65 +420,71 @@ export function JobDiscoveryPage({
         </div>
       )}
 
-      {/* 5. Loading Skeletons */}
+      {/* 4. Loading Skeletons */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <Card key={idx} className="border-slate-200/80 shadow-2xs">
-              <CardContent className="p-5 space-y-4">
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+            <div
+              key={idx}
+              className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-10 rounded-xl" />
+                <div className="space-y-1.5 flex-1">
+                  <Skeleton className="h-3.5 w-1/3" />
+                  <Skeleton className="h-4.5 w-4/5" />
                 </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <Skeleton className="h-3.5 w-full" />
-                  <Skeleton className="h-3.5 w-2/3" />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Skeleton className="h-9 flex-1 rounded-lg" />
-                  <Skeleton className="h-9 w-28 rounded-lg" />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Skeleton className="h-8.5 flex-1 rounded-xl" />
+                <Skeleton className="h-8.5 w-20 rounded-xl" />
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {/* 6. Empty State */}
+      {/* 5. Empty State */}
       {!isLoading && isProviderAvailable && !error && jobs.length === 0 && (
-        <Card className="border-dashed border-slate-300 bg-white shadow-none">
-          <CardContent className="py-12 px-4 text-center max-w-md mx-auto space-y-4">
-            <div className="size-12 rounded-full bg-slate-100 text-slate-500 mx-auto flex items-center justify-center">
-              <Search className="size-6" />
+        <Card className="border border-dashed border-slate-300 bg-white shadow-none rounded-2xl">
+          <CardContent className="py-12 px-4 text-center max-w-sm mx-auto space-y-3">
+            <div className="size-11 rounded-2xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center">
+              <Search className="size-5" />
             </div>
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-slate-900 text-base">No job listings found</h3>
+            <div className="space-y-1">
+              <h3 className="font-semibold text-slate-900 text-sm">No job listings found</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
                 {activeQuery || activeLocation
-                  ? `We couldn't find any listings matching "${[activeQuery, activeLocation].filter(Boolean).join(', ')}". Try adjusting keywords or location.`
-                  : 'Try typing a job title like "React", "Frontend", or "Python" in the search box above.'}
+                  ? `No matches for "${[activeQuery, activeLocation].filter(Boolean).join(', ')}". Try a broader keyword.`
+                  : 'Search for job titles like "React", "Frontend", or "Node.js".'}
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearFilters}
-                className="h-8 text-xs cursor-pointer"
-              >
-                Clear all filters
-              </Button>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="h-8 text-xs cursor-pointer"
+                >
+                  Clear filters
+                </Button>
+              )}
               <a
                 href={fallbackUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium shadow-2xs"
               >
-                <span>Search directly on BDJobs</span>
+                <span>Search BDJobs</span>
                 <ExternalLink className="size-3" />
               </a>
             </div>
@@ -481,179 +492,169 @@ export function JobDiscoveryPage({
         </Card>
       )}
 
-      {/* 7. Job Results Grid */}
+      {/* 6. Beautiful Minimal Job Cards Grid */}
       {!isLoading && jobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {jobs.map((job) => {
             const isSaved = isJobAlreadySaved(job)
             const isSaving = savingJobId === job.id
+            const avatarTheme = getCompanyAvatarTheme(job.company)
+            const initials = getCompanyInitials(job.company)
 
             return (
-              <Card
+              <div
                 key={job.id}
-                className={`border transition-all duration-200 flex flex-col justify-between ${
+                className={`group relative rounded-2xl border bg-white p-5 flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
                   isSaved
-                    ? 'border-indigo-200 bg-indigo-50/20 shadow-2xs'
-                    : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
+                    ? 'border-emerald-200/90 bg-emerald-50/15'
+                    : 'border-slate-200/85 hover:border-slate-300'
                 }`}
               >
-                <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  {/* Card Top: Source badge & Title */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/70">
-                        <Sparkles className="size-2.5" />
+                {/* Card Top: Avatar, Company, Title & Status */}
+                <div className="space-y-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      {/* Company Avatar with clean initials */}
+                      <div
+                        className={`size-10 rounded-xl flex items-center justify-center text-xs font-bold border shrink-0 transition-transform group-hover:scale-105 ${avatarTheme}`}
+                      >
+                        {initials}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="text-xs font-semibold text-slate-500 truncate"
+                          title={job.company}
+                        >
+                          {job.company}
+                        </p>
+                        <h3
+                          className="text-sm sm:text-base font-bold text-slate-900 leading-snug line-clamp-2 mt-0.5 group-hover:text-slate-800 transition-colors"
+                          title={job.title}
+                        >
+                          {job.title}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Status Pill Badge */}
+                    {isSaved ? (
+                      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <Check className="size-3 text-emerald-600" />
+                        Tracked
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[10px] font-medium text-slate-500 bg-slate-100/80 border border-slate-200/60 px-2 py-0.5 rounded-full">
                         BDJobs
                       </span>
-
-                      {isSaved && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                          <Check className="size-3" />
-                          Tracked
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <h3
-                        className="font-bold text-slate-900 text-base leading-snug line-clamp-2 hover:text-indigo-600 transition-colors"
-                        title={job.title}
-                      >
-                        {job.title}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1 font-medium truncate">
-                        <Building2 className="size-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate" title={job.company}>
-                          {job.company}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Middle: Key Metadata Badges & Details */}
-                  <div className="space-y-2.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {job.location && (
-                        <Badge
-                          variant="secondary"
-                          className="bg-slate-100 text-slate-700 text-[11px] font-normal gap-1 px-2 py-0.5 max-w-[180px] truncate"
-                          title={job.location}
-                        >
-                          <MapPin className="size-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{job.location}</span>
-                        </Badge>
-                      )}
-
-                      {job.employmentType && (
-                        <Badge
-                          variant="secondary"
-                          className="bg-slate-100 text-slate-700 text-[11px] font-normal gap-1 px-2 py-0.5"
-                        >
-                          <Briefcase className="size-3 text-slate-400 shrink-0" />
-                          <span>{job.employmentType}</span>
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Salary & Experience */}
-                    <div className="space-y-1 text-slate-700 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <DollarSign className="size-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-500 text-[11px]">Salary:</span>
-                        <span className="font-medium text-slate-900 truncate">
-                          {job.salary || 'Negotiable / Not provided'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-slate-400 shrink-0" />
-                        <span className="text-slate-500 text-[11px]">Experience:</span>
-                        <span className="font-medium text-slate-900 truncate">
-                          {job.experience || 'Not specified'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Published & Deadline dates */}
-                    {(job.publishedAt || job.deadline) && (
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                        {job.publishedAt ? (
-                          <span title={`Published: ${job.publishedAt}`}>
-                            Posted: {job.publishedAt}
-                          </span>
-                        ) : (
-                          <span />
-                        )}
-                        {job.deadline && (
-                          <span
-                            className="font-medium text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded"
-                            title={`Deadline: ${job.deadline}`}
-                          >
-                            Deadline: {job.deadline}
-                          </span>
-                        )}
-                      </div>
                     )}
                   </div>
 
-                  {/* Card Bottom: Actions */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                    {/* Apply on BDJobs */}
-                    <a
-                      href={job.listingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors shadow-2xs cursor-pointer select-none"
-                    >
-                      <span>Apply on BDJobs</span>
-                      <ExternalLink className="size-3" />
-                    </a>
+                  {/* Metadata Pills: Location, Employment Type, Experience */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {job.location && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-full truncate max-w-[180px]"
+                        title={job.location}
+                      >
+                        <MapPin className="size-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{job.location}</span>
+                      </span>
+                    )}
 
-                    {/* Save to ApplyFlow */}
-                    <Button
-                      type="button"
-                      variant={isSaved ? 'secondary' : 'outline'}
-                      size="sm"
-                      disabled={isSaved || isSaving}
-                      onClick={() => handleSaveToApplyFlow(job)}
-                      className={`h-9 px-3 text-xs font-semibold gap-1.5 cursor-pointer ${
-                        isSaved
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                          : 'border-slate-200 hover:bg-slate-100 text-slate-800'
-                      }`}
-                      title={isSaved ? 'Saved in your ApplyFlow tracker' : 'Save to your ApplyFlow tracker'}
-                    >
-                      {isSaving ? (
-                        <Loader2 className="size-3.5 animate-spin text-slate-600" />
-                      ) : isSaved ? (
-                        <>
-                          <Check className="size-3.5 text-emerald-600" />
-                          <span>Saved</span>
-                        </>
-                      ) : (
-                        <>
-                          <Bookmark className="size-3.5 text-slate-500" />
-                          <span>Save</span>
-                        </>
-                      )}
-                    </Button>
+                    {job.employmentType && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-full">
+                        <Briefcase className="size-3 text-slate-400 shrink-0" />
+                        <span>{job.employmentType}</span>
+                      </span>
+                    )}
+
+                    {job.experience && (
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-0.5 rounded-full truncate max-w-[160px]"
+                        title={job.experience}
+                      >
+                        <Clock className="size-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{job.experience}</span>
+                      </span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+
+                  {/* Salary & Deadlines Row */}
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
+                    <div className="flex items-center gap-1 text-slate-800 font-semibold truncate">
+                      <DollarSign className="size-3.5 text-slate-400 shrink-0 -mr-0.5" />
+                      <span className="truncate text-xs">
+                        {job.salary || 'Negotiable'}
+                      </span>
+                    </div>
+
+                    {job.deadline && (
+                      <span
+                        className="shrink-0 text-[11px] font-medium text-rose-600 bg-rose-50/80 border border-rose-100 px-2 py-0.5 rounded-full"
+                        title={`Application deadline: ${job.deadline}`}
+                      >
+                        Due {job.deadline}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Actions */}
+                <div className="flex items-center gap-2 pt-3 mt-3 border-t border-slate-100">
+                  {/* Apply on BDJobs Link */}
+                  <a
+                    href={job.listingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-8.5 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-semibold transition-colors shadow-2xs select-none"
+                  >
+                    <span>Apply on BDJobs</span>
+                    <ExternalLink className="size-3 text-white/80" />
+                  </a>
+
+                  {/* Save to ApplyFlow Button */}
+                  <button
+                    type="button"
+                    disabled={isSaved || isSaving}
+                    onClick={() => handleSaveToApplyFlow(job)}
+                    className={`h-8.5 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none ${
+                      isSaved
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default'
+                        : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 active:bg-slate-100'
+                    }`}
+                    title={isSaved ? 'Already saved in your tracker' : 'Save to your ApplyFlow tracker'}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="size-3.5 animate-spin text-slate-600" />
+                    ) : isSaved ? (
+                      <>
+                        <Check className="size-3.5 text-emerald-600" />
+                        <span>Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="size-3.5 text-slate-400" />
+                        <span>Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             )
           })}
         </div>
       )}
 
-      {/* 8. Pagination Controls */}
+      {/* 7. Pagination */}
       {!isLoading && jobs.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-200/80 pt-4 px-1">
-          <div className="text-xs text-slate-500">
-            Showing page <strong className="font-semibold text-slate-800">{currentPage}</strong> of{' '}
+        <div className="flex items-center justify-between border-t border-slate-200/80 pt-4 px-1 text-xs">
+          <span className="text-slate-500">
+            Page <strong className="font-semibold text-slate-800">{currentPage}</strong> of{' '}
             <strong className="font-semibold text-slate-800">{totalPages}</strong>
-          </div>
+          </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
@@ -663,10 +664,10 @@ export function JobDiscoveryPage({
                 setCurrentPage(prev)
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
-              className="h-8 px-2.5 text-xs gap-1 border-slate-200 cursor-pointer"
+              className="h-8 px-2.5 text-xs gap-1 rounded-lg border-slate-200 cursor-pointer"
             >
               <ChevronLeft className="size-3.5" />
-              <span>Previous</span>
+              <span>Prev</span>
             </Button>
 
             <Button
@@ -678,7 +679,7 @@ export function JobDiscoveryPage({
                 setCurrentPage(next)
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
-              className="h-8 px-2.5 text-xs gap-1 border-slate-200 cursor-pointer"
+              className="h-8 px-2.5 text-xs gap-1 rounded-lg border-slate-200 cursor-pointer"
             >
               <span>Next</span>
               <ChevronRight className="size-3.5" />
@@ -687,13 +688,10 @@ export function JobDiscoveryPage({
         </div>
       )}
 
-      {/* 9. Data Attribution & Compliance Footer Note */}
-      <div className="rounded-xl border border-slate-200/60 bg-slate-50/70 p-4 text-[11px] text-slate-500 leading-relaxed space-y-1">
-        <p className="font-medium text-slate-700">Data attribution & job listings note:</p>
-        <p>
-          Job listings and descriptions are provided directly by BDJobs public search services.
-          ApplyFlow does not claim ownership of external job data. Outbound links connect directly to
-          canonical BDJobs job listings for application processing and company verification.
+      {/* 8. Minimal Attribution Note */}
+      <div className="pt-2 text-center">
+        <p className="text-[11px] text-slate-400">
+          Job data provided via BDJobs search. Outbound links navigate directly to official BDJobs job postings.
         </p>
       </div>
     </div>
