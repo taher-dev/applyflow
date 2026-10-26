@@ -11,10 +11,6 @@
 
 ApplyFlow streamlines your entire job hunt — from discovering active listings and saving opportunities to tracking application pipelines, scheduling multi-round interviews, and monitoring your response metrics.
 
-### 📌 GitHub Repository Details
-- **Description**: Full-stack job application tracker and career pipeline manager with live BDJobs discovery, Kanban board, interview scheduler, and dual guest/cloud synchronization.
-- **Topics**: `job-tracker`, `job-application-tracker`, `career-management`, `bdjobs`, `react`, `typescript`, `vite`, `tailwindcss`, `kanban-board`, `interview-scheduler`, `prisma`, `neon-postgres`, `express`, `vercel`
-
 ---
 
 ## 📸 Application Screenshots
