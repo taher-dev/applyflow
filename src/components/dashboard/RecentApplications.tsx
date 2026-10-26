@@ -62,7 +62,7 @@ import { ApplicationCardGrid } from './ApplicationCardGrid'
 import { ApplicationFilters } from './ApplicationFilters'
 import { ApplicationPagination } from './ApplicationPagination'
 
-export type CategoryTab = 'all' | 'applied' | 'rejected' | 'offer'
+export type CategoryTab = 'all' | 'saved' | 'applied' | 'rejected' | 'offer'
 
 interface RecentApplicationsProps {
   applications: JobApplication[]
@@ -78,6 +78,7 @@ interface RecentApplicationsProps {
 }
 
 const ALL_STATUSES: ApplicationStatus[] = [
+  'Saved',
   'Applied',
   'Rejected',
   'Offer',
@@ -85,6 +86,8 @@ const ALL_STATUSES: ApplicationStatus[] = [
 
 function getStatusBadgeClass(status: ApplicationStatus): string {
   switch (status) {
+    case 'Saved':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
     case 'Offer':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
     case 'Rejected':
@@ -266,9 +269,11 @@ export function RecentApplications({
 
   // Dynamic section title based on active category filter tab
   const sectionTitle = useMemo(() => {
+    if (categoryTab === 'saved') return 'Saved'
     if (categoryTab === 'applied') return 'Applied'
     if (categoryTab === 'rejected') return 'Rejected'
     if (categoryTab === 'offer') return 'Offer'
+    if (statusFilter === 'Saved') return 'Saved'
     if (statusFilter === 'Applied') return 'Applied'
     if (statusFilter === 'Rejected') return 'Rejected'
     if (statusFilter === 'Offer') return 'Offer'
@@ -280,6 +285,8 @@ export function RecentApplications({
     setCategoryTab(tab)
     if (tab === 'all') {
       setStatusFilter('ALL')
+    } else if (tab === 'saved') {
+      setStatusFilter('Saved')
     } else if (tab === 'applied') {
       setStatusFilter('Applied')
     } else if (tab === 'rejected') {
@@ -363,6 +370,7 @@ export function RecentApplications({
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
         {[
           { id: 'all', label: 'All Applications' },
+          { id: 'saved', label: 'Saved' },
           { id: 'applied', label: 'Applied' },
           { id: 'rejected', label: 'Rejected' },
           { id: 'offer', label: 'Offer' },

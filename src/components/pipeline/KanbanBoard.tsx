@@ -124,6 +124,7 @@ export function KanbanBoard({
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
         {[
           { id: 'all', label: 'All Applications' },
+          { id: 'Saved', label: 'Saved' },
           { id: 'Applied', label: 'Applied' },
           { id: 'Rejected', label: 'Rejected' },
           { id: 'Offer', label: 'Offer' },

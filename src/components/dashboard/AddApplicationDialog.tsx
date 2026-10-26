@@ -359,6 +359,7 @@ export function ApplicationFormDialog({
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent position="popper">
+                        <SelectItem value="Saved">Saved</SelectItem>
                         <SelectItem value="Applied">Applied</SelectItem>
                         <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="Offer">Offer</SelectItem>

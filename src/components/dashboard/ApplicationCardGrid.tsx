@@ -174,7 +174,7 @@ export function ApplicationCardGrid({
                   </span>
                 )}
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/95 text-slate-700 shadow-2xs border border-black/5">
-                  {app.status === 'Offer' ? 'Offer' : app.status === 'Rejected' ? 'Rejected' : 'Applied'}
+                  {app.status}
                 </span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import type { ApplicationStatus } from '@/types/dashboard'
 
-export type KanbanCategory = 'Applied' | 'Rejected' | 'Offer'
+export type KanbanCategory = 'Saved' | 'Applied' | 'Rejected' | 'Offer'
 
 export interface ColumnDefinition {
   id: KanbanCategory
@@ -16,12 +16,27 @@ export interface ColumnDefinition {
 }
 
 export const KANBAN_CATEGORIES: KanbanCategory[] = [
+  'Saved',
   'Applied',
   'Rejected',
   'Offer',
 ]
 
 export const PIPELINE_COLUMNS: ColumnDefinition[] = [
+  {
+    id: 'Saved',
+    status: 'Saved',
+    label: 'Saved',
+    description: 'Discovered opportunities to review & apply',
+    color: 'amber',
+    dotClass: 'bg-amber-500',
+    badgeClass:
+      'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+    activeDropClass:
+      'border-amber-400 bg-amber-50/60 dark:bg-amber-950/40 ring-2 ring-amber-400/20',
+    statuses: ['Saved'],
+    dropStatus: 'Saved',
+  },
   {
     id: 'Applied',
     status: 'Applied',
@@ -33,7 +48,7 @@ export const PIPELINE_COLUMNS: ColumnDefinition[] = [
       'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
     activeDropClass:
       'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-500/20',
-    statuses: ['Applied', 'Active', 'Screening', 'Interview', 'Saved'],
+    statuses: ['Applied', 'Active', 'Screening', 'Interview'],
     dropStatus: 'Applied',
   },
   {
@@ -68,6 +83,8 @@ export const PIPELINE_COLUMNS: ColumnDefinition[] = [
 
 export function getApplicationCategory(status: ApplicationStatus): KanbanCategory {
   switch (status) {
+    case 'Saved':
+      return 'Saved'
     case 'Offer':
       return 'Offer'
     case 'Rejected':
@@ -76,7 +93,6 @@ export function getApplicationCategory(status: ApplicationStatus): KanbanCategor
     case 'Active':
     case 'Screening':
     case 'Interview':
-    case 'Saved':
     default:
       return 'Applied'
   }
@@ -107,6 +123,7 @@ export function getPreviousCategory(currentStatus: ApplicationStatus): {
 }
 
 export const STAGE_ORDER: ApplicationStatus[] = [
+  'Saved',
   'Applied',
   'Rejected',
   'Offer',

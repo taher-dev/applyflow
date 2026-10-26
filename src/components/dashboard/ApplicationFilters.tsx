@@ -93,6 +93,7 @@ export function ApplicationFilters({
             </SelectTrigger>
             <SelectContent position="popper">
               <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="Saved">Saved</SelectItem>
               <SelectItem value="Applied">Applied</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
               <SelectItem value="Offer">Offer</SelectItem>
