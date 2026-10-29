@@ -10,7 +10,7 @@ const ALLOWED_BDJOBS_HOSTNAMES = [
 ]
 const BDJOBS_API_ENDPOINT = 'https://api.bdjobs.com/Jobs/api/JobSearch/GetJobSearch'
 const BDJOBS_DETAILS_API_ENDPOINT = 'https://gateway.bdjobs.com/ActtivejobsTest/api/JobSubsystem/jobDetails'
-const DEFAULT_TIMEOUT_MS = 6000
+const DEFAULT_TIMEOUT_MS = 10000
 
 interface RawBDJobsCommon {
   total_records_found?: number | string
@@ -30,6 +30,7 @@ interface RawBDJobsJob {
   deadlineDB?: string
   publishDate?: string
   jobCategory?: string
+  Cat_id?: number | string
   StandoutJob?: number | string
   [key: string]: unknown
 }
@@ -152,6 +153,102 @@ export function normalizeJobDeadline(rawDeadline?: unknown): string | null {
   return cleaned
 }
 
+export function normalizeJobType(rawType?: unknown): string | null {
+  const cleaned = cleanText(rawType)
+  if (!cleaned) return null
+  const lower = cleaned.toLowerCase()
+  if (lower === 'fulltime') return 'Full Time'
+  if (lower === 'parttime') return 'Part Time'
+  if (lower === 'intern') return 'Internship'
+  if (lower.includes('fulltime') && lower.includes('parttime')) return 'Full Time, Part Time'
+  return cleaned
+}
+
+export const BDJOBS_CATEGORY_TO_ID: Record<string, number> = {
+  'it & telecommunication': 8,
+  'it': 8,
+  'telecommunication': 8,
+  'accounting': 1,
+  'finance': 1,
+  'bank': 2,
+  'marketing': 9,
+  'sales': 9,
+  'engineer': 4,
+  'architect': 5,
+  'customer service': 16,
+  'medical': 11,
+  'pharma': 29,
+  'education': 13,
+  'training': 13,
+  'design': 18,
+  'creative': 18,
+  'hr': 17,
+  'garments': 6,
+  'textile': 6,
+  'supply chain': 3,
+  'commercial': 27,
+  'management': 7,
+  'admin': 7,
+  'ngo': 12,
+  'development': 12,
+  'media': 10,
+  'data entry': 15,
+}
+
+export const BDJOBS_ID_TO_CATEGORY: Record<number, string> = {
+  1: 'Accounting / Finance',
+  2: 'Bank / Non-Bank Fin. Inst.',
+  3: 'Commercial / Supply Chain',
+  4: 'Engineer / Architect',
+  5: 'Engineer / Architect',
+  6: 'Garments / Textile',
+  7: 'General Management / Admin',
+  8: 'IT & Telecommunication',
+  9: 'Marketing / Sales',
+  10: 'Media / Event Mgt.',
+  11: 'Medical / Pharma',
+  12: 'NGO / Development',
+  13: 'Education / Training',
+  14: 'Secretary / Receptionist',
+  15: 'Data Entry / Operator',
+  16: 'Customer Service / Call Centre',
+  17: 'HR / Org. Development',
+  18: 'Design / Creative',
+  19: 'Production / Operations',
+  20: 'Hospitality / Travel / Tourism',
+  22: 'Law / Legal',
+  27: 'Commercial / Supply Chain',
+  29: 'Medical / Pharma',
+  30: 'Media / Event Mgt.',
+}
+
+export const BDJOBS_JOB_NATURE_MAP: Record<string, string> = {
+  'full time': 'FullTime',
+  'fulltime': 'FullTime',
+  'part time': 'PartTime',
+  'parttime': 'PartTime',
+  'contract': 'Contract',
+  'contractual': 'Contract',
+  'internship': 'Intern',
+  'intern': 'Intern',
+}
+
+export const BDJOBS_LOCATION_TO_ID: Record<string, string> = {
+  dhaka: '1003',
+  chattogram: '1002',
+  chittagong: '1002',
+  ctg: '1002',
+  sylhet: '1008',
+  rajshahi: '1006',
+  khulna: '1004',
+  barishal: '1001',
+  barisal: '1001',
+  rangpur: '1007',
+  mymensingh: '1005',
+  gazipur: '19',
+  narayanganj: '43',
+}
+
 export class BDJobsProvider implements JobProvider {
   readonly id = 'bdjobs'
   readonly name = 'BDJobs'
@@ -168,22 +265,117 @@ export class BDJobsProvider implements JobProvider {
     const pageSize = Math.min(30, Math.max(1, params.pageSize || 15))
     const fallbackSearchUrl = this.getFallbackSearchUrl(query)
 
-    const hasFilters = Boolean(
-      (params.location && params.location.trim().length > 0) ||
-      (params.employmentType && params.employmentType.trim().length > 0) ||
-      (params.category && params.category.trim().length > 0) ||
-      (params.experience && params.experience.trim().length > 0) ||
-      (params.workplaceType && params.workplaceType.trim().length > 0) ||
-      (params.hasSalary && String(params.hasSalary).trim().length > 0) ||
-      (params.postedWithin && params.postedWithin.trim().length > 0)
+    let targetCatId: number | undefined
+    if (params.category && params.category.trim().length > 0) {
+      const catKey = params.category.trim().toLowerCase()
+      targetCatId = BDJOBS_CATEGORY_TO_ID[catKey]
+      if (targetCatId === undefined) {
+        for (const [key, id] of Object.entries(BDJOBS_CATEGORY_TO_ID)) {
+          if (catKey.includes(key) || key.includes(catKey)) {
+            targetCatId = id
+            break
+          }
+        }
+      }
+    }
+
+    let targetJobNature: string | undefined
+    if (params.employmentType && params.employmentType.trim().length > 0) {
+      const empKey = params.employmentType.trim().toLowerCase()
+      targetJobNature = BDJOBS_JOB_NATURE_MAP[empKey]
+      if (targetJobNature === undefined) {
+        for (const [key, nature] of Object.entries(BDJOBS_JOB_NATURE_MAP)) {
+          if (empKey.includes(key) || key.includes(empKey)) {
+            targetJobNature = nature
+            break
+          }
+        }
+      }
+    }
+
+    let targetLocId: string | undefined
+    if (params.location && params.location.trim().length > 0) {
+      const locKey = params.location.trim().toLowerCase()
+      targetLocId = BDJOBS_LOCATION_TO_ID[locKey]
+      if (targetLocId === undefined) {
+        for (const [key, id] of Object.entries(BDJOBS_LOCATION_TO_ID)) {
+          if (locKey.includes(key) || key.includes(locKey)) {
+            targetLocId = id
+            break
+          }
+        }
+      }
+    }
+
+    const hasUnmappedClientFilters = Boolean(
+      (params.location &&
+        params.location.trim().length > 0 &&
+        !targetLocId &&
+        params.location.trim().toLowerCase() !== 'remote') ||
+      (params.workplaceType && params.workplaceType.trim().toLowerCase() === 'hybrid')
     )
-    const fetchRpp = hasFilters ? 50 : pageSize
+    const fetchRpp = hasUnmappedClientFilters ? 50 : pageSize
 
     const searchUrl = new URL(BDJOBS_API_ENDPOINT)
     searchUrl.searchParams.set('keyword', query)
     searchUrl.searchParams.set('isPro', '1')
+    searchUrl.searchParams.set('ToggleJobs', 'true')
     searchUrl.searchParams.set('pg', String(page))
     searchUrl.searchParams.set('rpp', String(fetchRpp))
+    if (targetCatId != null) {
+      searchUrl.searchParams.set('Category', String(targetCatId))
+    }
+    if (targetJobNature != null) {
+      searchUrl.searchParams.set('jobNature', targetJobNature)
+    }
+    if (targetLocId != null) {
+      searchUrl.searchParams.set('location', targetLocId)
+    } else if (params.location && params.location.trim().toLowerCase() === 'remote') {
+      searchUrl.searchParams.set('workplace', '1')
+    }
+    if (params.workplaceType && params.workplaceType.trim().length > 0) {
+      const wp = params.workplaceType.trim().toLowerCase()
+      if (wp === 'remote') {
+        searchUrl.searchParams.set('workplace', '1')
+      } else if (wp === 'onsite' || wp === 'on-site') {
+        searchUrl.searchParams.set('workplace', '0')
+      }
+    }
+    if (params.experience && params.experience.trim().length > 0) {
+      const expKey = params.experience.trim().toLowerCase()
+      if (expKey === 'freshers' || expKey === 'entry' || expKey.includes('entry') || expKey.includes('fresher')) {
+        searchUrl.searchParams.set('isFresher', 'true')
+      } else if (expKey === '1-3' || expKey === '1_3') {
+        searchUrl.searchParams.set('experience', '1/3')
+      } else if (expKey === '3-5' || expKey === '3_5') {
+        searchUrl.searchParams.set('experience', '3/5')
+      } else if (expKey === '5plus' || expKey === '5+') {
+        searchUrl.searchParams.set('experience', '5/10')
+      }
+    }
+    if (params.postedWithin && params.postedWithin.trim().length > 0) {
+      const pw = params.postedWithin.trim().toLowerCase()
+      if (pw === '24h' || pw === '1d' || pw === '1') {
+        searchUrl.searchParams.set('postedWithin', '1')
+      } else if (pw === '3d' || pw === '3') {
+        searchUrl.searchParams.set('postedWithin', '3')
+      } else if (pw === '7d' || pw === '1w' || pw === '7') {
+        searchUrl.searchParams.set('postedWithin', '7')
+      } else if (pw === '30d' || pw === '1m' || pw === '30') {
+        searchUrl.searchParams.set('postedWithin', '30')
+      }
+    }
+    if (params.hasSalary != null && String(params.hasSalary).trim().length > 0) {
+      const salParam = String(params.hasSalary).trim().toLowerCase()
+      if (salParam === 'disclosed' || salParam === 'true') {
+        searchUrl.searchParams.set('Salary', '1/1000000')
+      } else if (salParam === 'negotiable') {
+        searchUrl.searchParams.set('Salary', '0/0')
+      }
+    }
+    if (params.sortBy === 'deadline') {
+      searchUrl.searchParams.set('deadline', '2')
+    }
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
@@ -244,19 +436,34 @@ export class BDJobsProvider implements JobProvider {
           // Ensure listing URL is within allowed hostnames
           const safeListingUrl = isValidBDJobsUrl(listingUrl) ? listingUrl : fallbackSearchUrl
 
+          const rawCatId = rawJob.Cat_id != null ? Number(rawJob.Cat_id) : undefined
+          const categoryName = (rawCatId && BDJOBS_ID_TO_CATEGORY[rawCatId]) || cleanText(rawJob.jobCategory)
+
+          const isHomeWorkplace =
+            typeof rawJob.WorkPlace === 'string' &&
+            (rawJob.WorkPlace.toLowerCase() === 'home' || rawJob.WorkPlace === '1')
+          let loc = cleanText(rawJob.location)
+          if (isHomeWorkplace) {
+            if (!loc) {
+              loc = 'Remote'
+            } else if (!loc.toLowerCase().includes('remote')) {
+              loc = `${loc} (Remote)`
+            }
+          }
+
           return {
             id: `bdjobs-${rawId || Math.random().toString(36).slice(2, 9)}`,
             source: this.id,
             sourceJobId: rawId,
             title,
             company,
-            location: cleanText(rawJob.location),
-            employmentType: cleanText(rawJob.JobType),
+            location: loc,
+            employmentType: normalizeJobType(rawJob.JobType),
             salary: normalizeJobSalary(rawJob.Salary),
             experience: normalizeJobExperience(rawJob.experience),
             publishedAt: cleanText(rawJob.publishDate),
             deadline: normalizeJobDeadline(rawJob.deadlineDB),
-            summary: cleanText(rawJob.jobCategory),
+            summary: categoryName,
             listingUrl: safeListingUrl,
             retrievedAt,
           }
@@ -266,29 +473,55 @@ export class BDJobsProvider implements JobProvider {
       // Apply location filter safely in memory if user requested one
       if (params.location && params.location.trim().length > 0) {
         const locLower = params.location.trim().toLowerCase()
-        normalizedJobs = normalizedJobs.filter(
-          (job) => job.location && job.location.toLowerCase().includes(locLower)
-        )
+        if (locLower === 'remote') {
+          normalizedJobs = normalizedJobs.filter(
+            (job) => job.location && job.location.toLowerCase().includes('remote')
+          )
+        } else if (!targetLocId) {
+          // Freeform / sub-area search (e.g. "Banani", "Uttara")
+          normalizedJobs = normalizedJobs.filter(
+            (job) => job.location && job.location.toLowerCase().includes(locLower)
+          )
+        }
       }
 
       // Apply employment type filter safely in memory if user requested one
       if (params.employmentType && params.employmentType.trim().length > 0) {
-        const empLower = params.employmentType.trim().toLowerCase().replace(/[-_]/g, '')
+        const empLower = params.employmentType.trim().toLowerCase().replace(/[\s-_]/g, '')
         normalizedJobs = normalizedJobs.filter((job) => {
           if (!job.employmentType) return false
-          const typeLower = job.employmentType.toLowerCase().replace(/[-_]/g, '')
+          const typeLower = job.employmentType.toLowerCase().replace(/[\s-_]/g, '')
+          if (empLower.includes('intern') || empLower === 'internship') {
+            return typeLower.includes('intern') || job.title.toLowerCase().includes('intern')
+          }
+          if (empLower.includes('full')) {
+            return typeLower.includes('full')
+          }
+          if (empLower.includes('part')) {
+            return typeLower.includes('part')
+          }
+          if (empLower.includes('contract')) {
+            return typeLower.includes('contract')
+          }
           return typeLower.includes(empLower)
         })
       }
 
-      // Apply category filter (matches rawJob.jobCategory in summary or title)
+      // Apply category filter (matches mapped Category ID, summary, or title)
       if (params.category && params.category.trim().length > 0) {
         const catLower = params.category.trim().toLowerCase()
-        normalizedJobs = normalizedJobs.filter(
-          (job) =>
+        normalizedJobs = normalizedJobs.filter((job) => {
+          if (targetCatId != null && job.summary) {
+            const expectedName = BDJOBS_ID_TO_CATEGORY[targetCatId]?.toLowerCase()
+            if (expectedName && job.summary.toLowerCase() === expectedName) {
+              return true
+            }
+          }
+          return (
             (job.summary && job.summary.toLowerCase().includes(catLower)) ||
             job.title.toLowerCase().includes(catLower)
-        )
+          )
+        })
       }
 
       // Apply experience filter (job roles containing intern are classified as entry level)
@@ -307,7 +540,7 @@ export class BDJobsProvider implements JobProvider {
             expKey.includes('fresher')
           ) {
             if (isIntern) return true
-            if (!job.experience) return false
+            if (!job.experience) return true
             const expText = job.experience.toLowerCase()
             return (
               expText.includes('fresh') ||
@@ -316,7 +549,13 @@ export class BDJobsProvider implements JobProvider {
               expText.includes('not required') ||
               expText.includes('no experience') ||
               expText.includes('0') ||
-              expText.includes('at most 1')
+              expText.includes('at most 1') ||
+              expText.includes('1 to 2') ||
+              expText.includes('0 to 2') ||
+              expText.includes('0 to 1') ||
+              expText === 'na' ||
+              job.title.toLowerCase().includes('junior') ||
+              job.title.toLowerCase().includes('trainee')
             )
           }
           if (expKey === '1-3' || expKey === '1_3') {
@@ -389,10 +628,10 @@ export class BDJobsProvider implements JobProvider {
           const pubMs = new Date(job.publishedAt).getTime()
           if (isNaN(pubMs)) return true
           const diffHours = (nowMs - pubMs) / (1000 * 60 * 60)
-          if (pw === '24h' || pw === '1d') return diffHours <= 24
-          if (pw === '3d') return diffHours <= 72
-          if (pw === '7d' || pw === '1w') return diffHours <= 168
-          if (pw === '30d' || pw === '1m') return diffHours <= 720
+          if (pw === '24h' || pw === '1d' || pw === '1') return diffHours <= 36
+          if (pw === '3d' || pw === '3') return diffHours <= 84
+          if (pw === '7d' || pw === '1w' || pw === '7') return diffHours <= 180
+          if (pw === '30d' || pw === '1m' || pw === '30') return diffHours <= 744
           return true
         })
       }
@@ -414,9 +653,12 @@ export class BDJobsProvider implements JobProvider {
         }
       }
 
-      const pagedJobs = hasFilters ? normalizedJobs.slice(0, pageSize) : normalizedJobs
-      const finalTotalResults = hasFilters ? normalizedJobs.length : totalResults
-      const finalTotalPages = hasFilters
+      const startIndex = Math.max(0, (page - 1) * pageSize)
+      const pagedJobs = hasUnmappedClientFilters
+        ? normalizedJobs.slice(startIndex, startIndex + pageSize)
+        : normalizedJobs.slice(0, pageSize)
+      const finalTotalResults = hasUnmappedClientFilters ? normalizedJobs.length : totalResults
+      const finalTotalPages = hasUnmappedClientFilters
         ? Math.max(1, Math.ceil(normalizedJobs.length / pageSize))
         : totalPages
 

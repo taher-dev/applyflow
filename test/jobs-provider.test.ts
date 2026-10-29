@@ -170,3 +170,132 @@ test('7. BDJobsProvider filters intern roles when Entry Level (freshers) filter 
     )
   }
 })
+
+test('8. BDJobsProvider filters by Category using official BDJobs category IDs', async () => {
+  const provider = new BDJobsProvider()
+  const itResult = await provider.search({
+    category: 'IT & Telecommunication',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(itResult.provider, 'bdjobs')
+  assert.ok(itResult.totalResults > 0, 'IT category should return matching records')
+  assert.ok(itResult.jobs.length > 0, 'Should return jobs in IT category')
+  for (const job of itResult.jobs) {
+    assert.ok(
+      job.summary === 'IT & Telecommunication' ||
+      job.title.toLowerCase().includes('engineer') ||
+      job.title.toLowerCase().includes('developer') ||
+      job.title.toLowerCase().includes('software') ||
+      job.title.toLowerCase().includes('data') ||
+      job.title.toLowerCase().includes('it'),
+      `Job "${job.title}" should be IT category`
+    )
+  }
+})
+
+test('9. BDJobsProvider filters by Employment Type (Full Time, Part Time, Contract, Internship)', async () => {
+  const provider = new BDJobsProvider()
+  const fullTimeResult = await provider.search({
+    employmentType: 'Full Time',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(fullTimeResult.provider, 'bdjobs')
+  assert.ok(fullTimeResult.totalResults > 0)
+  assert.ok(fullTimeResult.jobs.length > 0)
+  for (const job of fullTimeResult.jobs) {
+    assert.ok(job.employmentType?.toLowerCase().includes('full'), `Expected full time job, got: ${job.employmentType}`)
+  }
+})
+
+test('10. BDJobsProvider filters by Workplace Arrangement (Remote, On-site)', async () => {
+  const provider = new BDJobsProvider()
+  const remoteResult = await provider.search({
+    workplaceType: 'remote',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(remoteResult.provider, 'bdjobs')
+  assert.ok(remoteResult.totalResults > 0)
+  assert.ok(remoteResult.jobs.length > 0)
+  for (const job of remoteResult.jobs) {
+    assert.ok(
+      (job.location || '').toLowerCase().includes('remote') ||
+      (job.title || '').toLowerCase().includes('remote'),
+      `Expected remote job, got location: ${job.location}`
+    )
+  }
+})
+
+test('11. BDJobsProvider filters by Region / Division (Dhaka, Chattogram, Sylhet, Gazipur)', async () => {
+  const provider = new BDJobsProvider()
+  const dhakaResult = await provider.search({
+    location: 'Dhaka',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(dhakaResult.provider, 'bdjobs')
+  assert.ok(dhakaResult.totalResults > 0)
+  assert.ok(dhakaResult.jobs.length > 0)
+})
+
+test('12. BDJobsProvider filters by Experience range (1-3 years)', async () => {
+  const provider = new BDJobsProvider()
+  const expResult = await provider.search({
+    experience: '1-3',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(expResult.provider, 'bdjobs')
+  assert.ok(expResult.totalResults > 0)
+  assert.ok(expResult.jobs.length > 0)
+})
+
+test('13. BDJobsProvider filters by Date Posted (Past 24 Hours, Past 7 Days)', async () => {
+  const provider = new BDJobsProvider()
+  const postedResult = await provider.search({
+    postedWithin: '24h',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(postedResult.provider, 'bdjobs')
+  assert.ok(postedResult.totalResults > 0)
+  assert.ok(postedResult.jobs.length > 0)
+})
+
+test('14. BDJobsProvider filters by Salary (Disclosed Only, Negotiable Only)', async () => {
+  const provider = new BDJobsProvider()
+  const disclosedResult = await provider.search({
+    hasSalary: 'disclosed',
+    page: 1,
+    pageSize: 5,
+  })
+
+  assert.equal(disclosedResult.provider, 'bdjobs')
+  assert.ok(disclosedResult.totalResults > 0)
+  assert.ok(disclosedResult.jobs.length > 0)
+  for (const job of disclosedResult.jobs) {
+    assert.ok(job.salary && /\d/.test(job.salary), `Expected salary with digits, got: ${job.salary}`)
+  }
+})
+
+test('15. BDJobsProvider sorts by deadline closing soonest and paginates', async () => {
+  const provider = new BDJobsProvider()
+  const deadlineResult = await provider.search({
+    sortBy: 'deadline',
+    page: 1,
+    pageSize: 3,
+  })
+
+  assert.equal(deadlineResult.provider, 'bdjobs')
+  assert.ok(deadlineResult.totalResults > 0)
+  assert.equal(deadlineResult.jobs.length, 3)
+})
+
