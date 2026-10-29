@@ -16,6 +16,7 @@ import {
   Loader2,
   ChevronDown,
   SlidersHorizontal,
+  MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -269,6 +270,46 @@ function getCompanyAvatarTheme(name: string): string {
   return AVATAR_PALETTES[index]
 }
 
+type PageItem = number | 'ellipsis-left' | 'ellipsis-right'
+
+/**
+ * Calculates windowed pagination page numbers with ellipses.
+ */
+function getPaginationItems(currentPage: number, totalPages: number): PageItem[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+
+  // Near the start: 1, 2, 3, 4, 5, ..., totalPages
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis-right', totalPages]
+  }
+
+  // Near the end: 1, ..., totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages
+  if (currentPage >= totalPages - 3) {
+    return [
+      1,
+      'ellipsis-left',
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ]
+  }
+
+  // Middle: 1, ..., currentPage - 1, currentPage, currentPage + 1, ..., totalPages
+  return [
+    1,
+    'ellipsis-left',
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    'ellipsis-right',
+    totalPages,
+  ]
+}
+
 export function JobDiscoveryPage({
   existingApplications,
   onSaveJob,
@@ -287,6 +328,7 @@ export function JobDiscoveryPage({
   const [selectedPostedWithin, setSelectedPostedWithin] = useState('')
   const [selectedSortBy, setSelectedSortBy] = useState('relevant')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageJumpInput, setPageJumpInput] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
@@ -400,6 +442,7 @@ export function JobDiscoveryPage({
     setSelectedPostedWithin('')
     setSelectedSortBy('relevant')
     setCurrentPage(1)
+    setPageJumpInput('')
   }
 
   const activeFiltersCount = useMemo(() => {
@@ -509,6 +552,25 @@ export function JobDiscoveryPage({
   const totalResults = searchResponse?.totalResults || 0
   const totalPages = searchResponse?.totalPages || 1
   const isProviderAvailable = searchResponse?.providerAvailable ?? true
+
+  const paginationItems = useMemo(() => {
+    return getPaginationItems(currentPage, totalPages)
+  }, [currentPage, totalPages])
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage === currentPage || newPage < 1 || newPage > totalPages || isLoading) return
+    setCurrentPage(newPage)
+    setPageJumpInput('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePageJumpSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    const target = parseInt(pageJumpInput.trim(), 10)
+    if (!isNaN(target) && target >= 1 && target <= totalPages) {
+      handlePageChange(target)
+    }
+  }
   const fallbackUrl =
     searchResponse?.fallbackSearchUrl ||
     (activeQuery
@@ -1059,44 +1121,118 @@ export function JobDiscoveryPage({
         </div>
       )}
 
-      {/* 7. Pagination */}
+      {/* 7. Pagination with Numbered Buttons & Quick Jump */}
       {!isLoading && jobs.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-200/80 pt-4 px-1 text-xs">
-          <span className="text-slate-500">
-            Page <strong className="font-semibold text-slate-800">{currentPage}</strong> of{' '}
-            <strong className="font-semibold text-slate-800">{totalPages}</strong>
-          </span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200/80 pt-4 px-1 text-xs">
+          {/* Result range & Page Summary */}
+          <div className="text-slate-500 text-center sm:text-left">
+            <span>
+              Showing{' '}
+              <strong className="font-semibold text-slate-800">
+                {Math.min((currentPage - 1) * 12 + 1, totalResults)}–{Math.min(currentPage * 12, totalResults)}
+              </strong>{' '}
+              of <strong className="font-semibold text-slate-800">{totalResults.toLocaleString()}</strong> jobs
+              <span className="text-slate-400 ml-1.5 hidden md:inline">
+                (Page {currentPage} of {totalPages})
+              </span>
+            </span>
+          </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Numbered Controls & Quick Jump */}
+          <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
+            {/* Previous Page Button */}
             <Button
               variant="outline"
               size="sm"
               disabled={currentPage <= 1 || isLoading}
-              onClick={() => {
-                const prev = Math.max(1, currentPage - 1)
-                setCurrentPage(prev)
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-              }}
-              className="h-8 px-2.5 text-xs gap-1 rounded-lg border-slate-200 cursor-pointer"
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="h-8 px-2 sm:px-2.5 text-xs gap-1 rounded-xl border-slate-200 cursor-pointer text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              aria-label="Previous page"
+              title="Previous page"
             >
               <ChevronLeft className="size-3.5" />
-              <span>Prev</span>
+              <span className="hidden sm:inline">Prev</span>
             </Button>
 
+            {/* Page Number Buttons & Ellipses */}
+            {paginationItems.map((item, idx) => {
+              if (item === 'ellipsis-left' || item === 'ellipsis-right') {
+                return (
+                  <span
+                    key={`${item}-${idx}`}
+                    className="size-8 inline-flex items-center justify-center text-slate-400 select-none"
+                    aria-hidden="true"
+                  >
+                    <MoreHorizontal className="size-3.5" />
+                  </span>
+                )
+              }
+
+              const isCurrent = item === currentPage
+              // Responsive hide: on mobile (< sm), keep current page, immediate siblings, and edges
+              const isFarFromCurrent =
+                Math.abs(item - currentPage) > 1 && item !== 1 && item !== totalPages
+
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => handlePageChange(item)}
+                  disabled={isLoading}
+                  className={cn(
+                    'h-8 min-w-[32px] px-2 rounded-xl text-xs font-medium transition-all cursor-pointer inline-flex items-center justify-center select-none',
+                    isFarFromCurrent ? 'hidden sm:inline-flex' : 'inline-flex',
+                    isCurrent
+                      ? 'bg-slate-900 text-white font-semibold shadow-2xs'
+                      : 'bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'
+                  )}
+                  aria-current={isCurrent ? 'page' : undefined}
+                  aria-label={`Go to page ${item}`}
+                >
+                  {item}
+                </button>
+              )
+            })}
+
+            {/* Next Page Button */}
             <Button
               variant="outline"
               size="sm"
               disabled={currentPage >= totalPages || isLoading}
-              onClick={() => {
-                const next = currentPage + 1
-                setCurrentPage(next)
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-              }}
-              className="h-8 px-2.5 text-xs gap-1 rounded-lg border-slate-200 cursor-pointer"
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="h-8 px-2 sm:px-2.5 text-xs gap-1 rounded-xl border-slate-200 cursor-pointer text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              aria-label="Next page"
+              title="Next page"
             >
-              <span>Next</span>
+              <span className="hidden sm:inline">Next</span>
               <ChevronRight className="size-3.5" />
             </Button>
+
+            {/* Quick Page Jump (visible on tablet and desktop when totalPages > 7) */}
+            {totalPages > 7 && (
+              <form
+                onSubmit={handlePageJumpSubmit}
+                className="hidden lg:flex items-center gap-1.5 ml-1 pl-2 border-l border-slate-200"
+              >
+                <span className="text-[11px] text-slate-400">Go to:</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={pageJumpInput}
+                  onChange={(e) => setPageJumpInput(e.target.value)}
+                  placeholder={String(currentPage)}
+                  aria-label="Go to page number"
+                  className="h-7 w-12 rounded-lg border border-slate-200 bg-white text-center text-xs text-slate-800 outline-none focus:border-slate-400 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  type="submit"
+                  className="h-7 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium cursor-pointer transition-colors"
+                >
+                  Go
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
